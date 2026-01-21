@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getTrendIntelligence } from '../services/geminiService';
 import { TrendReport, UserStats } from '../types';
@@ -50,7 +49,7 @@ const TrendIntelligence: React.FC<TrendIntelligenceProps> = ({ stats }) => {
           Trend <span className="text-white not-italic font-sans font-black uppercase glow-text">Oracle</span>
         </h1>
         <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em] max-w-md">
-          Real-time analysis of global aesthetic volatility using Search-Grounded Neural Engines.
+          Real-time analysis of global aesthetic volatility using Global Circuit Analysis.
         </p>
       </header>
 

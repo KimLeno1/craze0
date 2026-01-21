@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getStylingAdvice, generateDreamOutfit } from '../services/geminiService';
 
@@ -92,10 +91,10 @@ const StylistAI: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-8 md:py-16 pb-40 overflow-x-hidden">
       <header className="text-center mb-16 md:mb-32">
         <h1 className="text-5xl sm:text-7xl md:text-[8rem] font-serif italic mb-6 tracking-tighter leading-[0.85] animate-in slide-in-from-top-4 duration-1000">
-          AI Fashion <span className="text-[#EC4899] not-italic font-sans font-black uppercase glow-text">Studio</span>
+          Neural Style <span className="text-[#EC4899] not-italic font-sans font-black uppercase glow-text">Studio</span>
         </h1>
         <p className="text-zinc-500 max-w-2xl mx-auto uppercase text-[9px] sm:text-[11px] font-black tracking-[0.5em] leading-relaxed opacity-60">
-          Gemini-Powered Neural Styling & Archetype Visualization
+          Neural Styling & Archetype Visualization Engine
         </p>
       </header>
 
@@ -185,7 +184,7 @@ const StylistAI: React.FC = () => {
                   <div className="mt-16 flex items-center gap-6 border-t border-white/5 pt-12 relative z-10">
                     <div className="w-16 h-16 rounded-[1.5rem] bg-white text-black flex items-center justify-center font-black text-xl shadow-xl group-hover:rotate-12 transition-transform">CC</div>
                     <div className="space-y-1">
-                      <div className="text-[11px] font-black uppercase tracking-widest text-white">Neural Architect v3.1</div>
+                      <div className="text-[11px] font-black uppercase tracking-widest text-white">Circuit Architect v3.1</div>
                       <div className="text-[9px] text-zinc-600 uppercase tracking-[0.5em] font-bold italic">Authorized Styling Feed</div>
                     </div>
                   </div>
