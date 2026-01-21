@@ -1,9 +1,8 @@
 
 import { GoogleGenAI } from "@google/genai";
+import { TrendReport, TrendSource } from "../types";
 
-// Use process.env.API_KEY directly as per guidelines
 export const getStylingAdvice = async (mood: string, occasion: string) => {
-  // Always initialize right before use
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-3-flash-preview',
@@ -15,12 +14,42 @@ export const getStylingAdvice = async (mood: string, occasion: string) => {
       temperature: 0.8,
     }
   });
-  // Use .text property directly
   return response.text;
 };
 
+export const getTrendIntelligence = async (archetype: string): Promise<TrendReport> => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Analyze current high-fashion street style trends for the ${archetype} aesthetic in 2025. 
+    Focus on specific textures, silhouettes, and cultural movements happening RIGHT NOW. 
+    Provide a concise, authoritative report that makes the user feel like they are getting exclusive insider info.
+    Use terms like 'Market Anomaly', 'Demand Surge', and 'Archival Peak'.`,
+    config: {
+      tools: [{ googleSearch: {} }],
+    },
+  });
+
+  const text = response.text || "Scanning global signals... The circuit is quiet.";
+  const sources: TrendSource[] = [];
+
+  // Extract grounding chunks for citations
+  const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+  if (chunks) {
+    chunks.forEach((chunk: any) => {
+      if (chunk.web) {
+        sources.push({
+          title: chunk.web.title || "External Feed",
+          uri: chunk.web.uri,
+        });
+      }
+    });
+  }
+
+  return { text, sources };
+};
+
 export const generateDreamOutfit = async (description: string) => {
-  // Always initialize right before use
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const response = await ai.models.generateContent({
     model: 'gemini-2.5-flash-image',
@@ -36,35 +65,6 @@ export const generateDreamOutfit = async (description: string) => {
     }
   });
 
-  // Extract the image from candidates
-  if (response.candidates && response.candidates[0].content.parts) {
-    for (const part of response.candidates[0].content.parts) {
-      if (part.inlineData) {
-        return `data:image/png;base64,${part.inlineData.data}`;
-      }
-    }
-  }
-  return null;
-};
-
-export const generateAppLogo = async () => {
-  // Always initialize right before use
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash-image',
-    contents: {
-      parts: [
-        { text: "Minimalist luxury fashion logo for 'Closet Craze'. Monogram 'CC' with a stylized diamond hanger silhouette. Cyberpunk neon pink and metallic silver gradients on a solid black background. Vector style, symmetrical, sharp edges, premium brand identity, 4k." }
-      ]
-    },
-    config: {
-      imageConfig: {
-        aspectRatio: "1:1"
-      }
-    }
-  });
-
-  // Extract the image from candidates
   if (response.candidates && response.candidates[0].content.parts) {
     for (const part of response.candidates[0].content.parts) {
       if (part.inlineData) {

@@ -12,6 +12,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, onNavigate, onOpenCa
   const items = [
     { id: ViewState.LOBBY, icon: '🏠', label: 'Home', action: () => onNavigate(ViewState.LOBBY) },
     { id: 'SECTORS', icon: '⊞', label: 'Sectors', action: onOpenCategories },
+    { id: ViewState.TRENDS, icon: '🛰️', label: 'Intel', action: () => onNavigate(ViewState.TRENDS) },
     { id: ViewState.FAMOUS, icon: '🔥', label: 'Heat', action: () => onNavigate(ViewState.FAMOUS) },
     { id: ViewState.BUNDLES, icon: '🎁', label: 'Kits', action: () => onNavigate(ViewState.BUNDLES) },
   ];

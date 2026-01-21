@@ -20,9 +20,11 @@ import AdminPanel from './components/AdminPanel';
 import SupplierDashboard from './components/SupplierDashboard';
 import CheckoutView from './components/CheckoutView';
 import AdminLogin from './components/AdminLogin';
+import SupplierLogin from './components/SupplierLogin';
+import RoleSelection from './components/RoleSelection';
+import TrendIntelligence from './components/TrendIntelligence';
 import { EXTENDED_PRODUCTS, MOCK_BUNDLES } from './mockData';
 import { USER_ACHIEVEMENTS } from './data/extendedMock';
-import { getHypeRankedProducts } from './services/metricsService';
 import { Product, CartItem, Page, ViewState, UserStats, Bundle, Category, Achievement } from './types';
 
 const App: React.FC = () => {
@@ -140,7 +142,10 @@ const App: React.FC = () => {
       case ViewState.FLASH: return <FlashSales onAddToCart={addToCart} />;
       case ViewState.PROFILE: return <Profile stats={stats} onNavigate={setCurrentView} onLogout={() => setIsAuthenticated(false)} />;
       case ViewState.WISHLIST: return <WishlistView products={EXTENDED_PRODUCTS} wishlistIds={wishlist} onAddToCart={addToCart} onToggleWishlist={toggleWishlist} onProductClick={setSelectedProduct} />;
-      case ViewState.ADMIN_LOGIN: return <AdminLogin onSuccess={handleAdminSuccess} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
+      case ViewState.TRENDS: return <TrendIntelligence stats={stats} />;
+      case ViewState.ROLE_SELECTION: return <RoleSelection onSelect={(role) => setCurrentView(role === 'ADMIN' ? ViewState.ADMIN_LOGIN : ViewState.SUPPLIER_LOGIN)} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
+      case ViewState.ADMIN_LOGIN: return <AdminLogin onSuccess={handleAdminSuccess} onCancel={() => setCurrentView(ViewState.ROLE_SELECTION)} />;
+      case ViewState.SUPPLIER_LOGIN: return <SupplierLogin onSuccess={(id) => handleAdminSuccess('SUPPLIER', id)} onCancel={() => setCurrentView(ViewState.ROLE_SELECTION)} />;
       case ViewState.ADMIN: return <AdminPanel onExit={() => setCurrentView(ViewState.LOBBY)} onNavigate={setCurrentView} />;
       case ViewState.SUPPLIER_DASHBOARD: return <SupplierDashboard supplierId={activeSupplierId || 'sup1'} onLogout={() => setCurrentView(ViewState.LOBBY)} />;
       case ViewState.CHECKOUT: return <CheckoutView items={cart} onComplete={() => setCart([])} onCancel={() => setCurrentView(ViewState.LOBBY)} balances={balances} />;
@@ -148,13 +153,8 @@ const App: React.FC = () => {
     }
   };
 
-  if (currentView === ViewState.ADMIN_LOGIN) return <AdminLogin onSuccess={handleAdminSuccess} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
-  if (currentView === ViewState.ADMIN) return <AdminPanel onExit={() => setCurrentView(ViewState.LOBBY)} onNavigate={setCurrentView} />;
-  if (currentView === ViewState.SUPPLIER_DASHBOARD) return <SupplierDashboard supplierId={activeSupplierId || 'sup1'} onLogout={() => setCurrentView(ViewState.LOBBY)} />;
-  if (currentView === ViewState.CHECKOUT) return <CheckoutView items={cart} onComplete={() => {setCart([]); setCurrentView(ViewState.LOBBY);}} onCancel={() => setCurrentView(ViewState.LOBBY)} balances={balances} />;
-
   if (!isAuthenticated) {
-    return <LandingScreen onComplete={(archetype) => {setStats(prev => ({...prev, selectedPath: archetype})); setIsAuthenticated(true);}} onAdminAccess={() => setCurrentView(ViewState.ADMIN_LOGIN)} />;
+    return <LandingScreen onComplete={(archetype) => {setStats(prev => ({...prev, selectedPath: archetype})); setIsAuthenticated(true);}} onAdminAccess={() => setCurrentView(ViewState.ROLE_SELECTION)} />;
   }
 
   return (

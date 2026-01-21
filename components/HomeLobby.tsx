@@ -27,6 +27,17 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
   
   return (
     <div className="bg-[#050505] animate-in fade-in duration-1000 pb-40">
+      {/* Live Trend Signal Ticker */}
+      <div className="bg-blue-600/10 border-y border-blue-500/20 py-3 overflow-hidden">
+        <div className="animate-[marquee_30s_linear_infinite] whitespace-nowrap flex gap-12 text-[9px] font-black uppercase tracking-[0.4em] text-blue-400">
+          <span>Aesthetic Shift Detected: {products[0].category} Demand +24%</span>
+          <span>// New Tokyo Sector 01 Signals High Velocity</span>
+          <span>// Regional Stock Critical for SKU_1</span>
+          <span>// Neural Intel Upload Complete</span>
+          <span>// SS25 Trends Synchronizing with Global Feeds</span>
+        </div>
+      </div>
+
       {/* Editorial Hero */}
       <section className="relative h-[85vh] md:h-screen w-full overflow-hidden flex flex-col justify-end px-6 md:px-20 pb-20">
         <div className="absolute inset-0 z-0">
@@ -56,11 +67,12 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
             >
               <span className="relative z-10">Shop Collection</span>
             </button>
-            <div className="flex flex-col justify-center">
-              <p className="text-zinc-500 text-[11px] font-bold uppercase tracking-widest max-w-[200px] leading-relaxed">
-                Archival silhouettes curated for the modern circuit.
-              </p>
-            </div>
+            <button 
+              onClick={() => onNavigate(ViewState.TRENDS)}
+              className="px-10 py-6 border border-white/20 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 hover:border-blue-500 transition-all"
+            >
+              Analyze Market Intel
+            </button>
           </div>
         </div>
       </section>
@@ -133,6 +145,10 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
           ))}
         </div>
       </section>
+      
+      <style>{`
+        @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+      `}</style>
     </div>
   );
 };

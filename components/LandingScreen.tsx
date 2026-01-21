@@ -11,9 +11,13 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
   const [authMode, setAuthMode] = useState<'LOGIN' | 'SIGNUP'>('LOGIN');
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [adminClicks, setAdminClicks] = useState(0);
+  const [isGlitching, setIsGlitching] = useState(false);
 
   const handleAdminClick = () => {
     const nextClicks = adminClicks + 1;
+    setIsGlitching(true);
+    setTimeout(() => setIsGlitching(false), 150);
+    
     if (nextClicks >= 5) {
       onAdminAccess?.();
       setAdminClicks(0);
@@ -34,12 +38,12 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
 
   if (view === 'SPLASH') {
     return (
-      <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center overflow-hidden">
+      <div className={`fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 text-center overflow-hidden transition-colors ${isGlitching ? 'bg-zinc-900' : ''}`}>
         {/* Cinematic Background */}
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&q=80&w=2000" 
-            className="w-full h-full object-cover opacity-50 scale-110 animate-[pulse_8s_infinite] blur-[2px]" 
+            className={`w-full h-full object-cover opacity-50 scale-110 animate-[pulse_8s_infinite] blur-[2px] transition-all ${isGlitching ? 'invert' : ''}`} 
             alt="Fashion Editorial" 
           />
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black"></div>
@@ -51,10 +55,10 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
             <div className="inline-block px-6 py-2 border border-[#EC4899]/30 rounded-full bg-black/50 backdrop-blur-md mb-8">
               <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.6em]">Circuit Est. 2025</span>
             </div>
-            <h1 className="text-7xl md:text-[10rem] font-serif italic text-white leading-none tracking-tighter">
+            <h1 className={`text-7xl md:text-[10rem] font-serif italic text-white leading-none tracking-tighter transition-all ${isGlitching ? 'skew-x-12 opacity-50' : ''}`}>
               CLOSET<br/>
               <span className="not-italic font-sans font-black text-white glow-text uppercase select-none">
-                <span className="cursor-default" onClick={handleAdminClick}>C</span>RAZE
+                <span className="cursor-default hover:text-[#EC4899] transition-colors" onClick={handleAdminClick}>C</span>RAZE
               </span>
             </h1>
             <p className="text-zinc-400 text-sm md:text-lg font-medium uppercase tracking-[0.3em] max-w-md mx-auto leading-relaxed mt-6">

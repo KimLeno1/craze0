@@ -75,8 +75,11 @@ export enum ViewState {
   WISHLIST = 'WISHLIST',
   ADMIN = 'ADMIN',
   ADMIN_LOGIN = 'ADMIN_LOGIN',
+  SUPPLIER_LOGIN = 'SUPPLIER_LOGIN',
+  ROLE_SELECTION = 'ROLE_SELECTION',
   SUPPLIER_DASHBOARD = 'SUPPLIER_DASHBOARD',
-  CHECKOUT = 'CHECKOUT'
+  CHECKOUT = 'CHECKOUT',
+  TRENDS = 'TRENDS'
 }
 
 export enum Page {
@@ -151,4 +154,14 @@ export interface Order {
   timestamp: string;
   trackingNumber?: string;
   deliveryAddress: string;
+}
+
+export interface TrendSource {
+  title: string;
+  uri: string;
+}
+
+export interface TrendReport {
+  text: string;
+  sources: TrendSource[];
 }
