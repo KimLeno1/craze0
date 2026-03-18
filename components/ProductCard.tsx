@@ -18,113 +18,84 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isWishlisted 
 }) => {
   const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-  
-  // Simulated dynamic "watching" count for FOMO
-  const watchingCount = Math.floor(product.viewers / 10) + 2;
+  const isHighHeat = product.hypeScore > 85;
+  const demandWidth = Math.min(100, (product.viewers / 200) * 100);
 
   return (
-    <div className="group relative">
+    <div className="group relative flex flex-col h-full animate-in fade-in duration-700">
       <div 
-        className="relative aspect-[3/4] overflow-hidden bg-zinc-900 mb-6 border border-white/5 cursor-pointer"
+        className="relative aspect-[3/4] overflow-hidden bg-black cursor-pointer mb-6"
         onClick={() => onClick(product)}
       >
         <img 
-          src={product.image} 
-          alt={product.name} 
-          className="w-full h-full object-cover transition-all duration-1000 group-hover:scale-110 group-hover:opacity-40"
+          src={product.image} alt={product.name} 
+          className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000 group-hover:scale-105"
         />
         
-        {/* Psychological Trigger: High Discount */}
-        {discountPercent > 0 && (
-          <div className="absolute top-4 right-4 z-10">
-            <div className="bg-[#EC4899] px-3 py-1.5 rounded-full flex items-center gap-1 shadow-[0_0_15px_rgba(236,72,153,0.5)]">
-              <span className="text-[10px] font-black uppercase tracking-widest text-white">-{discountPercent}% OFF</span>
-            </div>
-          </div>
-        )}
-
-        {/* Competition Indicator: FOMO */}
-        <div className="absolute top-4 left-4 z-10">
-          <div className="bg-black/80 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 border border-white/10 shadow-lg">
-            <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
-            <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white">
-              {watchingCount} Watching
-            </span>
-          </div>
+        {/* Minimal Overlays */}
+        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
+          {product.isNew && (
+            <div className="bg-white text-black px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em]">New</div>
+          )}
+          {isHighHeat && (
+            <div className="bg-[#EC4899] text-white px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em]">Heat</div>
+          )}
         </div>
 
-        {/* Quick Add Overlay */}
-        <div className="absolute inset-0 flex flex-col items-center justify-center translate-y-full group-hover:translate-y-0 transition-all duration-500 p-6 bg-black/40 backdrop-blur-sm">
-          <div className="text-[9px] font-black uppercase tracking-[0.3em] text-[#EC4899] mb-5 text-center">Protocol: High Demand Priority</div>
-          
-          <div className="flex w-full gap-2">
+        {/* Choice Hub */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-black/20 backdrop-blur-[2px] hidden sm:flex">
+          <div className="flex gap-2">
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onAddToCart(product);
-              }}
-              className="flex-1 py-4 bg-white text-black text-[9px] uppercase tracking-[0.2em] font-black hover:bg-[#EC4899] hover:text-white transition-all shadow-xl active:scale-95"
+              onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
+              className="h-12 px-8 bg-white text-black text-[9px] uppercase tracking-[0.4em] font-black hover:bg-[#EC4899] hover:text-white transition-all"
             >
-              Add to Bag
+              Acquire
             </button>
             <button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleWishlist(product);
-              }}
-              className={`w-12 h-12 flex items-center justify-center rounded-xl border transition-all active:scale-90 ${
-                isWishlisted 
-                ? 'bg-[#EC4899] border-[#EC4899] text-white shadow-[0_0_20px_rgba(236,72,153,0.4)]' 
-                : 'bg-black/50 border-white/20 text-white hover:bg-white hover:text-black'
+              onClick={(e) => { e.stopPropagation(); onToggleWishlist(product); }}
+              className={`w-12 h-12 flex items-center justify-center border transition-all ${
+                isWishlisted ? 'bg-[#EC4899] border-[#EC4899] text-white' : 'bg-black/50 border-white/20 text-white hover:bg-white hover:text-black'
               }`}
             >
               {isWishlisted ? '💖' : '🤍'}
             </button>
           </div>
         </div>
-
-        {/* Scarcity Badge */}
-        {product.stockCount <= 5 && product.stockCount > 0 && (
-          <div className="absolute bottom-6 left-6 flex items-center gap-2">
-             <div className="px-3 py-1 bg-red-600 text-white text-[8px] font-black uppercase tracking-widest animate-pulse border border-red-500/50 shadow-[0_0_15px_rgba(220,38,38,0.5)]">
-               Critical Stock: {product.stockCount} Left
-             </div>
-          </div>
-        )}
-        
-        {!product.inStock && (
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center">
-            <span className="text-[10px] uppercase tracking-[0.4em] font-black text-white border-y border-white/20 py-4 px-8">Vault Closed</span>
-          </div>
-        )}
       </div>
 
-      <div className="flex justify-between items-start gap-4" onClick={() => onClick(product)}>
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1.5">
-            <h3 className="text-sm font-black uppercase tracking-tight text-white group-hover:text-[#EC4899] transition-colors">{product.name}</h3>
-            {product.isNew && <span className="text-[8px] text-[#EC4899] font-black">NEW</span>}
-          </div>
-          
-          {/* Enhanced Tag Chips immediately below the name */}
-          {product.tags && product.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mb-3">
-              {product.tags.map(tag => (
-                <span 
-                  key={tag} 
-                  className="text-[7px] font-black uppercase tracking-[0.2em] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-zinc-400 group-hover:text-zinc-100 group-hover:border-[#EC4899]/30 transition-all"
-                >
-                  #{tag}
-                </span>
-              ))}
+      <div className="flex flex-col gap-2 flex-1" onClick={() => onClick(product)}>
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-4">
+          <div className="space-y-1 flex-1">
+            <h3 className="text-base sm:text-lg font-serif italic text-white group-hover:text-[#EC4899] transition-colors leading-tight truncate">{product.name}</h3>
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[7px] sm:text-[8px] font-black uppercase tracking-widest">
+              <span className="text-emerald-500">{product.category}</span>
+              <div className="hidden sm:block w-1 h-1 bg-zinc-800 rounded-full"></div>
+              {product.appeal && (
+                <>
+                  <span className="text-purple-500">{product.appeal}</span>
+                  <div className="hidden sm:block w-1 h-1 bg-zinc-800 rounded-full"></div>
+                </>
+              )}
+              <span className={isHighHeat ? 'text-[#EC4899]' : 'text-zinc-600'}>{demandWidth.toFixed(0)}% Demand</span>
             </div>
-          )}
-          
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest">{product.category}</p>
-        </div>
-        <div className="text-right">
-          <span className="text-lg font-black font-mono tracking-tighter text-white block">GH₵{product.price}</span>
-          <span className="text-[10px] font-mono text-zinc-600 line-through">GH₵{product.originalPrice}</span>
+
+            {product.tags && product.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 pt-1">
+                {product.tags.slice(0, 2).map(tag => (
+                  <span key={tag} className="text-[6px] sm:text-[7px] font-black text-orange-500 uppercase tracking-widest drop-shadow-[0_0_5px_rgba(249,115,22,0.8)]">#{tag}</span>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
+            <div className="text-base sm:text-lg font-mono tracking-tighter text-white">GH₵{product.price}</div>
+            <button 
+              onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
+              className="sm:hidden px-4 py-2 bg-white text-black text-[7px] font-black uppercase tracking-widest rounded-lg active:bg-[#EC4899] active:text-white transition-all"
+            >
+              Acquire
+            </button>
+          </div>
         </div>
       </div>
     </div>

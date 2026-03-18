@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Product, Category } from '../types';
+import { Product, Category, Gender } from '../types';
 
 interface SupplierProductEditorProps {
   product?: Product | null;
@@ -9,38 +8,56 @@ interface SupplierProductEditorProps {
 }
 
 const CATEGORIES: Category[] = ['Apparel', 'Accessories', 'Beauty', 'Home'];
+const GENDERS: Gender[] = ['MALE', 'FEMALE', 'UNISEX'];
 
 const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Partial<Product>>({
     name: '',
     price: 0,
     originalPrice: 0,
+    shippingFee: 0,
     image: '',
     category: 'Apparel',
+    gender: 'UNISEX',
     description: '',
     details: [],
     inStock: true,
     stockCount: 0,
-    tags: []
+    tags: [],
+    sizes: [],
+    isCustom: false,
+    priceRange: { min: 0, max: 0 },
+    customizationFields: []
   });
 
   const [detailInput, setDetailInput] = useState('');
   const [tagInput, setTagInput] = useState('');
+  const [sizeInput, setSizeInput] = useState('');
+
+  // Customization Field State
+  const [newFieldName, setNewFieldName] = useState('');
+  const [newFieldType, setNewFieldType] = useState<'text' | 'select' | 'color'>('text');
+  const [newFieldOptions, setNewFieldOptions] = useState('');
 
   useEffect(() => {
     if (product) {
-      // We explicitly pull only the allowed fields to prevent accidental hype manipulation
       setFormData({
         name: product.name,
         price: product.price,
         originalPrice: product.originalPrice,
+        shippingFee: product.shippingFee || 0,
         image: product.image,
         category: product.category,
+        gender: product.gender || 'UNISEX',
         description: product.description,
         details: product.details,
         inStock: product.inStock,
         stockCount: product.stockCount,
-        tags: product.tags
+        tags: product.tags,
+        sizes: product.sizes || [],
+        isCustom: product.isCustom || false,
+        priceRange: product.priceRange || { min: 0, max: 0 },
+        customizationFields: product.customizationFields || []
       });
     }
   }, [product]);
@@ -66,6 +83,43 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
 
   const removeTag = (tagToRemove: string) => {
     setFormData({ ...formData, tags: (formData.tags || []).filter(t => t !== tagToRemove) });
+  };
+
+  const addSize = () => {
+    if (sizeInput.trim()) {
+      setFormData({ ...formData, sizes: [...(formData.sizes || []), sizeInput.trim().toUpperCase()] });
+      setSizeInput('');
+    }
+  };
+
+  const removeSize = (sizeToRemove: string) => {
+    setFormData({ ...formData, sizes: (formData.sizes || []).filter(s => s !== sizeToRemove) });
+  };
+
+  const addCustomField = () => {
+    if (newFieldName.trim()) {
+      const options = newFieldOptions.split(',').map(o => o.trim()).filter(o => o);
+      const newField = {
+        id: `field-${Date.now()}`,
+        label: newFieldName.trim(),
+        type: newFieldType,
+        required: true,
+        options: newFieldType === 'select' ? options : undefined
+      };
+      setFormData({
+        ...formData,
+        customizationFields: [...(formData.customizationFields || []), newField]
+      });
+      setNewFieldName('');
+      setNewFieldOptions('');
+    }
+  };
+
+  const removeCustomField = (id: string) => {
+    setFormData({
+      ...formData,
+      customizationFields: (formData.customizationFields || []).filter(f => f.id !== id)
+    });
   };
 
   return (
@@ -96,7 +150,7 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
                 <input 
                   type="text"
                   required
-                  value={formData.name}
+                  value={formData.name || ''}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] focus:border-[#f59e0b] transition-all outline-none"
                   placeholder="ITEM_NAME_STRING"
@@ -105,24 +159,74 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Base Valuation (GH₵)</label>
+                  <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Available Price (GH₵)</label>
                   <input 
                     type="number"
                     required
-                    value={formData.price}
+                    value={formData.price || 0}
                     onChange={e => setFormData({...formData, price: Number(e.target.value)})}
                     className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] focus:border-[#f59e0b] outline-none"
                   />
                 </div>
                 <div className="space-y-2">
+                  <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Logistics Yield (Shipping GH₵)</label>
+                  <input 
+                    type="number"
+                    required
+                    value={formData.shippingFee || 0}
+                    onChange={e => setFormData({...formData, shippingFee: Number(e.target.value)})}
+                    className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] focus:border-[#f59e0b] outline-none"
+                    placeholder="25"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
                   <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Inventory Depth</label>
                   <input 
                     type="number"
                     required
-                    value={formData.stockCount}
+                    value={formData.stockCount || 0}
                     onChange={e => setFormData({...formData, stockCount: Number(e.target.value)})}
                     className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] focus:border-[#f59e0b] outline-none"
                   />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Sector</label>
+                  <select 
+                    value={formData.category}
+                    onChange={e => setFormData({...formData, category: e.target.value as Category})}
+                    className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] focus:border-[#f59e0b] outline-none appearance-none"
+                  >
+                    {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest block px-1">Scale Options (Sizes)</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="text"
+                    value={sizeInput}
+                    onChange={e => setSizeInput(e.target.value)}
+                    placeholder="ADD_SIZE..."
+                    className="flex-1 bg-black border border-white/10 rounded-2xl px-6 py-3 text-[10px] text-white focus:border-[#f59e0b] outline-none"
+                    onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addSize())}
+                  />
+                  <button type="button" onClick={addSize} className="w-12 h-12 bg-[#f59e0b] text-black rounded-2xl flex items-center justify-center font-black">+</button>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.sizes?.map(size => (
+                    <span 
+                      key={size} 
+                      onClick={() => removeSize(size)}
+                      className="bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b] px-3 py-1 rounded-full text-[8px] font-black uppercase cursor-pointer hover:bg-red-500/20 hover:text-red-500 transition-all"
+                    >
+                      {size} ✕
+                    </span>
+                  ))}
                 </div>
               </div>
 
@@ -131,14 +235,111 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
                 <input 
                   type="url"
                   required
-                  value={formData.image}
+                  value={formData.image || ''}
                   onChange={e => setFormData({...formData, image: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] focus:border-[#f59e0b] outline-none"
                 />
-                {formData.image && (
-                   <div className="mt-4 aspect-[4/5] rounded-3xl overflow-hidden border border-white/5 opacity-50">
-                      <img src={formData.image} className="w-full h-full object-cover" alt="Preview" />
-                   </div>
+              </div>
+
+              {/* Custom Product Configuration */}
+              <div className="space-y-6 pt-6 border-t border-white/5">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] font-black text-[#f59e0b] uppercase tracking-widest border-l-2 border-[#f59e0b] pl-3">Customization Protocol</div>
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input 
+                      type="checkbox"
+                      checked={formData.isCustom || false}
+                      onChange={e => setFormData({...formData, isCustom: e.target.checked})}
+                      className="w-5 h-5 rounded border-white/10 bg-black text-[#f59e0b] focus:ring-[#f59e0b]"
+                    />
+                    <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Enable Customization</span>
+                  </label>
+                </div>
+
+                {formData.isCustom && (
+                  <div className="space-y-6 animate-in fade-in slide-in-from-top-4 duration-500">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Min Price (GH₵)</label>
+                        <input 
+                          type="number"
+                          value={formData.priceRange?.min || 0}
+                          onChange={e => setFormData({...formData, priceRange: { ...formData.priceRange!, min: Number(e.target.value) }})}
+                          className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] outline-none"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Max Price (GH₵)</label>
+                        <input 
+                          type="number"
+                          value={formData.priceRange?.max || 0}
+                          onChange={e => setFormData({...formData, priceRange: { ...formData.priceRange!, max: Number(e.target.value) }})}
+                          className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Customization Form Builder</label>
+                      
+                      <div className="bg-black/40 border border-white/5 rounded-3xl p-6 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <input 
+                            type="text"
+                            placeholder="Field Label"
+                            value={newFieldName}
+                            onChange={e => setNewFieldName(e.target.value)}
+                            className="bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-xs text-white outline-none"
+                          />
+                          <select 
+                            value={newFieldType}
+                            onChange={e => setNewFieldType(e.target.value as any)}
+                            className="bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-xs text-white outline-none"
+                          >
+                            <option value="text">Text Input</option>
+                            <option value="select">Dropdown Select</option>
+                            <option value="color">Color Picker</option>
+                          </select>
+                        </div>
+                        
+                        {newFieldType === 'select' && (
+                          <input 
+                            type="text"
+                            placeholder="Options (comma separated)"
+                            value={newFieldOptions}
+                            onChange={e => setNewFieldOptions(e.target.value)}
+                            className="w-full bg-zinc-900 border border-white/5 rounded-xl px-4 py-3 text-xs text-white outline-none"
+                          />
+                        )}
+
+                        <button 
+                          type="button"
+                          onClick={addCustomField}
+                          className="w-full py-3 bg-[#f59e0b]/10 text-[#f59e0b] border border-[#f59e0b]/20 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#f59e0b] hover:text-black transition-all"
+                        >
+                          Add Field to Form
+                        </button>
+                      </div>
+
+                      <div className="space-y-2">
+                        {formData.customizationFields?.map((field) => (
+                          <div key={field.id} className="flex items-center justify-between bg-zinc-900/30 border border-white/5 px-6 py-4 rounded-2xl">
+                            <div>
+                              <span className="text-xs font-bold text-white uppercase">{field.label}</span>
+                              <span className="ml-3 text-[8px] font-black text-zinc-500 uppercase tracking-widest">[{field.type}]</span>
+                            </div>
+                            <button 
+                              type="button"
+                              onClick={() => removeCustomField(field.id)}
+                              className="text-zinc-600 hover:text-red-500 transition-colors"
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 )}
               </div>
             </div>
@@ -150,7 +351,7 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
                 <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Dossier Snippet</label>
                 <textarea 
                   rows={4}
-                  value={formData.description}
+                  value={formData.description || ''}
                   onChange={e => setFormData({...formData, description: e.target.value})}
                   className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-white focus:border-[#f59e0b] transition-all outline-none resize-none"
                 />
@@ -181,27 +382,13 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
                   ))}
                 </div>
               </div>
-
-              <div className="p-6 bg-zinc-900/50 rounded-3xl border border-white/5 space-y-4">
-                 <div className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Read Only // Market Protocol</div>
-                 <div className="grid grid-cols-2 gap-4 opacity-30 grayscale">
-                    <div className="space-y-1">
-                       <span className="text-[8px] block">Velocity Heat</span>
-                       <span className="text-xs font-black">ENCRYPTED</span>
-                    </div>
-                    <div className="text-right space-y-1">
-                       <span className="text-[8px] block">Global Hype</span>
-                       <span className="text-xs font-black">SYSTEM_AUTH</span>
-                    </div>
-                 </div>
-              </div>
             </div>
           </div>
         </form>
 
         <footer className="p-8 border-t border-white/5 flex gap-4 shrink-0">
           <button 
-            type="button"
+            type="button" 
             onClick={onCancel}
             className="flex-1 py-5 bg-zinc-900 text-zinc-500 rounded-3xl font-black uppercase tracking-widest text-[10px] hover:text-white transition-all"
           >

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { User, Product } from '../types';
 import { databaseService } from '../services/databaseService';
@@ -46,12 +45,13 @@ const AdminDatabaseView: React.FC = () => {
     const timestamp = new Date().toISOString().split('T')[0];
 
     if (activeSubTab === 'USERS') {
-      const headers = ["Handle", "Email", "Archetype", "XP", "Coins", "Gems", "Status", "Last Login", "Total Spent"];
+      const headers = ["Handle", "Email", "Archetype", "REP", "Coins", "Gems", "Status", "Last Login", "Total Spent"];
       const rows = users.map(u => [
         `"${u.handle}"`,
         `"${u.email}"`,
         `"${u.archetype}"`,
-        u.xp,
+        // Fixed: changed 'xp' to 'rep'
+        u.rep,
         u.coins,
         u.gems,
         `"${u.status}"`,
@@ -126,7 +126,7 @@ const AdminDatabaseView: React.FC = () => {
                 <tr>
                   <th className="px-8 py-6">Identity_Handle</th>
                   <th className="px-8 py-6">Archetype</th>
-                  <th className="px-8 py-6 text-right">XP_Level</th>
+                  <th className="px-8 py-6 text-right">REP_Level</th>
                   <th className="px-8 py-6 text-right">Valuation</th>
                   <th className="px-8 py-6">Status</th>
                   <th className="px-8 py-6 text-right">Actions</th>
@@ -150,7 +150,10 @@ const AdminDatabaseView: React.FC = () => {
                         {user.archetype}
                       </span>
                     </td>
-                    <td className="px-8 py-6 text-right text-zinc-300">{user.xp.toLocaleString()}</td>
+                    <td className="px-8 py-6 text-right text-zinc-300">
+                      {/* Fixed: changed 'xp' to 'rep' */}
+                      {user.rep.toLocaleString()}
+                    </td>
                     <td className="px-8 py-6 text-right text-white font-black">GH₵{user.totalSpent.toLocaleString()}</td>
                     <td className="px-8 py-6">
                       <span className={`w-2 h-2 rounded-full inline-block mr-2 ${user.status === 'ACTIVE' ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></span>

@@ -1,206 +1,143 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { Product, FlashSale } from '../types';
-import { EXTENDED_PRODUCTS } from '../mockData';
+import React, { useState, useEffect } from 'react';
+import { Product, FlashSale, ViewState } from '../types';
+import { databaseService } from '../services/databaseService';
 
 interface FlashSalesProps {
-  onAddToCart: (product: Product) => void;
+  onAddToCart: (sale: FlashSale) => void;
+  onNavigate: (view: ViewState) => void;
 }
 
-interface DailySaleData {
-  date: string;
-  productId: string;
-  discountPercent: number;
-  expiryTimestamp: number;
-}
-
-const FlashSales: React.FC<FlashSalesProps> = ({ onAddToCart }) => {
-  const [sale, setSale] = useState<FlashSale | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [isVoided, setIsVoided] = useState(false);
+const FlashSales: React.FC<FlashSalesProps> = ({ onAddToCart, onNavigate }) => {
+  const [sales, setSales] = useState<FlashSale[]>([]);
+  const [window, setWindow] = useState<{ startTime: number; endTime: number } | null>(null);
+  const [isFirstVisit, setIsFirstVisit] = useState(false);
 
   useEffect(() => {
-    const today = new Date().toDateString();
-    const savedSaleRaw = localStorage.getItem('cc_daily_flash_sale');
-    let saleData: DailySaleData;
-
-    if (savedSaleRaw) {
-      const parsed = JSON.parse(savedSaleRaw) as DailySaleData;
-      if (parsed.date === today) {
-        saleData = parsed;
-      } else {
-        saleData = generateNewSale(today);
-      }
-    } else {
-      saleData = generateNewSale(today);
-    }
-
-    const product = EXTENDED_PRODUCTS.find(p => p.id === saleData.productId) || EXTENDED_PRODUCTS[0];
-    const flashProduct: FlashSale = {
-      ...product,
-      price: Math.floor(product.originalPrice * (1 - saleData.discountPercent / 100)),
-      discountPercent: saleData.discountPercent,
-      saleEndTime: saleData.expiryTimestamp
-    };
-
-    setSale(flashProduct);
+    setSales(databaseService.getFlashSales());
     
-    // Initial time check
-    const remaining = Math.max(0, Math.floor((saleData.expiryTimestamp - Date.now()) / 1000));
-    setTimeLeft(remaining);
-    if (remaining <= 0) setIsVoided(true);
-
-  }, []);
-
-  useEffect(() => {
-    if (timeLeft <= 0) {
-      if (timeLeft === 0 && sale) setIsVoided(true);
-      return;
+    let currentWindow = databaseService.getFlashSaleWindow();
+    if (!currentWindow) {
+      currentWindow = databaseService.initializeFlashSaleWindow();
+      setIsFirstVisit(true);
     }
+    setWindow(currentWindow);
 
     const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          setIsVoided(true);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setSales(prev => [...prev]); // Force re-render for timer
     }, 1000);
-
     return () => clearInterval(timer);
-  }, [timeLeft, sale]);
+  }, []);
 
-  const generateNewSale = (dateString: string): DailySaleData => {
-    const randomProduct = EXTENDED_PRODUCTS[Math.floor(Math.random() * EXTENDED_PRODUCTS.length)];
-    const randomDiscount = Math.floor(Math.random() * (50 - 12 + 1)) + 12; // 12% to 50%
-    const randomDurationSec = Math.floor(Math.random() * (10800 - 900 + 1)) + 900; // 15m to 3h
-    
-    const newData: DailySaleData = {
-      date: dateString,
-      productId: randomProduct.id,
-      discountPercent: randomDiscount,
-      expiryTimestamp: Date.now() + (randomDurationSec * 1000)
-    };
-
-    localStorage.setItem('cc_daily_flash_sale', JSON.stringify(newData));
-    return newData;
-  };
-
-  const formatTime = (seconds: number) => {
+  const formatTime = (endTime: number) => {
+    const seconds = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
     const h = Math.floor(seconds / 3600);
     const m = Math.floor((seconds % 3600) / 60);
     const s = seconds % 60;
     return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  if (!sale) return null;
+  const isWindowActive = window && Date.now() < window.endTime;
 
   return (
-    <div className="min-h-[80vh] p-6 md:p-12 flex items-center justify-center animate-in fade-in duration-1000">
-      <div className="relative w-full max-w-5xl overflow-hidden rounded-[4rem] bg-zinc-950 border border-red-500/20 shadow-[0_0_100px_-20px_rgba(239,68,68,0.3)]">
-        
-        {/* Background Thermal Pulse */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_rgba(239,68,68,0.08)_0%,transparent_70%)] animate-pulse"></div>
-        
-        <div className="relative z-10 flex flex-col lg:flex-row items-stretch">
-          
-          {/* Visual Sector */}
-          <div className="w-full lg:w-1/2 aspect-square lg:aspect-auto relative bg-black overflow-hidden group">
-            <img 
-              src={sale.image} 
-              className={`w-full h-full object-cover transition-all duration-1000 ${isVoided ? 'grayscale opacity-20' : 'opacity-70 group-hover:scale-110'}`} 
-              alt={sale.name} 
-            />
-            
-            {/* Scanning HUD Overlay */}
-            {!isVoided && (
-              <div className="absolute inset-0 pointer-events-none">
-                <div className="w-full h-1 bg-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.8)] absolute top-0 animate-[scan_4s_linear_infinite]"></div>
-                <style>{`
-                  @keyframes scan {
-                    0% { top: 0%; }
-                    50% { top: 100%; }
-                    100% { top: 0%; }
-                  }
-                `}</style>
+    <div className="min-h-screen bg-[#050505] text-white pb-40 animate-in fade-in duration-1000">
+      <header className="py-8 md:py-24 px-4 sm:px-6 md:px-20 border-b border-white/5 bg-gradient-to-b from-red-900/10 to-transparent">
+        <div className="max-w-7xl mx-auto space-y-4 md:space-y-6">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="px-2 md:px-3 py-1 bg-red-500 text-[7px] md:text-[8px] font-black text-white uppercase tracking-[0.3em] md:tracking-[0.5em] animate-pulse">
+              {isWindowActive ? 'Liquidation_Active' : 'Window_Closed'}
+            </div>
+            <div className="h-px w-8 md:w-20 bg-red-500/20"></div>
+            {isFirstVisit && (
+              <span className="text-[8px] md:text-[9px] font-bold text-amber-500 uppercase tracking-widest animate-bounce">
+                Daily Window Initialized!
+              </span>
+            )}
+          </div>
+          <h1 className="text-4xl sm:text-6xl md:text-9xl font-serif italic tracking-tighter leading-none">
+            Flash <span className="text-red-500 not-italic font-sans">Sales</span>
+          </h1>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10">
+            <p className="text-zinc-500 text-[9px] md:text-[10px] uppercase tracking-[0.3em] md:tracking-[0.4em] font-black max-w-md leading-relaxed">
+              High-velocity anomalies detected in the archive. These assets are de-materializing rapidly. Secure them before the window collapses.
+            </p>
+            {window && (
+              <div className="bg-zinc-900/50 border border-red-500/20 p-4 md:p-6 rounded-2xl md:rounded-3xl flex flex-col items-center min-w-[140px] md:min-w-[200px] w-fit">
+                <span className="text-[7px] md:text-[8px] font-black text-red-500 uppercase tracking-widest mb-1 md:mb-2">Daily Window Collapse</span>
+                <span className="text-2xl md:text-4xl font-mono font-black text-white">{formatTime(window.endTime)}</span>
               </div>
             )}
-
-            <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-transparent to-transparent"></div>
-            
-            <div className="absolute bottom-10 left-10">
-              <div className="text-[10px] font-black text-red-500 uppercase tracking-[0.5em] mb-2">Target_Identified</div>
-              <h2 className="text-4xl md:text-5xl font-serif italic text-white tracking-tighter">{sale.name}</h2>
-            </div>
-          </div>
-
-          {/* Intel Sector */}
-          <div className="w-full lg:w-1/2 p-10 md:p-16 flex flex-col justify-center gap-10 border-t lg:border-t-0 lg:border-l border-white/5">
-            
-            <header className="space-y-2">
-              <div className="flex items-center gap-3">
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-                <span className="text-[10px] font-black text-red-500 uppercase tracking-[0.4em]">Personalized Anomaly Detected</span>
-              </div>
-              <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-[0.3em]">Protocol 12: Individual Scarcity Allocation</p>
-            </header>
-
-            <section className="space-y-6">
-              <div className="flex items-baseline justify-between border-b border-white/5 pb-6">
-                <div className="space-y-1">
-                  <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest block">Market Base</span>
-                  <span className="text-2xl font-mono text-zinc-700 line-through">${sale.originalPrice}</span>
-                </div>
-                <div className="text-right space-y-1">
-                  <span className="text-[9px] font-black text-red-500 uppercase tracking-widest block">Thermal Price</span>
-                  <span className="text-6xl font-black font-mono text-white tracking-tighter">${sale.price}</span>
-                </div>
-              </div>
-
-              <div className="bg-red-500/5 border border-red-500/20 p-8 rounded-3xl text-center space-y-4">
-                <div className="text-[10px] font-black text-red-500 uppercase tracking-[0.5em]">Collapse Imminent In</div>
-                <div className="text-6xl font-mono font-black text-white tracking-tighter animate-pulse">
-                  {formatTime(timeLeft)}
-                </div>
-                <div className="flex justify-center gap-2">
-                  <span className="px-3 py-1 bg-red-500 text-white text-[8px] font-black rounded-full">-{sale.discountPercent}% VELOCITY BONUS</span>
-                </div>
-              </div>
-            </section>
-
-            <button 
-              onClick={() => onAddToCart(sale)}
-              disabled={isVoided}
-              className={`w-full py-8 rounded-[2rem] font-black uppercase tracking-[0.5em] text-xs transition-all shadow-2xl active:scale-95 group relative overflow-hidden ${
-                isVoided 
-                ? 'bg-zinc-900 text-zinc-600 cursor-not-allowed' 
-                : 'bg-white text-black hover:bg-red-600 hover:text-white'
-              }`}
-            >
-              <span className="relative z-10">{isVoided ? 'ANOMALY_VOIDED' : 'Authorize Acquisition'}</span>
-              {!isVoided && (
-                <div className="absolute inset-0 bg-red-600 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-              )}
-            </button>
-
-            <footer className="text-center">
-              <p className="text-[9px] text-zinc-700 font-black uppercase tracking-[0.3em] leading-relaxed">
-                Notice: Daily anomaly allocation is final. <br/>Attempting to reset terminal will void all current offers.
-              </p>
-            </footer>
-
           </div>
         </div>
+      </header>
 
-        {/* Status Bar */}
-        <div className="absolute bottom-0 left-0 right-0 h-1 bg-zinc-900">
-           <div 
-             className="h-full bg-red-500 transition-all duration-1000" 
-             style={{ width: `${(timeLeft / 10800) * 100}%` }}
-           ></div>
-        </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-20 py-12 md:py-20">
+        {!isWindowActive ? (
+          <div className="text-center py-24 md:py-40 space-y-8">
+            <div className="text-7xl md:text-9xl grayscale opacity-20">⌛</div>
+            <h2 className="text-3xl md:text-4xl font-serif italic text-white/40">The window has collapsed.</h2>
+            <p className="text-zinc-600 text-[10px] uppercase tracking-[0.4em]">Return tomorrow for a new anomaly detection window.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
+            {sales.map(sale => {
+              const isVoided = !isWindowActive; // Global window controls all
+              return (
+                <div 
+                  key={sale.id}
+                  className={`group relative bg-zinc-950 border rounded-[2.5rem] md:rounded-[3rem] overflow-hidden transition-all duration-500 ${
+                    isVoided ? 'border-white/5 opacity-50' : 'border-red-500/20 hover:border-red-500/50 shadow-2xl'
+                  }`}
+                >
+                  <div className="aspect-[4/5] relative overflow-hidden">
+                    <img 
+                      src={sale.image} 
+                      className={`w-full h-full object-cover transition-transform duration-1000 ${!isVoided && 'group-hover:scale-110'}`}
+                      alt={sale.name}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
+                    
+                    {!isVoided && (
+                      <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-red-600 text-white text-[8px] md:text-[9px] font-black px-3 md:px-4 py-1.5 md:py-2 rounded-full uppercase tracking-widest animate-pulse">
+                        -{sale.discountPercent}%
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="p-6 md:p-10 space-y-6 md:space-y-8">
+                    <div className="space-y-2">
+                      <div className="text-[8px] md:text-[9px] font-black text-red-500 uppercase tracking-widest">Anomaly_ID: {sale.id}</div>
+                      <h3 className="text-2xl md:text-3xl font-serif italic text-white">{sale.name}</h3>
+                    </div>
+
+                    <div className="flex justify-between items-end border-b border-white/5 pb-6">
+                      <div className="space-y-1">
+                        <div className="text-[8px] text-zinc-600 uppercase tracking-widest">Base_Cost</div>
+                        <div className="text-lg md:text-xl font-mono text-zinc-700 line-through">GH₵{sale.originalPrice}</div>
+                      </div>
+                      <div className="text-right space-y-1">
+                        <div className="text-[8px] text-red-500 uppercase tracking-widest">Thermal_Price</div>
+                        <div className="text-3xl md:text-4xl font-mono text-white">GH₵{sale.price}</div>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => onAddToCart(sale)}
+                      disabled={isVoided}
+                      className={`w-full py-5 md:py-6 rounded-2xl text-[9px] md:text-[10px] font-black uppercase tracking-widest transition-all ${
+                        isVoided 
+                        ? 'bg-zinc-900 text-zinc-700 cursor-not-allowed' 
+                        : 'bg-white text-black hover:bg-red-600 hover:text-white active:scale-95'
+                      }`}
+                    >
+                      {isVoided ? 'ANOMALY_VOIDED' : 'Secure_Asset'}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

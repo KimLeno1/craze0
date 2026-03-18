@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 const Footer: React.FC = () => {
@@ -6,7 +5,7 @@ const Footer: React.FC = () => {
     <footer className="bg-black text-white px-6 md:px-12 py-24 border-t border-white/5">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-16 md:gap-8">
         <div className="md:col-span-2">
-          <h2 className="text-4xl font-serif italic mb-8">CLOSET<span className="text-[#EC4899] font-sans not-italic font-black">CRAZE</span></h2>
+          <h2 className="text-4xl font-serif italic mb-8">CLOSET<span className="text-[#EC4899] font-sans not-italic font-black">KRAZE</span></h2>
           <p className="text-zinc-500 text-sm max-w-sm leading-relaxed mb-10 font-medium">
             Authorized distributor of high-tier technical silhouettes. Our archival drops are protected by limited serial runs. Secure your place in the circuit.
           </p>

@@ -1,48 +1,95 @@
 
+import { GoogleGenAI, Type } from "@google/genai";
 import { TrendReport } from "../types";
 
-// Local Style Archive for "AI" simulation
-const ADVICE_DATABASE = [
-  "Incorporate high-shine vinyl textures with oversized archival denim. The juxtaposition signals a 'Vanguard' status in high-density urban sectors.",
-  "Leverage monochromatic void-black silhouettes. The absence of color creates a high-velocity visual impact that dominates the New Tokyo circuit.",
-  "Merge tactical utility harnesses with fine silk underlays. This synergy provides 15% more aesthetic efficiency for late-night gala objectives.",
-  "Adopt the 'Liquid Chrome' palette. Reflective surfaces bypass social filters and establish an immediate authority baseline in any arena."
-];
+// The exclusive source of API_KEY is process.env.API_KEY
+// We initialize a new instance per call in dynamic scenarios to ensure the latest selected key is used.
 
-const MOCK_DREAM_OUTFITS = [
-  "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800",
-  "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800",
-  "https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=800",
-  "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=800"
-];
-
+/**
+ * Fetches elite styling advice based on user mood and objective.
+ */
 export const getStylingAdvice = async (mood: string, occasion: string) => {
-  // Simulate network latency for immersion
-  await new Promise(resolve => setTimeout(resolve, 1500));
-  const randomIndex = Math.floor(Math.random() * ADVICE_DATABASE.length);
-  return `Target mood '${mood.toUpperCase()}' for objective '${occasion.toUpperCase()}' analyzed. ${ADVICE_DATABASE[randomIndex]}`;
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-flash-preview',
+    contents: `Analyze user mood '${mood}' and objective '${occasion}'. Provide an elite, provocative styling verdict for 'Closet Kraze'.`,
+    config: {
+      systemInstruction: "You are a Senior Style Architect. Your tone is confident, modern, and clinical. Focus on silhouette weight and status signaling. Max 50 words.",
+    },
+  });
+
+  return response.text || "Maintain baseline silhouette. Neural sensors offline.";
 };
 
+/**
+ * Fetches market trend intelligence using Gemini 3 Pro for complex reasoning.
+ */
 export const getTrendIntelligence = async (archetype: string): Promise<TrendReport> => {
-  await new Promise(resolve => setTimeout(resolve, 2000));
-  
-  const reports: Record<string, string> = {
-    'CYBER': "Market Anomaly detected in Neo Tokyo Sector 01. Tech-wear silhouettes are seeing a 42% demand surge. Archival peak for 'Fiber-Optic' fabrics imminent.",
-    'VOID': "Global signals indicate a mass shift toward Minimalist Void aesthetics. Silhouette density is dropping as 'Zero Point' styling becomes the new authority standard.",
-    'LUXE': "Demand for 'Quiet Luxury' archival pieces has triggered a regional scarcity multiplier. Elite archivers are pivoting to sculpted silk and vacuum-plated accessories."
-  };
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const response = await ai.models.generateContent({
+    model: 'gemini-3-pro-preview',
+    contents: `Provide an analytical fashion market intelligence report for the '${archetype}' archetype in Sector_01 for the current lunar cycle.`,
+    config: {
+      systemInstruction: "You are a market oracle. Return trend intel in JSON format. Be avant-garde and analytical. Focus on material scarcity and aesthetic shifts.",
+      responseMimeType: "application/json",
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          text: {
+            type: Type.STRING,
+            description: 'The analytical report text.',
+          },
+          sources: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                title: { type: Type.STRING },
+                uri: { type: Type.STRING },
+              },
+              required: ["title", "uri"],
+            },
+          },
+        },
+        required: ["text", "sources"],
+      },
+    },
+  });
 
-  return {
-    text: reports[archetype] || reports['CYBER'],
-    sources: [
-      { title: "Neo Tokyo Market Feed", uri: "https://archives.closetcraze.nt/trends" },
-      { title: "Neural Style Weekly", uri: "https://vibe.circuit.net/intel" }
-    ]
-  };
+  try {
+    return JSON.parse(response.text || "{}");
+  } catch (e) {
+    return {
+      text: "Global signals indicate a mass shift toward Minimalist Void aesthetics. Silhouette density is dropping as 'Zero Point' styling becomes the new authority standard.",
+      sources: [{ title: "Neo Tokyo Market Feed", uri: "https://archives.closetkraze.nt/trends" }]
+    };
+  }
 };
 
-export const generateDreamOutfit = async (description: string) => {
-  await new Promise(resolve => setTimeout(resolve, 3000));
-  // Return a random high-quality fashion image as the "materialized" blueprint
-  return MOCK_DREAM_OUTFITS[Math.floor(Math.random() * MOCK_DREAM_OUTFITS.length)];
+/**
+ * Generates an outfit blueprint. Pro Image is used for high-fidelity requests.
+ */
+export const generateDreamOutfit = async (description: string, highFi: boolean = false) => {
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const model = highFi ? 'gemini-3-pro-image-preview' : 'gemini-2.5-flash-image';
+  
+  const response = await ai.models.generateContent({
+    model: model,
+    contents: {
+      parts: [{ text: `High-fashion editorial blueprint for Closet Kraze. Subject: ${description}. Technical streetwear, luxury avant-garde, cinematic lighting.` }],
+    },
+    config: {
+      imageConfig: {
+        aspectRatio: "3:4",
+        imageSize: highFi ? "2K" : "1K"
+      }
+    }
+  });
+
+  const part = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+  if (part?.inlineData) {
+    return `data:image/png;base64,${part.inlineData.data}`;
+  }
+
+  return "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800";
 };

@@ -38,7 +38,7 @@ const SupplierLogin: React.FC<SupplierLoginProps> = ({ onSuccess, onCancel }) =>
 
   const handleFinalAuth = () => {
     // Supplier login: Standard check for this demo environment
-    if (credentials.username.toUpperCase() === 'SUPPLIER' && credentials.password === 'NODE_2025') {
+    if (credentials.username.toLowerCase() === 'supplier' && credentials.password === 'NODE_2025') {
       setStatus('SUCCESS');
       setTimeout(() => onSuccess(selectedSupplierId), 800);
     } else {
@@ -88,24 +88,6 @@ const SupplierLogin: React.FC<SupplierLoginProps> = ({ onSuccess, onCancel }) =>
             </div>
           ) : (
             <form onSubmit={(e) => { e.preventDefault(); setStatus('AUTHENTICATING'); }} className="space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-              <div className="space-y-2">
-                <label className="text-[9px] uppercase font-black text-zinc-600 tracking-widest px-1">Regional Node ID</label>
-                <div className="relative group">
-                  <select 
-                    value={selectedSupplierId}
-                    onChange={(e) => setSelectedSupplierId(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-xs font-mono text-white outline-none focus:border-[#f59e0b]/50 transition-all appearance-none cursor-pointer"
-                  >
-                    {suppliers.map(sup => (
-                      <option key={sup.id} value={sup.id} className="bg-zinc-950 text-white">
-                        {sup.id.toUpperCase()} // {sup.name}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-[#f59e0b]">▼</div>
-                </div>
-              </div>
-
               <div className="space-y-5">
                 <div className="space-y-2">
                   <label className="text-[9px] uppercase font-black text-zinc-600 tracking-widest px-1">Operator Handle</label>
@@ -151,6 +133,10 @@ const SupplierLogin: React.FC<SupplierLoginProps> = ({ onSuccess, onCancel }) =>
               </div>
             </form>
           )}
+
+          <div className="text-center opacity-10 hover:opacity-100 transition-opacity duration-700">
+            <p className="text-[8px] uppercase tracking-widest">HINT: supplier / NODE_2025</p>
+          </div>
         </div>
       </div>
     </div>

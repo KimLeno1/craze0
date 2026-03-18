@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { UserStats, ViewState } from '../types';
 
@@ -36,7 +35,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, logoUrl }) => 
           </div>
           <div className="flex flex-col">
             <div className="text-2xl font-serif italic tracking-tighter leading-none text-white">
-              CLOSET<span className="text-[#EC4899] font-sans font-black not-italic ml-0.5">CRAZE</span>
+              CLOSET<span className="text-[#EC4899] font-sans font-black not-italic ml-0.5">KRAZE</span>
             </div>
             <div className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-500 mt-1">Est. 2025 • New Tokyo</div>
           </div>
@@ -58,16 +57,6 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, logoUrl }) => 
               }`}></span>
             </button>
           ))}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-6">
-          <div 
-            onClick={() => onNavigate(ViewState.PROFILE)}
-            className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center text-xl cursor-pointer hover:bg-[#EC4899]/10 transition-colors"
-          >
-            👤
-          </div>
         </div>
       </nav>
     </>

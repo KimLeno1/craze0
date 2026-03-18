@@ -63,9 +63,20 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
                       <div className="w-8 h-8 rounded-lg overflow-hidden shrink-0">
                         <img src={item.image} className="w-full h-full object-cover grayscale" />
                       </div>
-                      <span className="text-[9px] font-black text-zinc-400 uppercase tracking-tighter">
-                        {item.quantity}x {item.name}
-                      </span>
+                      <div className="flex flex-col">
+                        <span className="text-[9px] font-black text-zinc-400 uppercase tracking-tighter">
+                          {item.quantity}x {item.name}
+                        </span>
+                        {item.customizationData && Object.keys(item.customizationData).length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {Object.entries(item.customizationData).map(([fieldId, value]) => (
+                              <span key={fieldId} className="text-[7px] font-bold text-amber-500/80 uppercase">
+                                {String(value)}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

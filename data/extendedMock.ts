@@ -1,4 +1,3 @@
-
 import { ProductPerformance, Achievement } from '../types';
 
 export const PRODUCT_PERFORMANCE_DATA: ProductPerformance[] = [
@@ -18,7 +17,8 @@ export const USER_ACHIEVEMENTS: Achievement[] = [
     icon: '⚡', 
     unlocked: true, 
     progress: 1, 
-    goal: 1 
+    goal: 1,
+    rewardREP: 500
   },
   { 
     id: 'a2', 
@@ -27,7 +27,8 @@ export const USER_ACHIEVEMENTS: Achievement[] = [
     icon: '🔥', 
     unlocked: false, 
     progress: 1, 
-    goal: 3 
+    goal: 3,
+    rewardREP: 1500
   },
   { 
     id: 'a3', 
@@ -36,16 +37,18 @@ export const USER_ACHIEVEMENTS: Achievement[] = [
     icon: '📦', 
     unlocked: false, 
     progress: 0, 
-    goal: 2 
+    goal: 2,
+    rewardREP: 2500
   },
   { 
     id: 'a4', 
     title: 'Circuit_Elite', 
-    description: 'Reach a total archive valuation of $5,000.', 
+    description: 'Reach a total archive valuation of GH₵5,000.', 
     icon: '💎', 
     unlocked: false, 
     progress: 1250, 
-    goal: 5000 
+    goal: 5000,
+    rewardREP: 5000
   },
   { 
     id: 'a5', 
@@ -54,7 +57,8 @@ export const USER_ACHIEVEMENTS: Achievement[] = [
     icon: '🌑', 
     unlocked: false, 
     progress: 4, 
-    goal: 10 
+    goal: 10,
+    rewardREP: 1000
   },
   { 
     id: 'a6', 
@@ -63,14 +67,7 @@ export const USER_ACHIEVEMENTS: Achievement[] = [
     icon: '🏛️', 
     unlocked: false, 
     progress: 42, 
-    goal: 100 
+    goal: 100,
+    rewardREP: 2000
   }
-];
-
-export const GAME_REWARDS_POOL = [
-  { id: 'r1', type: 'COINS', value: 100, label: '100 COINS' },
-  { id: 'r2', type: 'COINS', value: 500, label: '500 COINS' },
-  { id: 'r3', type: 'GEMS', value: 10, label: '10 GEMS' },
-  { id: 'r4', type: 'GEMS', value: 50, label: '50 GEMS' },
-  { id: 'r5', type: 'XP', value: 250, label: '250 XP' },
 ];

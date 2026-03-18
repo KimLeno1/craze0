@@ -1,13 +1,56 @@
 
 export type Category = 'All' | 'Apparel' | 'Accessories' | 'Home' | 'Beauty';
+export type Gender = 'MALE' | 'FEMALE' | 'UNISEX';
+
+export type UserRankTier = 'Novice' | 'Tempest' | 'Icon' | 'Star' | 'Appeal God';
+
+export interface RankBenefits {
+  tier: UserRankTier;
+  vaultLimit: number;
+  aiTryOnLimit: number;
+  discountMultiplier: number; // 0.25 to 1.0
+  ticketsPerPurchase: { tickets: number; perItems: number };
+  payForMeSlots: number;
+  wishlistRetentionDays: number | 'PERMANENT';
+  canSeeSponsors: boolean;
+  canSeeOtherWishlists: boolean;
+}
+
+export interface PromoCode {
+  id: string;
+  code: string;
+  type: 'PERCENT' | 'AMOUNT';
+  value: number;
+  description: string;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: 'INFO' | 'URGENT' | 'REWARD' | 'WELCOME';
+  timestamp: string;
+  read: boolean;
+  recipientId?: string; // For targeted notifications (e.g., supplierId)
+}
+
+export interface CustomizationField {
+  id: string;
+  label: string;
+  type: 'text' | 'select' | 'color';
+  options?: string[]; // For select type
+  required: boolean;
+}
 
 export interface Product {
   id: string;
   name: string;
   price: number;
   originalPrice: number;
+  shippingFee: number;
   image: string;
   category: Category;
+  gender: Gender;
   description: string;
   details: string[];
   inStock: boolean;
@@ -15,10 +58,17 @@ export interface Product {
   viewers: number;
   stockCount: number;
   hypeScore: number;
-  velocityScore: number; // Calculated: (Sales/TotalUsers) / (Stock/TimeToSoldOut)
+  velocityScore: number;
+  isHallOfFame?: boolean;
   synergyPath?: string;
+  appeal?: string;
+  brand?: string;
   tags?: string[];
-  supplierId?: string; // Link to supplier
+  supplierId?: string;
+  sizes: string[];
+  isCustom?: boolean;
+  priceRange?: { min: number; max: number };
+  customizationFields?: CustomizationField[];
 }
 
 export interface Supplier {
@@ -27,7 +77,7 @@ export interface Supplier {
   contactEmail: string;
   region: string;
   status: 'ACTIVE' | 'SUSPENDED' | 'RESTRICTED';
-  performanceScore: number; // 0-100
+  performanceScore: number;
   totalRevenueYield: number;
   joinedDate: string;
 }
@@ -37,7 +87,8 @@ export interface User {
   handle: string;
   email: string;
   archetype: string;
-  xp: number;
+  rep: number;
+  level: number;
   coins: number;
   gems: number;
   status: 'ACTIVE' | 'BANNED' | 'RESTRICTED';
@@ -51,16 +102,27 @@ export interface Bundle {
   products: Product[];
   bundlePrice: number;
   description: string;
-  expiresIn: number; // seconds
+  expiresIn: number;
 }
 
 export interface FlashSale extends Product {
-  saleEndTime: number; // timestamp
+  productId: string;
+  saleEndTime: number;
   discountPercent: number;
 }
 
-export interface CartItem extends Product {
+export interface CartItem extends Partial<Product> {
+  id: string;
+  name: string;
+  price: number;
+  originalPrice: number;
+  shippingFee: number;
+  image: string;
   quantity: number;
+  selectedSize?: string;
+  isBundle?: boolean;
+  bundleProducts?: Product[];
+  customizationData?: Record<string, string>;
 }
 
 export enum ViewState {
@@ -79,7 +141,12 @@ export enum ViewState {
   ROLE_SELECTION = 'ROLE_SELECTION',
   SUPPLIER_DASHBOARD = 'SUPPLIER_DASHBOARD',
   CHECKOUT = 'CHECKOUT',
-  TRENDS = 'TRENDS'
+  CONTACT = 'CONTACT',
+  GAME_SHOWROOM = 'GAME_SHOWROOM',
+  PAY_FOR_ME = 'PAY_FOR_ME',
+  SOCIAL = 'SOCIAL',
+  HALL_OF_FAME = 'HALL_OF_FAME',
+  ADMIN_NOTIFICATIONS = 'ADMIN_NOTIFICATIONS'
 }
 
 export enum Page {
@@ -90,7 +157,7 @@ export enum Page {
 export interface Quest {
   id: string;
   title: string;
-  rewardXP: number;
+  rewardREP: number;
   icon: string;
   completed: boolean;
 }
@@ -100,48 +167,11 @@ export interface UserStats {
   lastGameReset: string;
   quests: Quest[];
   selectedPath: string | null;
-}
-
-export interface SocialEvent {
-  id: string;
-  type: 'PURCHASE' | 'RESERVE' | 'ARENA_WIN' | 'LEVEL_UP';
-  user: string;
-  productName?: string;
-  location: string;
-  timestamp: string;
-}
-
-export interface RegionalScarcity {
-  productId: string;
-  region: string;
-  stockLevel: 'CRITICAL' | 'LOW' | 'STABLE';
-  unitsLeft: number;
-}
-
-export interface ProductPerformance {
-  productId: string;
-  totalPurchases: number;
-  totalSystemUsers: number;
-  initialStock: number;
-  hoursToSoldOut: number;
-}
-
-export interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  unlocked: boolean;
-  progress: number;
-  goal: number;
-}
-
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'PROCESSING',
-  SHIPPED = 'SHIPPED',
-  DELIVERED = 'DELIVERED',
-  CANCELLED = 'CANCELLED'
+  aiTryOnsUsedToday: number;
+  tickets: number;
+  brandSubscriptions: string[];
+  tagSubscriptions: string[];
+  achievements: Achievement[];
 }
 
 export interface Order {
@@ -154,14 +184,98 @@ export interface Order {
   timestamp: string;
   trackingNumber?: string;
   deliveryAddress: string;
+  phone?: string;
 }
 
-export interface TrendSource {
-  title: string;
-  uri: string;
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
+  CANCELLED = 'CANCELLED'
 }
 
 export interface TrendReport {
   text: string;
-  sources: TrendSource[];
+  sources: { title: string; uri: string }[];
+}
+
+// Added missing interfaces to resolve compilation errors in extendedMock.ts, socialProofData.ts, and SocialProofPopup.tsx
+
+/** 
+ * Represents the statistical performance data of a product for velocity calculations.
+ */
+export interface ProductPerformance {
+  productId: string;
+  totalPurchases: number;
+  totalSystemUsers: number;
+  initialStock: number;
+  hoursToSoldOut: number;
+}
+
+/** 
+ * Represents a gamification achievement for the user profile.
+ */
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  unlocked: boolean;
+  progress: number;
+  goal: number;
+  rewardREP: number;
+}
+
+/** 
+ * Represents a real-time social activity event for the social proof notification system.
+ */
+export interface SocialEvent {
+  id: string;
+  type: 'PURCHASE' | 'RESERVE' | 'LEVEL_UP' | 'ARENA_WIN';
+  user: string;
+  productName?: string;
+  location: string;
+  timestamp: string;
+}
+
+/** 
+ * Represents inventory scarcity data restricted by geographic region.
+ */
+export interface RegionalScarcity {
+  productId: string;
+  region: string;
+  stockLevel: 'CRITICAL' | 'LOW' | 'STABLE';
+  unitsLeft: number;
+}
+
+export enum PayForMeStatus {
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED',
+  PAID = 'PAID'
+}
+
+export interface PayForMeRequest {
+  id: string;
+  userId: string;
+  userName: string;
+  items: CartItem[];
+  total: number;
+  status: PayForMeStatus;
+  timestamp: string;
+  payerName?: string;
+  payerContact?: string;
+  message?: string;
+}
+
+export interface SocialPost {
+  id: string;
+  userId: string;
+  userHandle: string;
+  image: string;
+  likes: number;
+  loves: number;
+  timestamp: string;
+  weekId: string;
 }

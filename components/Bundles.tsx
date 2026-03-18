@@ -10,65 +10,74 @@ interface BundlesProps {
 const Bundles: React.FC<BundlesProps> = ({ bundles, onAddBundle }) => {
   return (
     <div className="p-6 md:p-12 space-y-12 animate-in fade-in duration-500 pb-32 max-w-7xl mx-auto">
-      <header className="space-y-4">
-        <h1 className="text-5xl md:text-7xl font-serif italic text-white tracking-tighter leading-none">Synergy <span className="text-[#EC4899] not-italic font-sans font-black uppercase">Kits</span></h1>
-        <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.5em] leading-relaxed max-w-md">
-          Admin-curated archives of slow-moving silhouettes. Re-priced for high-velocity clearance.
-        </p>
+      <header className="flex flex-col md:flex-row md:items-end justify-between gap-10 border-b border-white/5 pb-20">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+             <div className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></div>
+             <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.5em]">Synergy Protocol</span>
+          </div>
+          <h1 className="text-7xl md:text-9xl font-serif italic text-white tracking-tighter leading-none">Kits</h1>
+          <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em] max-w-sm leading-relaxed">
+            Curated archives of synchronized silhouettes. Optimized for high-velocity acquisition.
+          </p>
+        </div>
+        <div className="text-right hidden md:block">
+          <span className="text-[10px] font-black text-zinc-800 uppercase tracking-[1em]">VAULT_CLEARANCE_ACTIVE</span>
+        </div>
       </header>
 
-      <div className="grid gap-12">
-        {bundles.map(bundle => {
+      <div className="divide-y divide-white/5">
+        {bundles.map((bundle, idx) => {
           const originalTotal = bundle.products.reduce((acc, p) => acc + p.originalPrice, 0);
           const savings = originalTotal - bundle.bundlePrice;
           const discountPercent = Math.round((savings / originalTotal) * 100);
 
           return (
-            <div key={bundle.id} className="glass p-10 rounded-[3.5rem] border-white/5 space-y-10 relative overflow-hidden group shadow-3xl">
-              {/* Discount Badge */}
-              <div className="absolute top-0 right-0 bg-black border-l border-b border-white/10 px-8 py-4 rounded-bl-[2.5rem] z-10">
-                <span className="text-xl font-mono font-black text-[#EC4899]">-{discountPercent}%</span>
+            <div key={bundle.id} className="group py-24 space-y-12 hover:bg-white/[0.01] transition-all duration-500 px-4">
+              <div className="flex flex-col md:flex-row items-start justify-between gap-8">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-4">
+                    <span className="text-5xl md:text-7xl font-serif italic text-white/20 group-hover:text-white/40 transition-colors">
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <h2 className="text-4xl md:text-6xl font-serif italic text-white group-hover:text-[#EC4899] transition-colors">{bundle.name}</h2>
+                  </div>
+                  <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] max-w-lg leading-relaxed">
+                    {bundle.description}
+                  </p>
+                </div>
+                
+                <div className="text-right space-y-2">
+                  <div className="flex items-center justify-end gap-4">
+                    <span className="text-zinc-700 line-through font-mono text-xl">GH₵{originalTotal}</span>
+                    <span className="text-4xl font-mono text-white">GH₵{bundle.bundlePrice}</span>
+                  </div>
+                  <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em]">
+                    Yield: -{discountPercent}% Efficiency
+                  </div>
+                </div>
               </div>
 
-              <div className="space-y-3 relative z-10">
-                <h2 className="text-4xl font-serif italic text-white leading-tight">{bundle.name}</h2>
-                <p className="text-zinc-500 text-xs font-medium max-w-lg leading-relaxed italic opacity-80">"{bundle.description}"</p>
-              </div>
-
-              <div className="flex gap-6 overflow-x-auto pb-6 scrollbar-hide snap-x">
+              <div className="flex gap-8 overflow-x-auto pb-8 scrollbar-hide snap-x">
                 {bundle.products.map(p => (
-                  <div key={p.id} className="min-w-[200px] aspect-[3/4] rounded-[2rem] overflow-hidden relative border border-white/5 snap-center group/card">
-                    <img src={p.image} className="w-full h-full object-cover grayscale-[0.5] group-hover/card:grayscale-0 transition-all duration-700" alt={p.name} />
-                    <div className="absolute inset-x-4 bottom-4 glass p-3 rounded-2xl border-white/10 translate-y-2 opacity-0 group-hover/card:translate-y-0 group-hover/card:opacity-100 transition-all">
-                      <div className="text-[8px] font-black text-white uppercase tracking-widest truncate">{p.name}</div>
-                      <div className="text-[7px] font-bold text-zinc-500 uppercase tracking-tighter mt-0.5">{p.category}</div>
+                  <div key={p.id} className="min-w-[280px] md:min-w-[320px] aspect-[3/4] overflow-hidden bg-black border border-white/5 snap-center group/card relative">
+                    <img src={p.image} className="w-full h-full object-cover grayscale group-hover/card:grayscale-0 group-hover/card:scale-105 transition-all duration-1000" alt={p.name} />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-8">
+                      <div className="text-[10px] font-black text-white uppercase tracking-[0.3em]">{p.name}</div>
+                      <div className="text-[8px] text-zinc-500 uppercase tracking-widest mt-1">{p.category}</div>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 pt-10 border-t border-white/5 relative z-10">
-                <div className="flex gap-12">
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-black text-zinc-500 uppercase block tracking-widest">Original Value</span>
-                    <span className="text-xl font-mono font-black text-zinc-700 line-through">GH₵{originalTotal}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-[9px] font-black text-pink-500 uppercase block tracking-widest">Vault Price</span>
-                    <span className="text-4xl font-mono font-black text-white tracking-tighter">GH₵{bundle.bundlePrice}</span>
-                  </div>
-                </div>
-                
+              <div className="flex justify-end">
                 <button 
                   onClick={() => onAddBundle(bundle)}
-                  className="px-16 py-6 bg-white text-black rounded-2xl font-black text-[10px] uppercase tracking-[0.4em] hover:bg-[#EC4899] hover:text-white transition-all shadow-3xl active:scale-95 group"
+                  className="h-16 px-16 bg-white text-black text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl active:scale-95"
                 >
-                  <span className="relative z-10">Acquire Synergy</span>
+                  Acquire Synergy Kit
                 </button>
               </div>
-              
-              {/* Background Accent */}
-              <div className="absolute bottom-[-100px] right-[-100px] w-80 h-80 bg-pink-500/5 blur-[100px] rounded-full group-hover:bg-pink-500/10 transition-colors duration-1000"></div>
             </div>
           );
         })}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 
 interface MysteryBoxProps {
@@ -16,7 +15,7 @@ const MysteryBox: React.FC<MysteryBoxProps> = ({ onReveal, cost }) => {
     setTimeout(() => {
       const rewards = [
         "15% Off Your Entire Cart",
-        "500 Bonus Craze Coins",
+        "500 Bonus Kraze Coins",
         "Free Express Shipping",
         "Exclusive 'VIP' Badge Unlocked",
         "Early Access to Drop #42"

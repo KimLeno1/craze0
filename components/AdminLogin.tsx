@@ -31,7 +31,7 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) => {
 
   const handleAdminAuth = () => {
     const storedAdmin = databaseService.getAdminCredentials();
-    if (credentials.username === storedAdmin.identifier && credentials.password === storedAdmin.password) {
+    if (credentials.username.toLowerCase() === storedAdmin.identifier.toLowerCase() && credentials.password === storedAdmin.password) {
       setStatus('SUCCESS');
       setTimeout(() => onSuccess('ADMIN'), 1000);
     } else {

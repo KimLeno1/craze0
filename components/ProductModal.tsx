@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Product } from '../types';
 
@@ -52,8 +51,12 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
               </div>
               <h2 className="text-5xl md:text-7xl font-serif italic mb-6 leading-[0.85] tracking-tighter text-white">{product.name}</h2>
               <div className="flex flex-wrap gap-2 mb-8">
+                {/* Gender Tag */}
+                <span className="bg-zinc-900 border border-zinc-500/40 px-3 py-1 rounded-full text-[9px] font-black text-zinc-500 uppercase tracking-widest">
+                  {product.gender}
+                </span>
                 {product.tags?.map(tag => (
-                  <span key={tag} className="bg-zinc-900 border border-white/10 px-3 py-1 rounded-full text-[9px] font-black text-zinc-400 uppercase tracking-widest">
+                  <span key={tag} className="bg-zinc-900 border border-purple-500/40 px-3 py-1 rounded-full text-[9px] font-black text-zinc-400 uppercase tracking-widest">
                     #{tag}
                   </span>
                 ))}

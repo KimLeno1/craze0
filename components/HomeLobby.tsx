@@ -1,11 +1,14 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Product, UserStats, ViewState } from '../types';
 import ProductCard from './ProductCard';
+import { LIVE_SOCIAL_FEED } from '../data/socialProofData';
+import { databaseService } from '../services/databaseService';
 
 interface HomeLobbyProps {
   products: Product[];
   stats: UserStats;
+  userHandle: string;
+  socialPosts: any[];
   wishlist: string[];
   onNavigate: (view: ViewState) => void;
   onAddToCart: (id: string) => void;
@@ -15,85 +18,182 @@ interface HomeLobbyProps {
 }
 
 const HomeLobby: React.FC<HomeLobbyProps> = ({ 
-  products, 
-  wishlist,
+  products = [], 
+  stats,
+  userHandle,
+  socialPosts = [],
+  wishlist = [],
   onNavigate, 
   onAddToCart, 
   onToggleWishlist,
   onProductClick
 }) => {
+  const [flashWindow, setFlashWindow] = useState<{ startTime: number; endTime: number } | null>(null);
+  const [timeLeft, setTimeLeft] = useState<string>('');
+
+  useEffect(() => {
+    let currentWindow = databaseService.getFlashSaleWindow();
+    if (!currentWindow) {
+      currentWindow = databaseService.initializeFlashSaleWindow();
+    }
+    setFlashWindow(currentWindow);
+
+    const timer = setInterval(() => {
+      if (currentWindow) {
+        const seconds = Math.max(0, Math.floor((currentWindow.endTime - Date.now()) / 1000));
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        setTimeLeft(`${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   const newArrivals = products.slice(0, 4);
-  const trending = products.filter(p => p.hypeScore > 85).slice(0, 3);
+  const featured = products.find(p => p && p.hypeScore > 95) || products[0];
+
+  if (!featured) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="w-12 h-12 border-2 border-[#EC4899] border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const hallOfFameProducts = products.filter(p => p.isHallOfFame).slice(0, 3);
   
+  const isFlashActive = flashWindow && Date.now() < flashWindow.endTime;
+
   return (
     <div className="bg-[#050505] animate-in fade-in duration-1000 pb-40">
-      {/* Live Trend Signal Ticker */}
-      <div className="bg-blue-600/10 border-y border-blue-500/20 py-3 overflow-hidden">
-        <div className="animate-[marquee_30s_linear_infinite] whitespace-nowrap flex gap-12 text-[9px] font-black uppercase tracking-[0.4em] text-blue-400">
-          <span>Aesthetic Shift Detected: {products[0].category} Demand +24%</span>
-          <span>// New Tokyo Sector 01 Signals High Velocity</span>
-          <span>// Regional Stock Critical for SKU_1</span>
-          <span>// Neural Intel Upload Complete</span>
-          <span>// SS25 Trends Synchronizing with Global Feeds</span>
+      {/* Flash Sale Ticker */}
+      {isFlashActive && (
+        <div className="bg-red-600 py-2 sm:py-3 px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-8 overflow-hidden relative z-50">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-ping"></div>
+            <span className="text-[8px] sm:text-[10px] font-black text-white uppercase tracking-[0.2em] sm:tracking-[0.4em] whitespace-nowrap">Flash Sale Active</span>
+          </div>
+          <div className="hidden sm:block h-4 w-px bg-white/20"></div>
+          <div className="flex items-center gap-3 sm:gap-4">
+            <span className="text-[8px] sm:text-[9px] font-bold text-white/70 uppercase tracking-widest whitespace-nowrap">Collapse In:</span>
+            <span className="text-lg sm:text-xl font-mono font-black text-white">{timeLeft}</span>
+          </div>
+          <button 
+            onClick={() => onNavigate(ViewState.FLASH)}
+            className="w-full sm:w-auto px-4 sm:px-6 py-1 bg-white text-red-600 text-[8px] sm:text-[9px] font-black uppercase tracking-widest rounded-full hover:bg-black hover:text-white transition-all"
+          >
+            Access_Now
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* Editorial Hero */}
-      <section className="relative h-[85vh] md:h-screen w-full overflow-hidden flex flex-col justify-end px-6 md:px-20 pb-20">
+      {/* High-Octane Hero Section */}
+      <section className="relative h-[60vh] sm:h-[70vh] md:h-[85vh] flex flex-col justify-center px-6 sm:px-12 md:px-20 overflow-hidden">
         <div className="absolute inset-0 z-0">
           <img 
             src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=2000" 
-            className="w-full h-full object-cover opacity-60 grayscale hover:grayscale-0 transition-all duration-1000" 
-            alt="Editorial Hero"
+            className="w-full h-full object-cover opacity-30 md:opacity-40 grayscale" 
+            alt="Hero Image"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/70 sm:via-black/60 md:via-black/40 to-transparent"></div>
+          
+          {/* Animated Scan Lines */}
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute w-full h-px bg-[#EC4899]/20 top-0 animate-[scan_8s_linear_infinite]"></div>
+            <div className="absolute w-full h-px bg-[#EC4899]/10 top-0 animate-[scan_12s_linear_infinite_2s]"></div>
+          </div>
         </div>
 
-        <div className="relative z-10 space-y-8 max-w-5xl">
-          <div className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.4em] text-zinc-500">
-            <span>SS25 COLLECTION</span>
-            <span className="w-1 h-1 bg-zinc-500 rounded-full"></span>
-            <span className="text-white">OUTERWEAR SPECIALS</span>
+        <div className="relative z-10 space-y-4 sm:space-y-6 md:space-y-8 max-w-5xl">
+          <div className="flex items-center gap-3 md:gap-4">
+            <div className="h-px w-8 md:w-12 bg-[#EC4899]"></div>
+            <div className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] text-[#EC4899]">
+              Welcome back, {userHandle} // Season 01
+            </div>
           </div>
           
-          <h1 className="text-6xl md:text-[10rem] font-serif italic text-white leading-[0.85] tracking-tighter">
-            The New <br/> <span className="text-white not-italic font-sans font-black uppercase">STANDARD.</span>
+          <h1 className="text-4xl sm:text-6xl md:text-[11rem] font-serif italic text-white leading-[0.9] md:leading-[0.85] tracking-tighter">
+            Style <br/> <span className="text-white not-italic font-sans font-black uppercase glow-text">Unlocked.</span>
           </h1>
           
-          <div className="flex flex-col md:flex-row gap-8 pt-10">
+          <p className="text-zinc-500 text-[9px] sm:text-[10px] md:text-sm font-black uppercase tracking-[0.2em] md:tracking-[0.3em] max-w-[240px] sm:max-w-xs md:max-w-md leading-relaxed">
+            Acquire limited archival silhouettes through high-tier gamified drops. Optimized for the elite archiver.
+          </p>
+          
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 pt-4">
             <button 
               onClick={() => onNavigate(ViewState.FAMOUS)}
-              className="group h-16 px-14 bg-white text-black font-black uppercase tracking-[0.3em] rounded-full hover:bg-pink-500 hover:text-white transition-all shadow-2xl active:scale-95 text-[10px] flex items-center justify-center gap-3 relative overflow-hidden"
+              className="h-12 sm:h-14 md:h-16 px-8 md:px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95"
             >
-              <span className="relative z-10">Shop Collection</span>
+              Shop the Drop
             </button>
             <button 
-              onClick={() => onNavigate(ViewState.TRENDS)}
-              className="px-10 py-6 border border-white/20 text-white rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-blue-500/20 hover:border-blue-500 transition-all"
+              onClick={() => onNavigate(ViewState.FLASH)}
+              className="h-12 sm:h-14 md:h-16 px-8 md:px-10 bg-red-600 text-white text-[8px] sm:text-[9px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em] hover:bg-red-700 transition-all shadow-[0_0_30px_rgba(220,38,38,0.3)] active:scale-95 border border-red-600"
             >
-              Analyze Market Intel
+              Flash Sale
             </button>
+          </div>
+        </div>
+
+        {/* Vertical Rail Text */}
+        <div className="absolute right-10 top-1/2 -translate-y-1/2 hidden lg:block">
+          <div className="rotate-90 origin-right text-[10px] font-black text-zinc-800 uppercase tracking-[1.5em] whitespace-nowrap">
+            STATUS_ACQUISITION_PROTOCOL_ACTIVE
           </div>
         </div>
       </section>
 
-      {/* New Arrivals Section */}
-      <section className="max-w-7xl mx-auto px-6 md:px-12 py-32 space-y-16">
-        <div className="flex justify-between items-end border-b border-white/5 pb-10">
+      {/* Pulse of the Circuit: Live Social Feed */}
+      <div className="bg-zinc-950 border-y border-white/5 py-4 sm:py-6 overflow-hidden relative">
+        <div className="flex gap-8 sm:gap-12 animate-[marquee_50s_linear_infinite] whitespace-nowrap px-6 items-center">
+          {LIVE_SOCIAL_FEED.map((event, idx) => (
+            <div key={idx} className="flex items-center gap-3 sm:gap-4 group cursor-default">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></div>
+              <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-widest">@{event.user}</span>
+              <span className="text-[9px] sm:text-[10px] text-zinc-600 uppercase tracking-widest">
+                {event.type === 'PURCHASE' ? 'Secured' : 'Reserved'} <span className="text-zinc-400">{event.productName || 'Archive Silhouette'}</span>
+              </span>
+              <span className="text-[7px] sm:text-[8px] font-mono text-zinc-800">[{event.timestamp}]</span>
+            </div>
+          ))}
+          {/* Duplicate for seamless loop */}
+          {LIVE_SOCIAL_FEED.map((event, idx) => (
+            <div key={`dup-${idx}`} className="flex items-center gap-3 sm:gap-4 group cursor-default">
+              <div className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></div>
+              <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-widest">@{event.user}</span>
+              <span className="text-[9px] sm:text-[10px] text-zinc-600 uppercase tracking-widest">
+                {event.type === 'PURCHASE' ? 'Secured' : 'Reserved'} <span className="text-zinc-400">{event.productName || 'Archive Silhouette'}</span>
+              </span>
+              <span className="text-[7px] sm:text-[8px] font-mono text-zinc-800">[{event.timestamp}]</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* New Arrivals Grid */}
+      <section className="max-w-screen-2xl mx-auto px-4 sm:px-12 md:px-20 py-16 sm:py-20 md:py-32">
+        <div className="flex flex-col md:flex-row justify-between items-baseline mb-10 sm:mb-12 md:mb-20 gap-4 sm:gap-6 md:gap-8">
           <div className="space-y-2">
-            <h2 className="text-4xl md:text-5xl font-serif italic text-white tracking-tight">New Arrivals</h2>
-            <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.4em]">Curated Weekly // Sector 01</p>
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-2 bg-[#EC4899] rounded-full"></div>
+              <span className="text-[9px] md:text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em] md:tracking-[0.5em]">Live Drop</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-8xl font-serif italic text-white tracking-tighter">New Arrivals</h2>
           </div>
+          <div className="h-px flex-1 bg-white/5 mx-10 hidden md:block"></div>
           <button 
             onClick={() => onNavigate(ViewState.FAMOUS)}
-            className="text-[10px] font-black text-zinc-400 hover:text-white uppercase tracking-widest border-b border-zinc-800 transition-colors pb-1"
+            className="text-[8px] sm:text-[9px] md:text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-[0.3em] md:tracking-[0.4em] transition-all group"
           >
-            Explore All
+            View_All <span className="inline-block group-hover:translate-x-2 transition-transform">→</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-12">
-          {newArrivals.map(p => (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 md:gap-8">
+          {newArrivals.map((p) => (
             <ProductCard 
               key={p.id} 
               product={p} 
@@ -103,51 +203,117 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
               onClick={() => onProductClick(p)} 
             />
           ))}
+        </div>
+      </section>
+
+      {/* The Flash Drop: Spotlight Section */}
+      <section className="py-16 sm:py-20 md:py-40 border-y border-white/5 bg-[#080808] relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#EC4899_0%,transparent_70%)]"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-10 sm:gap-12 md:gap-20">
+          <div className="w-full md:w-1/2 aspect-[3/4] overflow-hidden bg-black border border-white/10 relative group rounded-2xl sm:rounded-3xl">
+            <img src={featured?.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000" alt="Featured" />
+            <div className="absolute top-4 md:top-8 left-4 md:left-8 bg-[#EC4899] text-white px-4 md:px-6 py-1 md:py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-2xl">
+              High Heat // {featured?.hypeScore}%
+            </div>
+          </div>
+          
+          <div className="w-full md:w-1/2 space-y-6 md:space-y-10">
+            <div className="space-y-3 md:space-y-4 text-center md:text-left">
+              <span className="text-[9px] md:text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em] md:tracking-[0.5em]">Spotlight Archive</span>
+              <h2 className="text-4xl sm:text-5xl md:text-8xl font-serif italic text-white tracking-tighter leading-none">{featured?.name}</h2>
+              <p className="text-zinc-500 text-[10px] sm:text-xs md:text-sm font-medium leading-relaxed max-w-md mx-auto md:mx-0">
+                A masterpiece of structural engineering and aesthetic synergy. Limited to 50 units globally.
+              </p>
+            </div>
+            
+            <div className="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+              <div className="space-y-1 text-center md:text-left">
+                <div className="text-[8px] md:text-[10px] font-black text-zinc-600 uppercase tracking-widest">Acquisition Price</div>
+                <div className="text-2xl sm:text-3xl md:text-4xl font-mono text-white">GH₵{featured?.price}</div>
+              </div>
+              <button 
+                onClick={() => onProductClick(featured)}
+                className="w-full md:w-auto h-12 sm:h-14 md:h-16 px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl active:scale-95"
+              >
+                Secure Now
+              </button>
+            </div>
+          </div>
         </div>
       </section>
 
       {/* Scarcity Ticker */}
-      <section className="max-w-7xl mx-auto px-6 py-20 bg-red-950/10 border border-red-500/20 rounded-[3rem] mb-20">
-         <div className="flex flex-col md:flex-row items-center justify-between gap-8 px-10">
-            <div className="flex items-center gap-6">
-               <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/30 flex items-center justify-center text-3xl animate-pulse">⚠️</div>
-               <div>
-                  <h3 className="text-2xl font-serif italic text-white">Vault Criticality</h3>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-red-500">Global stock levels dropping faster than predicted.</p>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 py-12 sm:py-32">
+         <div className="border border-white/5 p-6 sm:p-12 md:p-20 flex flex-col md:flex-row items-center justify-between gap-8 sm:gap-12 text-center md:text-left bg-zinc-950/50 backdrop-blur-sm rounded-[1.5rem] sm:rounded-[3rem]">
+            <div className="space-y-3 sm:space-y-6">
+               <div className="flex items-center justify-center md:justify-start gap-3 sm:gap-4">
+                 <div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-red-500 rounded-full animate-ping"></div>
+                 <h3 className="text-2xl sm:text-4xl md:text-6xl font-serif italic text-white tracking-tighter">Supply Depletion</h3>
                </div>
+               <p className="text-zinc-500 text-[8px] sm:text-[10px] font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] max-w-md leading-relaxed">
+                 Regional archives are reaching zero capacity. Secure your silhouette before global de-materialization.
+               </p>
             </div>
             <button 
               onClick={() => onNavigate(ViewState.FLASH)}
-              className="px-10 py-5 bg-red-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-white hover:text-red-600 transition-all shadow-[0_0_30px_rgba(220,38,38,0.3)]"
+              className="w-full sm:w-auto h-12 sm:h-16 px-8 sm:px-16 bg-white text-black font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[8px] sm:text-[10px] hover:bg-[#EC4899] hover:text-white transition-all active:scale-95"
             >
-              Secure Final Drops
+              Access Vault
             </button>
          </div>
       </section>
 
-      {/* Trending Now Section */}
-      <section className="max-w-7xl mx-auto px-6 md:px-12 py-20 space-y-20">
-        <div className="text-center space-y-4">
-          <h2 className="text-5xl font-serif italic text-white">Trending in New Tokyo</h2>
-          <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em]">Velocity Heat Exceeding 85%</p>
-        </div>
+      {/* Hall of Fame Section */}
+      {hallOfFameProducts.length > 0 && (
+        <section className="max-w-screen-2xl mx-auto px-4 sm:px-12 md:px-20 py-16 sm:py-20 md:py-32 border-t border-white/5">
+          <div className="flex flex-col md:flex-row justify-between items-baseline mb-10 sm:mb-12 md:mb-20 gap-4 sm:gap-6 md:gap-8">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span className="text-[9px] md:text-[10px] font-black text-amber-500 uppercase tracking-[0.4em] md:tracking-[0.5em]">Hall of Fame</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl md:text-8xl font-serif italic text-white tracking-tighter">Elite Archives</h2>
+            </div>
+            <button 
+              onClick={() => onNavigate(ViewState.HALL_OF_FAME)}
+              className="text-[8px] sm:text-[9px] md:text-[10px] font-black text-zinc-500 hover:text-white uppercase tracking-[0.3em] md:tracking-[0.4em] transition-all group"
+            >
+              View_Full_Archive <span className="inline-block group-hover:translate-x-2 transition-transform">→</span>
+            </button>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
-          {trending.map(p => (
-            <ProductCard 
-              key={p.id} 
-              product={p} 
-              isWishlisted={wishlist.includes(p.id)}
-              onAddToCart={() => onAddToCart(p.id)}
-              onToggleWishlist={onToggleWishlist}
-              onClick={() => onProductClick(p)} 
-            />
-          ))}
-        </div>
-      </section>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6 md:gap-12">
+            {hallOfFameProducts.map((product) => (
+              <div 
+                key={product.id} 
+                onClick={() => onProductClick(product)}
+                className="group relative aspect-[4/5] rounded-[2rem] md:rounded-[3rem] overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer"
+              >
+                <img src={product.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt={product.name} />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity"></div>
+                <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-10 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <div className="text-[7px] md:text-[8px] font-black text-amber-500 uppercase tracking-widest">{product.brand || 'Elite_Archive'}</div>
+                    <div className="text-base sm:text-lg md:text-xl font-black text-white uppercase tracking-tighter">{product.name}</div>
+                  </div>
+                  <div className="flex items-center gap-1.5 md:gap-2 bg-white/10 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/10">
+                    <span className="text-[10px] md:text-xs">🏆</span>
+                    <span className="text-[9px] md:text-[10px] font-black text-white">{product.hypeScore}%</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
       
       <style>{`
         @keyframes marquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        @keyframes scan { 0% { top: -10%; opacity: 0; } 50% { opacity: 1; } 100% { top: 110%; opacity: 0; } }
+        .glow-text { text-shadow: 0 0 20px rgba(255,255,255,0.3); }
       `}</style>
     </div>
   );
