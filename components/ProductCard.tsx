@@ -38,7 +38,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <div className="bg-white text-black px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em]">New</div>
           )}
           {isHighHeat && (
-            <div className="bg-[#EC4899] text-white px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em]">Heat</div>
+            <div className="bg-[#1a73e8] text-white px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em]">Heat</div>
           )}
         </div>
 
@@ -47,14 +47,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex gap-2">
             <button 
               onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-              className="h-12 px-8 bg-white text-black text-[9px] uppercase tracking-[0.4em] font-black hover:bg-[#EC4899] hover:text-white transition-all"
+              className="h-12 px-8 bg-white text-black text-[9px] uppercase tracking-[0.4em] font-black hover:bg-[#1a73e8] hover:text-white transition-all"
             >
               Acquire
             </button>
             <button 
               onClick={(e) => { e.stopPropagation(); onToggleWishlist(product); }}
               className={`w-12 h-12 flex items-center justify-center border transition-all ${
-                isWishlisted ? 'bg-[#EC4899] border-[#EC4899] text-white' : 'bg-black/50 border-white/20 text-white hover:bg-white hover:text-black'
+                isWishlisted ? 'bg-[#1a73e8] border-[#1a73e8] text-white' : 'bg-black/50 border-white/20 text-white hover:bg-white hover:text-black'
               }`}
             >
               {isWishlisted ? '💖' : '🤍'}
@@ -66,7 +66,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
       <div className="flex flex-col gap-2 flex-1" onClick={() => onClick(product)}>
         <div className="flex flex-col sm:flex-row justify-between items-start gap-2 sm:gap-4">
           <div className="space-y-1 flex-1">
-            <h3 className="text-base sm:text-lg font-serif italic text-white group-hover:text-[#EC4899] transition-colors leading-tight truncate">{product.name}</h3>
+            <h3 className="text-base sm:text-lg font-serif italic text-white group-hover:text-[#1a73e8] transition-colors leading-tight truncate">{product.name}</h3>
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-[7px] sm:text-[8px] font-black uppercase tracking-widest">
               <span className="text-emerald-500">{product.category}</span>
               <div className="hidden sm:block w-1 h-1 bg-zinc-800 rounded-full"></div>
@@ -76,7 +76,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
                   <div className="hidden sm:block w-1 h-1 bg-zinc-800 rounded-full"></div>
                 </>
               )}
-              <span className={isHighHeat ? 'text-[#EC4899]' : 'text-zinc-600'}>{demandWidth.toFixed(0)}% Demand</span>
+              <span className={isHighHeat ? 'text-[#1a73e8]' : 'text-zinc-600'}>{demandWidth.toFixed(0)}% Demand</span>
             </div>
 
             {product.tags && product.tags.length > 0 && (
@@ -91,7 +91,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <div className="text-base sm:text-lg font-mono tracking-tighter text-white">GH₵{product.price}</div>
             <button 
               onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-              className="sm:hidden px-4 py-2 bg-white text-black text-[7px] font-black uppercase tracking-widest rounded-lg active:bg-[#EC4899] active:text-white transition-all"
+              className="sm:hidden px-4 py-2 bg-white text-black text-[7px] font-black uppercase tracking-widest rounded-lg active:bg-[#1a73e8] active:text-white transition-all"
             >
               Acquire
             </button>

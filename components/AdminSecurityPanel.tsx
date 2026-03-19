@@ -94,7 +94,7 @@ const AdminSecurityPanel: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Integrity_Logs</h3>
-            <button className="text-[8px] font-black text-[#EC4899] uppercase tracking-widest hover:underline">Export_Archive</button>
+            <button className="text-[8px] font-black text-[#1a73e8] uppercase tracking-widest hover:underline">Export_Archive</button>
           </div>
           
           <div className="bg-zinc-950 border border-white/5 rounded-[2.5rem] overflow-hidden">
@@ -146,7 +146,7 @@ const AdminSecurityPanel: React.FC = () => {
               { label: 'Lockdown Mode', desc: 'Terminate all active sessions', action: 'INITIATE', color: 'bg-red-500' },
               { label: 'Flush Cache', desc: 'Clear all temporary neural buffers', action: 'EXECUTE', color: 'bg-zinc-800' },
               { label: 'Rotate Keys', desc: 'Generate new security signatures', action: 'ROTATE', color: 'bg-zinc-800' },
-              { label: 'Audit System', desc: 'Run full integrity diagnostic', action: 'SCAN', color: 'bg-[#EC4899]' },
+              { label: 'Audit System', desc: 'Run full integrity diagnostic', action: 'SCAN', color: 'bg-[#1a73e8]' },
             ].map((control, i) => (
               <div key={i} className="bg-zinc-950 border border-white/5 p-6 rounded-3xl flex items-center justify-between group hover:border-white/20 transition-all">
                 <div className="space-y-1">

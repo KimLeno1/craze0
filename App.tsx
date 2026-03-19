@@ -309,7 +309,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className={`min-h-screen flex flex-col font-sans selection:bg-[#EC4899] selection:text-white transition-colors duration-500 ${
+    <div className={`min-h-screen flex flex-col font-sans selection:bg-[#1a73e8] selection:text-white transition-colors duration-500 ${
       theme === 'dark' ? 'bg-[#050505] text-[#FAFAFA]' : 'bg-[#F9F9F9] text-[#1A1A1A]'
     }`}>
       <Header 
@@ -331,7 +331,7 @@ const App: React.FC = () => {
       />
       
       <div className="fixed top-20 left-0 right-0 h-1 bg-white/5 z-40">
-         <div className="h-full bg-[#EC4899] shadow-[0_0_10px_#EC4899] transition-all duration-1000" style={{ width: `${(activeUsers / 1200) * 100}%` }}></div>
+         <div className="h-full bg-[#1a73e8] shadow-[0_0_10px_#1a73e8] transition-all duration-1000" style={{ width: `${(activeUsers / 1200) * 100}%` }}></div>
       </div>
 
       <main className="pt-24 flex-1">{renderView()}</main>
@@ -341,6 +341,7 @@ const App: React.FC = () => {
         onNavigate={handleNavigateView} 
         onOpenCategories={() => setIsCategoryPanelOpen(true)} 
         onOpenSearch={() => setIsSearchOpen(true)}
+        isAuthenticated={isAuthenticated}
       />
       
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cart} onRemove={(id) => setCart(prev => prev.filter(i => i.id !== id))} onUpdateQuantity={(id, d) => setCart(prev => prev.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity + d)} : i))} onClear={() => setCart([])} onNavigate={handleNavigateView} surgeTimerEnd={surgeTimerEnd} activePromo={activePromo} rank={currentRank} />
@@ -372,7 +373,19 @@ const App: React.FC = () => {
       />
       
       {selectedProduct && (
-        <ProductDetail product={selectedProduct} stats={stats} allProducts={products} onClose={() => setSelectedProduct(null)} onAddToCart={addToCart} onUpdateSynergy={() => {}} onToggleWishlist={toggleWishlist} onProductClick={setSelectedProduct} isInWishlist={wishlist.includes(selectedProduct.id)} rank={currentRank} />
+        <ProductDetail 
+          product={selectedProduct} 
+          stats={stats} 
+          allProducts={products} 
+          wishlistIds={wishlist}
+          onClose={() => setSelectedProduct(null)} 
+          onAddToCart={addToCart} 
+          onUpdateSynergy={() => {}} 
+          onToggleWishlist={toggleWishlist} 
+          onProductClick={setSelectedProduct} 
+          isInWishlist={wishlist.includes(selectedProduct.id)} 
+          rank={currentRank} 
+        />
       )}
       
       {showAuthModal && (

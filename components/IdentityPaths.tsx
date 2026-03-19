@@ -22,7 +22,7 @@ const IdentityPaths: React.FC<IdentityPathsProps> = ({ onSelect, currentPath }) 
             onClick={() => onSelect(path.id)}
             className={`group relative p-8 rounded-[3rem] border transition-all duration-500 cursor-pointer overflow-hidden ${
               currentPath === path.id 
-              ? 'border-pink-500 bg-zinc-900/80' 
+              ? 'border-[#1a73e8] bg-zinc-900/80' 
               : 'border-white/5 bg-zinc-900/20 hover:border-white/20'
             }`}
           >
@@ -37,10 +37,10 @@ const IdentityPaths: React.FC<IdentityPathsProps> = ({ onSelect, currentPath }) 
               </div>
 
               <div className="space-y-3 pt-6 border-t border-white/5">
-                <div className="text-[10px] font-black text-pink-500 uppercase tracking-widest">Active Perks</div>
+                <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest">Active Perks</div>
                 {path.perks.map((perk, i) => (
                   <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-zinc-300">
-                    <span className="w-1 h-1 bg-pink-500 rounded-full"></span>
+                    <span className="w-1 h-1 bg-[#1a73e8] rounded-full"></span>
                     {perk}
                   </div>
                 ))}
@@ -48,8 +48,8 @@ const IdentityPaths: React.FC<IdentityPathsProps> = ({ onSelect, currentPath }) 
 
               <button className={`w-full py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${
                 currentPath === path.id 
-                ? 'bg-pink-500 text-white shadow-xl shadow-pink-500/20' 
-                : 'bg-white text-black hover:bg-pink-500 hover:text-white'
+                ? 'bg-[#1a73e8] text-white shadow-xl shadow-[#1a73e8]/20' 
+                : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
               }`}>
                 {currentPath === path.id ? 'Path Active' : 'Select Class'}
               </button>

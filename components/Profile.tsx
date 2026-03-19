@@ -57,8 +57,8 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
       <header className="flex flex-col lg:flex-row justify-between items-start gap-8">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-             <div className="w-2 h-2 rounded-full bg-[#EC4899] glow-text animate-pulse"></div>
-             <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em]">Archiver Dossier</span>
+             <div className="w-2 h-2 rounded-full bg-[#1a73e8] glow-text animate-pulse"></div>
+             <span className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">Archiver Dossier</span>
           </div>
           <div className="flex items-center gap-4">
             {isEditingHandle ? (
@@ -67,8 +67,8 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
                   type="text"
                   value={newHandle}
                   onChange={(e) => setNewHandle(e.target.value)}
-                  className={`border px-4 py-2 rounded-xl text-xl md:text-2xl font-black uppercase outline-none focus:border-[#EC4899] ${
-                    theme === 'dark' ? 'bg-zinc-900 border-[#EC4899]/30 text-white' : 'bg-white border-zinc-200 text-black'
+                  className={`border px-4 py-2 rounded-xl text-xl md:text-2xl font-black uppercase outline-none focus:border-[#1a73e8] ${
+                    theme === 'dark' ? 'bg-zinc-900 border-[#1a73e8]/30 text-white' : 'bg-white border-zinc-200 text-black'
                   }`}
                   autoFocus
                 />
@@ -77,20 +77,20 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
                     onUpdateHandle(newHandle);
                     setIsEditingHandle(false);
                   }}
-                  className="bg-[#EC4899] text-white p-2 rounded-xl hover:scale-105 transition-transform"
+                  className="bg-[#1a73e8] text-white p-2 rounded-xl hover:scale-105 transition-transform"
                 >
                   ✓
                 </button>
               </div>
             ) : (
               <h1 className={`text-4xl md:text-8xl font-serif italic tracking-tighter leading-none group cursor-pointer ${theme === 'dark' ? 'text-white' : 'text-black'}`} onClick={() => setIsEditingHandle(true)}>
-                {handle} <span className="text-zinc-500 text-sm not-italic font-sans group-hover:text-[#EC4899] transition-colors">✎</span>
+                {handle} <span className="text-zinc-500 text-sm not-italic font-sans group-hover:text-[#1a73e8] transition-colors">✎</span>
               </h1>
             )}
           </div>
           <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em]">Reputation Magnitude: {rep.toLocaleString()} REP</p>
           <div className="flex items-center gap-2">
-            <span className="text-[9px] md:text-[10px] font-black text-white bg-[#EC4899] px-3 py-1 rounded-lg shadow-[0_0_15px_rgba(236,72,153,0.4)]">LEVEL {level}</span>
+            <span className="text-[9px] md:text-[10px] font-black text-white bg-[#1a73e8] px-3 py-1 rounded-lg shadow-[0_0_15px_rgba(26,115,232,0.4)]">LEVEL {level}</span>
             <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Archiver Status</span>
           </div>
         </div>
@@ -98,7 +98,7 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
         <div className="flex flex-wrap gap-4 w-full lg:w-auto">
            <div className={`flex-1 lg:flex-none px-6 md:px-8 py-4 rounded-3xl border flex flex-col items-center min-w-[140px] md:min-w-[160px] ${theme === 'dark' ? 'bg-zinc-950 border-white/5' : 'bg-white border-zinc-200 shadow-sm'}`}>
               <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Status Tier</span>
-              <span className="text-xl md:text-2xl font-mono font-black text-[#EC4899] uppercase">{currentRank.tier}</span>
+              <span className="text-xl md:text-2xl font-mono font-black text-[#1a73e8] uppercase">{currentRank.tier}</span>
            </div>
            <div className={`flex-1 lg:flex-none px-6 md:px-8 py-4 rounded-3xl border flex flex-col items-center min-w-[120px] md:min-w-[140px] ${theme === 'dark' ? 'bg-zinc-950 border-white/5' : 'bg-white border-zinc-200 shadow-sm'}`}>
               <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Sync Ratio</span>
@@ -114,7 +114,7 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
         </div>
         
         <div className="flex flex-col md:flex-row items-center gap-8 md:gap-12 relative z-10">
-          <div className="w-28 h-28 md:w-48 md:h-48 rounded-[2.5rem] md:rounded-[3.5rem] bg-gradient-to-tr from-[#EC4899] to-purple-600 p-1 shadow-[0_0_50px_rgba(236,72,153,0.3)]">
+          <div className="w-28 h-28 md:w-48 md:h-48 rounded-[2.5rem] md:rounded-[3.5rem] bg-gradient-to-tr from-[#1a73e8] to-purple-600 p-1 shadow-[0_0_50px_rgba(26,115,232,0.3)]">
             <div className="w-full h-full bg-black rounded-[2.3rem] md:rounded-[3.3rem] flex items-center justify-center text-5xl md:text-6xl">
               {currentRank.tier === 'Appeal God' ? '🔱' : currentRank.tier === 'Star' ? '⭐' : currentRank.tier === 'Icon' ? '💎' : currentRank.tier === 'Tempest' ? '🌪️' : '🌱'}
             </div>
@@ -134,7 +134,7 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
                   </div>
                   <div className={`h-1.5 w-full rounded-full overflow-hidden ${theme === 'dark' ? 'bg-zinc-900' : 'bg-zinc-200'}`}>
                     <div 
-                      className="h-full bg-gradient-to-r from-[#EC4899] to-purple-600 shadow-[0_0_10px_#EC4899]" 
+                      className="h-full bg-gradient-to-r from-[#1a73e8] to-purple-600 shadow-[0_0_10px_#1a73e8]" 
                       style={{ width: `${(rep / nextRank.threshold) * 100}%` }}
                     ></div>
                   </div>
@@ -155,7 +155,7 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
               </button>
               <button 
                 onClick={() => setIsSubscriptionOpen(true)}
-                className="flex-1 sm:flex-none px-6 md:px-8 py-4 bg-[#EC4899] text-white rounded-2xl font-black uppercase tracking-widest text-[8px] md:text-[9px] hover:scale-105 transition-all shadow-xl"
+                className="flex-1 sm:flex-none px-6 md:px-8 py-4 bg-[#1a73e8] text-white rounded-2xl font-black uppercase tracking-widest text-[8px] md:text-[9px] hover:scale-105 transition-all shadow-xl"
               >
                 Subscriptions
               </button>
@@ -230,7 +230,7 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
               <button 
                 key={order.id}
                 onClick={() => setSelectedOrder(order)}
-                className="w-full text-left group glass border-white/5 hover:border-[#EC4899]/30 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
+                className="w-full text-left group glass border-white/5 hover:border-[#1a73e8]/30 p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] transition-all flex flex-col md:flex-row md:items-center justify-between gap-6"
               >
                 <div className="flex items-center gap-4 md:gap-6">
                    <div className="w-12 h-12 md:w-14 md:h-14 bg-zinc-900 border border-white/10 rounded-2xl flex items-center justify-center text-xl md:text-2xl group-hover:scale-110 transition-transform">
@@ -258,7 +258,7 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
                       <div className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Valuation</div>
                       <div className="text-lg md:text-xl font-mono font-black text-white">GH₵{order.total}</div>
                    </div>
-                   <div className="hidden md:block text-zinc-800 group-hover:text-[#EC4899] transition-colors">→</div>
+                   <div className="hidden md:block text-zinc-800 group-hover:text-[#1a73e8] transition-colors">→</div>
                 </div>
               </button>
             ))
@@ -330,25 +330,25 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
                 key={ach.id} 
                 className={`relative group glass p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border transition-all duration-500 overflow-hidden ${
                   ach.unlocked 
-                  ? 'border-[#EC4899]/30 bg-zinc-900/40' 
+                  ? 'border-[#1a73e8]/30 bg-zinc-900/40' 
                   : 'border-white/5 bg-zinc-950/20 grayscale hover:grayscale-[0.5]'
                 }`}
               >
                 <div className="absolute bottom-0 left-0 h-1 bg-zinc-900 w-full">
                    <div 
-                     className={`h-full transition-all duration-1000 ${ach.unlocked ? 'bg-[#EC4899]' : 'bg-zinc-700'}`} 
+                     className={`h-full transition-all duration-1000 ${ach.unlocked ? 'bg-[#1a73e8]' : 'bg-zinc-700'}`} 
                      style={{ width: `${progressPercent}%` }}
                    ></div>
                 </div>
 
                 <div className="flex items-start justify-between mb-6 md:mb-8 relative z-10">
-                  <div className={`text-3xl md:text-4xl transition-transform duration-500 group-hover:scale-110 ${ach.unlocked ? 'drop-shadow-[0_0_10px_#EC4899]' : ''}`}>
+                  <div className={`text-3xl md:text-4xl transition-transform duration-500 group-hover:scale-110 ${ach.unlocked ? 'drop-shadow-[0_0_10px_#1a73e8]' : ''}`}>
                     {ach.unlocked ? ach.icon : '🔒'}
                   </div>
                 </div>
 
                 <div className="space-y-2 relative z-10">
-                  <h4 className="text-xs md:text-sm font-black uppercase tracking-widest text-white group-hover:text-[#EC4899] transition-colors">
+                  <h4 className="text-xs md:text-sm font-black uppercase tracking-widest text-white group-hover:text-[#1a73e8] transition-colors">
                     {ach.unlocked ? ach.title : 'Signal_Encrypted'}
                   </h4>
                   <p className="text-[9px] md:text-[10px] text-zinc-500 font-bold uppercase tracking-tight leading-relaxed line-clamp-2 italic">

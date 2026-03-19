@@ -39,7 +39,7 @@ const AdminNotificationManager: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
-            <Bell className="w-6 h-6 text-[#EC4899]" />
+            <Bell className="w-6 h-6 text-[#1a73e8]" />
             Broadcast_Center
           </h2>
           <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.4em] mt-1">Neural Messaging Protocol v4.0</p>
@@ -49,7 +49,7 @@ const AdminNotificationManager: React.FC = () => {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Send Notification Form */}
         <div className="glass border-white/10 rounded-[2.5rem] p-8 space-y-8">
-          <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-widest border-l-2 border-[#EC4899] pl-3">
+          <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest border-l-2 border-[#1a73e8] pl-3">
             Compose_Transmission
           </div>
 
@@ -60,7 +60,7 @@ const AdminNotificationManager: React.FC = () => {
                 <select
                   value={selectedRecipient}
                   onChange={(e) => setSelectedRecipient(e.target.value)}
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none appearance-none"
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none appearance-none"
                 >
                   <option value="ALL">ALL_USERS (Global Broadcast)</option>
                   {users.map(user => (
@@ -81,7 +81,7 @@ const AdminNotificationManager: React.FC = () => {
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as any)}
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none appearance-none"
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none appearance-none"
                 >
                   <option value="INFO">INFO</option>
                   <option value="URGENT">URGENT</option>
@@ -98,7 +98,7 @@ const AdminNotificationManager: React.FC = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Transmission Title..."
-                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none"
+                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none"
                 required
               />
             </div>
@@ -110,7 +110,7 @@ const AdminNotificationManager: React.FC = () => {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Enter notification message..."
                 rows={4}
-                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none resize-none"
+                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none resize-none"
                 required
               />
             </div>
@@ -121,7 +121,7 @@ const AdminNotificationManager: React.FC = () => {
               className={`w-full py-5 rounded-3xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all ${
                 status === 'success' 
                 ? 'bg-emerald-500 text-white' 
-                : 'bg-white text-black hover:bg-[#EC4899] hover:text-white'
+                : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
               }`}
             >
               {status === 'idle' && (

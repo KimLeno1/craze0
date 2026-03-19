@@ -69,6 +69,7 @@ export interface Product {
   isCustom?: boolean;
   priceRange?: { min: number; max: number };
   customizationFields?: CustomizationField[];
+  images?: string[];
 }
 
 export interface Supplier {
@@ -278,4 +279,6 @@ export interface SocialPost {
   loves: number;
   timestamp: string;
   weekId: string;
+  likedBy?: string[];
+  lovedBy?: string[];
 }

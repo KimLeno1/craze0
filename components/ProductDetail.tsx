@@ -1,10 +1,13 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Product, UserStats, RankBenefits } from '../types';
+import ProductCard from './ProductCard';
+import { motion } from 'framer-motion';
 
 interface ProductDetailProps {
   product: Product;
   stats: UserStats;
   allProducts: Product[];
+  wishlistIds: string[];
   onClose: () => void;
   onAddToCart: (product: Product, selectedSize?: string, customizationData?: Record<string, string>) => void;
   onUpdateSynergy: (synergy: string) => void;
@@ -18,6 +21,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   product, 
   stats,
   allProducts,
+  wishlistIds,
   onClose, 
   onAddToCart, 
   onToggleWishlist,
@@ -29,10 +33,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const [isMaterializing, setIsMaterializing] = useState(false);
   const [tryOnResult, setTryOnResult] = useState<string | null>(null);
   const [scrollOpacity, setScrollOpacity] = useState(0);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [customizationData, setCustomizationData] = useState<Record<string, string>>({});
   const [showCustomForm, setShowCustomForm] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const detailContainerRef = useRef<HTMLDivElement>(null);
+  const imageScrollRef = useRef<HTMLDivElement>(null);
   
   const activeViewers = useMemo(() => Math.floor(product.viewers / 4) + 12 + Math.floor(Math.random() * 5), [product.viewers]);
 
@@ -41,6 +47,12 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const realizedSaving = totalPotentialSaving * rank.discountMultiplier;
   const rankAdjustedPrice = Math.floor(product.originalPrice - realizedSaving);
   const rankSavingsAmount = product.originalPrice - rankAdjustedPrice;
+
+  const similarProducts = useMemo(() => {
+    return allProducts
+      .filter(p => p.id !== product.id && p.category === product.category)
+      .slice(0, 4);
+  }, [allProducts, product.id, product.category]);
 
   const handleAddToCart = () => {
     if (product.isCustom && !showCustomForm) {
@@ -79,6 +91,15 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   };
 
+  const handleImageScroll = () => {
+    if (imageScrollRef.current) {
+      const scrollPosition = imageScrollRef.current.scrollLeft;
+      const width = imageScrollRef.current.offsetWidth;
+      const index = Math.round(scrollPosition / width);
+      setCurrentImageIndex(index);
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       if (detailContainerRef.current) {
@@ -96,6 +117,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       ref={detailContainerRef}
       className="fixed inset-0 z-[150] bg-[#050505] flex flex-col lg:flex-row animate-in fade-in duration-700 overflow-y-auto lg:overflow-hidden font-sans text-white scroll-smooth"
     >
+      <style>{`
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+      
       {/* Minimal Header */}
       <header 
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-6 md:px-8 md:py-8 transition-all duration-500"
@@ -103,22 +134,18 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       >
         <button 
           onClick={onClose} 
-          className="group flex items-center gap-3 md:gap-4 text-white/50 hover:text-white transition-colors"
+          className="group flex items-center gap-4 md:gap-6 bg-white text-black hover:bg-[#1a73e8] hover:text-white px-10 py-5 rounded-full border-2 border-white/20 hover:border-transparent transition-all shadow-[0_0_50px_rgba(255,255,255,0.1)] hover:shadow-[0_0_50px_rgba(26,115,232,0.4)]"
         >
-          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:border-white/40 transition-colors">
-            <span className="text-lg md:text-xl">←</span>
+          <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center group-hover:-translate-x-2 transition-transform">
+            <span className="text-2xl md:text-3xl font-black">←</span>
           </div>
-          <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]">Back to Archive</span>
+          <span className="text-[12px] md:text-[14px] font-black uppercase tracking-[0.4em] md:tracking-[0.5em]">Back to Archive</span>
         </button>
         
         <div className="flex items-center gap-4 md:gap-6">
-          <div className="flex items-center gap-2">
-            <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-white/40">{activeViewers} Live</span>
-          </div>
           <button 
             onClick={() => onToggleWishlist(product)}
-            className={`text-lg md:text-xl transition-transform active:scale-90 ${isInWishlist ? 'text-[#EC4899]' : 'text-white/20 hover:text-white/50'}`}
+            className={`text-xl md:text-2xl transition-transform active:scale-90 ${isInWishlist ? 'text-[#1a73e8]' : 'text-white/20 hover:text-white/50'}`}
           >
             {isInWishlist ? '✦' : '✧'}
           </button>
@@ -147,14 +174,36 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
         )}
 
-        <img 
-          src={product.image} 
-          className={`w-full h-full object-cover transition-all duration-[2s] ${tryOnResult ? 'opacity-0 scale-110' : 'opacity-100'}`} 
-          alt={product.name} 
-        />
+        <div 
+          ref={imageScrollRef}
+          onScroll={handleImageScroll}
+          className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
+        >
+          {(product.images && product.images.length > 0 ? product.images : [product.image]).map((img, idx) => (
+            <div key={idx} className="w-full h-full shrink-0 snap-center">
+              <img 
+                src={img} 
+                className={`w-full h-full object-cover transition-all duration-[2s] ${tryOnResult ? 'opacity-0 scale-110' : 'opacity-100'}`} 
+                alt={`${product.name} ${idx + 1}`} 
+              />
+            </div>
+          ))}
+        </div>
         
         {/* Subtle Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent pointer-events-none"></div>
+
+        {/* Image Indicators */}
+        {product.images && product.images.length > 1 && (
+          <div className="absolute top-1/2 right-6 -translate-y-1/2 flex flex-col gap-2 z-20">
+            {product.images.map((_, idx) => (
+              <div 
+                key={idx} 
+                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentImageIndex === idx ? 'bg-[#1a73e8] scale-150 shadow-[0_0_8px_#1a73e8]' : 'bg-white/20'}`}
+              ></div>
+            ))}
+          </div>
+        )}
 
         {/* Try On Trigger */}
         <div className="absolute bottom-8 left-8 md:bottom-12 md:left-12">
@@ -211,7 +260,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 }
               </span>
               {!product.isCustom && <span className="text-base md:text-lg font-mono text-white/20 line-through">GH₵{product.originalPrice}</span>}
-              <div className="px-2 md:px-3 py-1 rounded-full border border-[#EC4899]/30 text-[8px] md:text-[9px] font-bold text-[#EC4899] uppercase tracking-widest">
+              <div className="px-2 md:px-3 py-1 rounded-full border border-[#1a73e8]/30 text-[8px] md:text-[9px] font-bold text-[#1a73e8] uppercase tracking-widest">
                 {product.isCustom ? 'Custom Order' : `-${Math.round((1 - rankAdjustedPrice/product.originalPrice) * 100)}% Rank Benefit`}
               </div>
             </div>
@@ -314,11 +363,36 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Availability</span>
               <p className="text-sm font-bold text-white">Only {product.stockCount} left in vault</p>
             </div>
-            <div className="p-6 rounded-2xl border border-[#EC4899]/10 bg-[#EC4899]/[0.02] space-y-2">
-              <span className="text-[9px] font-bold text-[#EC4899] uppercase tracking-widest">Privilege</span>
+            <div className="p-6 rounded-2xl border border-[#1a73e8]/10 bg-[#1a73e8]/[0.02] space-y-2">
+              <span className="text-[9px] font-bold text-[#1a73e8] uppercase tracking-widest">Privilege</span>
               <p className="text-sm font-bold text-white">{rank.tier} Clearance</p>
             </div>
           </section>
+
+          {/* Similar Products */}
+          {similarProducts.length > 0 && (
+            <section className="space-y-8 pt-12 border-t border-white/5">
+              <div className="flex justify-between items-end">
+                <div className="space-y-2">
+                  <span className="text-[10px] font-bold text-[#1a73e8] uppercase tracking-[0.4em]">Neural Match</span>
+                  <h2 className="text-3xl md:text-4xl font-serif italic text-white tracking-tight">Similar Silhouettes</h2>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+                {similarProducts.map(p => (
+                  <ProductCard 
+                    key={p.id}
+                    product={p}
+                    onClick={() => onProductClick(p)}
+                    onAddToCart={() => onAddToCart(p)}
+                    onToggleWishlist={() => onToggleWishlist(p)}
+                    isWishlisted={wishlistIds.includes(p.id)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
 
           {/* Action Bar */}
@@ -328,7 +402,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               className={`w-full h-16 md:h-20 rounded-2xl font-bold uppercase tracking-[0.3em] md:tracking-[0.4em] text-[10px] md:text-xs transition-all active:scale-[0.98] shadow-2xl ${
                 showCustomForm 
                 ? 'bg-amber-500 text-black hover:bg-white' 
-                : 'bg-white text-black hover:bg-[#EC4899] hover:text-white'
+                : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
               }`}
             >
               {showCustomForm ? 'Confirm Customization' : (product.isCustom ? 'Configure Silhouette' : 'Initialize Acquisition')}

@@ -40,7 +40,7 @@ const AdminPayForMeManager: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
-            <Wallet className="w-6 h-6 text-[#EC4899]" />
+            <Wallet className="w-6 h-6 text-[#1a73e8]" />
             Sponsorship_Review_Board
           </h2>
           <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.4em] mt-1">Financial Uplink Oversight v1.2</p>
@@ -56,7 +56,7 @@ const AdminPayForMeManager: React.FC = () => {
             placeholder="Search by User or Item..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none"
+            className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none"
           />
         </div>
         <div className="flex bg-zinc-900/50 p-1 rounded-2xl border border-white/5">
@@ -92,7 +92,7 @@ const AdminPayForMeManager: React.FC = () => {
                   <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">ID: {request.id}</span>
                 </div>
                 <div className="text-sm font-serif italic text-zinc-400">{request.items[0].name}</div>
-                <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-widest">GH₵{request.total}</div>
+                <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest">GH₵{request.total}</div>
               </div>
             </div>
 
@@ -101,12 +101,12 @@ const AdminPayForMeManager: React.FC = () => {
                 <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Current_Status</span>
                 <div className="flex items-center gap-2">
                   {request.status === PayForMeStatus.PENDING && <Clock className="w-3 h-3 text-amber-500" />}
-                  {request.status === PayForMeStatus.APPROVED && <CheckCircle2 className="w-3 h-3 text-blue-500" />}
+                  {request.status === PayForMeStatus.APPROVED && <CheckCircle2 className="w-3 h-3 text-[#1a73e8]" />}
                   {request.status === PayForMeStatus.PAID && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
                   {request.status === PayForMeStatus.REJECTED && <XCircle className="w-3 h-3 text-red-500" />}
                   <span className={`text-[10px] font-black uppercase tracking-widest ${
                     request.status === PayForMeStatus.PENDING ? 'text-amber-500' :
-                    request.status === PayForMeStatus.APPROVED ? 'text-blue-500' :
+                    request.status === PayForMeStatus.APPROVED ? 'text-[#1a73e8]' :
                     request.status === PayForMeStatus.PAID ? 'text-emerald-500' :
                     'text-red-500'
                   }`}>
@@ -126,7 +126,7 @@ const AdminPayForMeManager: React.FC = () => {
                   </button>
                   <button 
                     onClick={() => handleStatusUpdate(request.id, PayForMeStatus.APPROVED)}
-                    className="p-3 bg-blue-500/10 text-blue-500 rounded-xl hover:bg-blue-500 hover:text-white transition-all border border-blue-500/20"
+                    className="p-3 bg-[#1a73e8]/10 text-[#1a73e8] rounded-xl hover:bg-[#1a73e8] hover:text-white transition-all border border-[#1a73e8]/20"
                     title="Approve Request"
                   >
                     <CheckCircle2 className="w-4 h-4" />

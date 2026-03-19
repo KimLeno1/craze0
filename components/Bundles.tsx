@@ -13,8 +13,8 @@ const Bundles: React.FC<BundlesProps> = ({ bundles, onAddBundle }) => {
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-10 border-b border-white/5 pb-20">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-             <div className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></div>
-             <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.5em]">Synergy Protocol</span>
+             <div className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] animate-pulse"></div>
+             <span className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.5em]">Synergy Protocol</span>
           </div>
           <h1 className="text-7xl md:text-9xl font-serif italic text-white tracking-tighter leading-none">Kits</h1>
           <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em] max-w-sm leading-relaxed">
@@ -40,7 +40,7 @@ const Bundles: React.FC<BundlesProps> = ({ bundles, onAddBundle }) => {
                     <span className="text-5xl md:text-7xl font-serif italic text-white/20 group-hover:text-white/40 transition-colors">
                       {String(idx + 1).padStart(2, '0')}
                     </span>
-                    <h2 className="text-4xl md:text-6xl font-serif italic text-white group-hover:text-[#EC4899] transition-colors">{bundle.name}</h2>
+                    <h2 className="text-4xl md:text-6xl font-serif italic text-white group-hover:text-[#1a73e8] transition-colors">{bundle.name}</h2>
                   </div>
                   <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] max-w-lg leading-relaxed">
                     {bundle.description}
@@ -52,7 +52,7 @@ const Bundles: React.FC<BundlesProps> = ({ bundles, onAddBundle }) => {
                     <span className="text-zinc-700 line-through font-mono text-xl">GH₵{originalTotal}</span>
                     <span className="text-4xl font-mono text-white">GH₵{bundle.bundlePrice}</span>
                   </div>
-                  <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em]">
+                  <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">
                     Yield: -{discountPercent}% Efficiency
                   </div>
                 </div>
@@ -73,7 +73,7 @@ const Bundles: React.FC<BundlesProps> = ({ bundles, onAddBundle }) => {
               <div className="flex justify-end">
                 <button 
                   onClick={() => onAddBundle(bundle)}
-                  className="h-16 px-16 bg-white text-black text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl active:scale-95"
+                  className="h-16 px-16 bg-white text-black text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl active:scale-95"
                 >
                   Acquire Synergy Kit
                 </button>

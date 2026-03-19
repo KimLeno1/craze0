@@ -70,7 +70,7 @@ const AdminKitManager: React.FC = () => {
         </div>
         <button 
           onClick={() => setIsCreating(true)}
-          className="px-8 py-4 bg-[#EC4899] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-white hover:text-black transition-all"
+          className="px-8 py-4 bg-[#1a73e8] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-white hover:text-black transition-all"
         >
           Initialize_New_Kit
         </button>
@@ -80,7 +80,7 @@ const AdminKitManager: React.FC = () => {
         <div className="bg-zinc-950 border border-white/10 p-10 rounded-[3rem] space-y-10 animate-in slide-in-from-top-8 duration-500">
           <div className="grid md:grid-cols-2 gap-10">
             <div className="space-y-6">
-              <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-widest border-l-2 border-[#EC4899] pl-3">Kit Parameters</div>
+              <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest border-l-2 border-[#1a73e8] pl-3">Kit Parameters</div>
               
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Kit Designation</label>
@@ -89,7 +89,7 @@ const AdminKitManager: React.FC = () => {
                   value={bundleName}
                   onChange={e => setBundleName(e.target.value)}
                   placeholder="e.g., Midnight Cyber Synergy"
-                  className="w-full bg-black border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] outline-none"
+                  className="w-full bg-black border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] outline-none"
                 />
               </div>
 
@@ -99,7 +99,7 @@ const AdminKitManager: React.FC = () => {
                   rows={3}
                   value={bundleDescription}
                   onChange={e => setBundleDescription(e.target.value)}
-                  className="w-full bg-black border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] outline-none resize-none"
+                  className="w-full bg-black border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] outline-none resize-none"
                 />
               </div>
 
@@ -134,7 +134,7 @@ const AdminKitManager: React.FC = () => {
                     onClick={() => toggleProductSelection(p.id)}
                     className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
                       selectedProductIds.includes(p.id) 
-                        ? 'border-[#EC4899] bg-[#EC4899]/5' 
+                        ? 'border-[#1a73e8] bg-[#1a73e8]/5' 
                         : 'border-white/5 hover:border-white/10 bg-black/40'
                     }`}
                   >
@@ -163,7 +163,7 @@ const AdminKitManager: React.FC = () => {
             </button>
             <button 
               onClick={handleCreateBundle}
-              className="flex-[2] py-5 bg-white text-black rounded-3xl font-black uppercase tracking-widest text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl"
+              className="flex-[2] py-5 bg-white text-black rounded-3xl font-black uppercase tracking-widest text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl"
             >
               Finalize_Synergy_Kit
             </button>
@@ -181,14 +181,14 @@ const AdminKitManager: React.FC = () => {
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {bundles.map(bundle => (
-              <div key={bundle.id} className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] flex flex-col justify-between group hover:border-[#EC4899]/30 transition-all">
+              <div key={bundle.id} className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] flex flex-col justify-between group hover:border-[#1a73e8]/30 transition-all">
                 <div className="space-y-6">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-xl font-serif italic text-white">{bundle.name}</h3>
                       <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">{bundle.products.length} Assets Synchronized</p>
                     </div>
-                    <div className="text-xl font-mono font-black text-[#EC4899]">GH₵{bundle.bundlePrice}</div>
+                    <div className="text-xl font-mono font-black text-[#1a73e8]">GH₵{bundle.bundlePrice}</div>
                   </div>
                   
                   <div className="flex -space-x-4">

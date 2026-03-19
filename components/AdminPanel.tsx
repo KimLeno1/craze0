@@ -92,9 +92,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
                </header>
 
                <div className="bg-zinc-950 border border-white/5 p-10 rounded-[3rem] space-y-8">
-                  <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-widest">Active Jackpot</div>
+                  <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest">Active Jackpot</div>
                   {localProducts.find(p => p.id === currentJackpotId) && (
-                    <div className="flex gap-8 items-center bg-black/50 p-6 rounded-3xl border border-[#EC4899]/30">
+                    <div className="flex gap-8 items-center bg-black/50 p-6 rounded-3xl border border-[#1a73e8]/30">
                        <img src={localProducts.find(p => p.id === currentJackpotId)?.image} className="w-24 h-24 object-cover rounded-xl" />
                        <div>
                           <div className="text-xl font-black text-white">{localProducts.find(p => p.id === currentJackpotId)?.name}</div>
@@ -109,7 +109,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
                       <button 
                         key={p.id}
                         onClick={() => onSetJackpot(p.id)}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${currentJackpotId === p.id ? 'border-[#EC4899] bg-[#EC4899]/5' : 'border-white/5 hover:border-white/20'}`}
+                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${currentJackpotId === p.id ? 'border-[#1a73e8] bg-[#1a73e8]/5' : 'border-white/5 hover:border-white/20'}`}
                       >
                         <span className="text-xs font-black text-white">{p.name}</span>
                         <span className="text-[8px] font-bold text-zinc-600 uppercase">GH₵{p.price}</span>
@@ -151,9 +151,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
                             setLocalProducts(updated);
                             databaseService.updateProductHype(p.id, newHype);
                           }}
-                          className="w-32 accent-[#EC4899] bg-zinc-900 h-1 rounded-full appearance-none cursor-pointer"
+                          className="w-32 accent-[#1a73e8] bg-zinc-900 h-1 rounded-full appearance-none cursor-pointer"
                         />
-                        <span className="text-[10px] font-mono font-black text-[#EC4899] w-8 text-right">{p.hypeScore || 0}%</span>
+                        <span className="text-[10px] font-mono font-black text-[#1a73e8] w-8 text-right">{p.hypeScore || 0}%</span>
                       </div>
                     </div>
                     

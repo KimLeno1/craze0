@@ -34,7 +34,7 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
         {orders.map(order => (
           <div 
             key={order.id} 
-            className={`glass p-8 rounded-[2.5rem] border transition-all duration-500 ${selectedOrder?.id === order.id ? 'border-[#EC4899]/50 bg-zinc-900/40' : 'border-white/5 hover:border-white/20'}`}
+            className={`glass p-8 rounded-[2.5rem] border transition-all duration-500 ${selectedOrder?.id === order.id ? 'border-[#1a73e8]/50 bg-zinc-900/40' : 'border-white/5 hover:border-white/20'}`}
           >
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div className="space-y-4">
@@ -92,7 +92,7 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
                     setSelectedOrder(order);
                     setTrackingInput(order.trackingNumber || '');
                   }}
-                  className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center text-xl hover:bg-white hover:text-black transition-all"
+                  className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center text-xl hover:bg-[#1a73e8] hover:text-white transition-all"
                 >
                   ⚙️
                 </button>
@@ -116,7 +116,7 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
                       value={trackingInput}
                       onChange={(e) => setTrackingInput(e.target.value)}
                       placeholder="Enter Tracking Identifier..."
-                      className="w-full bg-black/40 border border-white/5 px-6 py-4 rounded-2xl text-xs font-mono text-white focus:border-[#EC4899] transition-all outline-none"
+                      className="w-full bg-black/40 border border-white/5 px-6 py-4 rounded-2xl text-xs font-mono text-white focus:border-[#1a73e8] transition-all outline-none"
                     />
                   </div>
 

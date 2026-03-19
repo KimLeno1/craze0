@@ -63,12 +63,12 @@ const AdminFlashSaleManager: React.FC = () => {
               type="number"
               value={globalDuration}
               onChange={e => handleUpdateDuration(parseInt(e.target.value))}
-              className="w-16 bg-black border border-white/10 p-2 rounded text-xs text-white outline-none focus:border-[#EC4899]"
+              className="w-16 bg-black border border-white/10 p-2 rounded text-xs text-white outline-none focus:border-[#1a73e8]"
             />
           </div>
           <button 
             onClick={() => setIsAdding(true)}
-            className="bg-[#EC4899] text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+            className="bg-[#1a73e8] text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
           >
             Initialize_New_Sale
           </button>
@@ -76,14 +76,14 @@ const AdminFlashSaleManager: React.FC = () => {
       </header>
 
       {isAdding && (
-        <div className="bg-zinc-950 border border-[#EC4899]/30 p-10 rounded-[3rem] space-y-8 animate-in slide-in-from-top-4">
+        <div className="bg-zinc-950 border border-[#1a73e8]/30 p-10 rounded-[3rem] space-y-8 animate-in slide-in-from-top-4">
           <div className="grid md:grid-cols-2 gap-8">
             <div className="space-y-2">
               <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Target_Asset</label>
               <select 
                 value={newSale.productId}
                 onChange={e => setNewSale({...newSale, productId: e.target.value})}
-                className="w-full bg-black border border-white/10 p-4 rounded-xl text-xs text-white outline-none focus:border-[#EC4899]"
+                className="w-full bg-black border border-white/10 p-4 rounded-xl text-xs text-white outline-none focus:border-[#1a73e8]"
               >
                 <option value="">Select Product</option>
                 {products.map(p => (
@@ -97,12 +97,12 @@ const AdminFlashSaleManager: React.FC = () => {
                 type="number"
                 value={newSale.discountPercent}
                 onChange={e => setNewSale({...newSale, discountPercent: parseInt(e.target.value)})}
-                className="w-full bg-black border border-white/10 p-4 rounded-xl text-xs text-white outline-none focus:border-[#EC4899]"
+                className="w-full bg-black border border-white/10 p-4 rounded-xl text-xs text-white outline-none focus:border-[#1a73e8]"
               />
             </div>
           </div>
           <div className="flex gap-4">
-            <button onClick={handleAddSale} className="flex-1 bg-white text-black py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all">Confirm_Protocol</button>
+            <button onClick={handleAddSale} className="flex-1 bg-white text-black py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all">Confirm_Protocol</button>
             <button onClick={() => setIsAdding(false)} className="flex-1 bg-zinc-900 text-zinc-500 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Abort</button>
           </div>
         </div>
@@ -110,12 +110,12 @@ const AdminFlashSaleManager: React.FC = () => {
 
       <div className="grid md:grid-cols-2 gap-6">
         {flashSales.map(sale => (
-          <div key={sale.id} className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] flex gap-8 items-center group hover:border-[#EC4899]/30 transition-all">
+          <div key={sale.id} className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] flex gap-8 items-center group hover:border-[#1a73e8]/30 transition-all">
             <img src={sale.image} className="w-24 h-24 object-cover rounded-2xl grayscale group-hover:grayscale-0 transition-all" />
             <div className="flex-1 space-y-4">
               <div>
                 <div className="text-xl font-black text-white">{sale.name}</div>
-                <div className="text-[9px] text-[#EC4899] font-black uppercase tracking-widest">-{sale.discountPercent}% Liquidation</div>
+                <div className="text-[9px] text-[#1a73e8] font-black uppercase tracking-widest">-{sale.discountPercent}% Liquidation</div>
               </div>
               <div className="flex justify-between items-end">
                 <div className="space-y-1">

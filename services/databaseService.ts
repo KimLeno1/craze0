@@ -1,4 +1,4 @@
-import { Product, User, Supplier, Notification, PromoCode, Order, OrderStatus, Bundle, PayForMeRequest, PayForMeStatus, UserStats } from '../types';
+import { Product, User, Supplier, Notification, PromoCode, Order, OrderStatus, Bundle, PayForMeRequest, PayForMeStatus, UserStats, SocialPost } from '../types';
 import { EXTENDED_PRODUCTS, MOCK_ORDERS } from '../mockData';
 import { USER_ACHIEVEMENTS } from '../data/extendedMock';
 
@@ -34,7 +34,7 @@ const MOCK_FLASH_SALES: any[] = [
   }
 ];
 
-const MOCK_POSTS = [
+const MOCK_POSTS: SocialPost[] = [
   {
     id: 'post_1',
     userId: 'u1',
@@ -43,7 +43,9 @@ const MOCK_POSTS = [
     likes: 124,
     loves: 45,
     timestamp: new Date().toISOString(),
-    weekId: '' // Will be set in getSocialPosts
+    weekId: '', // Will be set in getSocialPosts
+    likedBy: [],
+    lovedBy: []
   },
   {
     id: 'post_2',
@@ -53,7 +55,9 @@ const MOCK_POSTS = [
     likes: 89,
     loves: 12,
     timestamp: new Date().toISOString(),
-    weekId: ''
+    weekId: '',
+    likedBy: [],
+    lovedBy: []
   },
   {
     id: 'post_3',
@@ -63,7 +67,9 @@ const MOCK_POSTS = [
     likes: 256,
     loves: 120,
     timestamp: new Date().toISOString(),
-    weekId: ''
+    weekId: '',
+    likedBy: [],
+    lovedBy: []
   }
 ];
 
@@ -235,11 +241,11 @@ export const databaseService = {
     return `${now.getFullYear()}-W${week}`;
   },
 
-  getSocialPosts: (): any[] => {
+  getSocialPosts: (): SocialPost[] => {
     const saved = localStorage.getItem(SOCIAL_POSTS_KEY);
     const currentWeek = databaseService.getWeekId();
     
-    let posts;
+    let posts: SocialPost[];
     if (!saved) {
       posts = MOCK_POSTS.map(p => ({ ...p, weekId: currentWeek }));
       localStorage.setItem(SOCIAL_POSTS_KEY, JSON.stringify(posts));
@@ -248,15 +254,68 @@ export const databaseService = {
     }
     
     // Filter out old posts (weekly reset)
-    const filtered = posts.filter((p: any) => p.weekId === currentWeek);
+    const filtered = posts.filter((p: SocialPost) => p.weekId === currentWeek);
     if (filtered.length !== posts.length) {
       localStorage.setItem(SOCIAL_POSTS_KEY, JSON.stringify(filtered));
     }
     return filtered;
   },
 
-  saveSocialPosts: (posts: any[]) => {
+  saveSocialPosts: (posts: SocialPost[]) => {
     localStorage.setItem(SOCIAL_POSTS_KEY, JSON.stringify(posts));
+  },
+
+  likePost: (postId: string, userId: string) => {
+    const posts = databaseService.getSocialPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    const likedBy = post.likedBy || [];
+    if (likedBy.includes(userId)) return post;
+
+    const updatedPost = {
+      ...post,
+      likes: post.likes + 1,
+      likedBy: [...likedBy, userId]
+    };
+    const updatedPosts = posts.map(p => p.id === postId ? updatedPost : p);
+    databaseService.saveSocialPosts(updatedPosts);
+    return updatedPost;
+  },
+
+  lovePost: (postId: string, userId: string) => {
+    const posts = databaseService.getSocialPosts();
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    const lovedBy = post.lovedBy || [];
+    if (lovedBy.includes(userId)) return post;
+
+    const updatedPost = {
+      ...post,
+      loves: post.loves + 1,
+      lovedBy: [...lovedBy, userId]
+    };
+    const updatedPosts = posts.map(p => p.id === postId ? updatedPost : p);
+    databaseService.saveSocialPosts(updatedPosts);
+    
+    // Reward post owner
+    databaseService.addRep(post.userId, 25);
+    
+    return updatedPost;
+  },
+
+  getUsersRankedByLoves: (): (User & { totalLoves: number })[] => {
+    const users = databaseService.getUsers();
+    const posts = databaseService.getSocialPosts();
+    
+    const usersWithLoves = users.map(user => {
+      const userPosts = posts.filter(p => p.userId === user.id);
+      const totalLoves = userPosts.reduce((sum, p) => sum + (p.loves || 0), 0);
+      return { ...user, totalLoves };
+    });
+    
+    return usersWithLoves.sort((a, b) => b.totalLoves - a.totalLoves);
   },
 
   getOrders: (): Order[] => {
@@ -360,7 +419,7 @@ export const databaseService = {
       const scoreA = (a.hypeScore || 0) + (a.velocityScore || 0) + (a.isHallOfFame ? 100 : 0);
       const scoreB = (b.hypeScore || 0) + (b.velocityScore || 0) + (b.isHallOfFame ? 100 : 0);
       return scoreB - scoreA;
-    });
+    }).slice(0, 10);
   },
 
   getHallOfFameProducts: (): Product[] => {

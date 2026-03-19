@@ -62,19 +62,19 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
           </div>
 
           <form onSubmit={handleAuthSubmit} className="space-y-4">
-            <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="IDENTITY_EMAIL" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
+            <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="IDENTITY_EMAIL" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none" />
             
             {authMode === 'SIGNUP' && (
-              <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="CONTACT_PHONE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
+              <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="CONTACT_PHONE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none" />
             )}
 
-            <input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="SECURITY_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
+            <input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="SECURITY_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none" />
             
             {authMode === 'SIGNUP' && (
-              <input type="password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} placeholder="CONFIRM_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
+              <input type="password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} placeholder="CONFIRM_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none" />
             )}
 
-            <button type="submit" disabled={isAuthenticating} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] bg-white text-black hover:bg-[#EC4899] hover:text-white transition-all active:scale-95 disabled:opacity-50">
+            <button type="submit" disabled={isAuthenticating} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] bg-white text-black hover:bg-[#1a73e8] hover:text-white transition-all active:scale-95 disabled:opacity-50">
               {isAuthenticating ? 'Decrypting...' : authMode === 'LOGIN' ? 'Initialize Uplink' : 'Register Profile'}
             </button>
           </form>
