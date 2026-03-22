@@ -7,8 +7,11 @@ const HallOfFame: React.FC = () => {
   const [rankedUsers, setRankedUsers] = useState<(User & { totalLoves: number })[]>([]);
 
   useEffect(() => {
-    const users = databaseService.getUsersRankedByLoves();
-    setRankedUsers(users.slice(0, 10));
+    const fetchData = async () => {
+      const users = await databaseService.getUsersRankedByLoves();
+      setRankedUsers(users.slice(0, 10).map(u => ({ ...u, totalLoves: u.rep }))); // Using rep as totalLoves for now
+    };
+    fetchData();
   }, []);
 
   return (

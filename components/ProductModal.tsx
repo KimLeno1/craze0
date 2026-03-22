@@ -11,6 +11,16 @@ interface ProductModalProps {
 
 const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCart, onToggleWishlist, isWishlisted }) => {
   const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
+  const [isClicked, setIsClicked] = React.useState(false);
+
+  const handleAcquire = () => {
+    setIsClicked(true);
+    onAddToCart(product);
+    setTimeout(() => {
+      setIsClicked(false);
+      onClose();
+    }, 1000);
+  };
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-12">
@@ -96,19 +106,18 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
             <div className="pt-8 space-y-4">
               <div className="flex gap-4 w-full">
                 <button 
-                  onClick={() => {
-                    onAddToCart(product);
-                    onClose();
-                  }}
+                  onClick={handleAcquire}
                   disabled={!product.inStock}
                   className={`flex-[3] py-7 text-[12px] uppercase tracking-[0.4em] font-black transition-all shadow-2xl relative overflow-hidden group ${
-                    product.inStock 
-                    ? 'bg-white text-black hover:bg-[#1a73e8] hover:text-white' 
-                    : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                    isClicked 
+                    ? 'bg-green-500 text-white' 
+                    : product.inStock 
+                      ? 'bg-white text-black hover:bg-[#1a73e8] hover:text-white' 
+                      : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                   }`}
                 >
-                  <span className="relative z-10">{product.inStock ? 'Initialize Acquisition' : 'Archive Locked'}</span>
-                  <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                  <span className="relative z-10">{isClicked ? 'Initialized' : (product.inStock ? 'Initialize Acquisition' : 'Archive Locked')}</span>
+                  {!isClicked && <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>}
                 </button>
                 
                 {onToggleWishlist && (

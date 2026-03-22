@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { databaseService } from '../services/databaseService';
 import { CartItem, ViewState, OrderStatus, PromoCode } from '../types';
 
 interface CheckoutViewProps {
@@ -8,6 +9,7 @@ interface CheckoutViewProps {
   onCancel: () => void;
   balances: { coins: number; gems: number; rep: number };
   activePromo?: PromoCode | null;
+  userId: string;
 }
 
 const REGIONS = [
@@ -29,8 +31,10 @@ const REGIONS = [
   { id: 'western-north', name: 'Western North', icon: '🌲', cities: ['Sefwi Wiawso', 'Enchi', 'Bibiani'] }
 ];
 
-const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel, balances, activePromo }) => {
+const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel, balances, activePromo, userId }) => {
   const [step, setStep] = useState<'GEO_ZONING' | 'LOGISTICS' | 'PAYMENT' | 'PROCESSING' | 'SUCCESS'>('GEO_ZONING');
+  const [availableCredits, setAvailableCredits] = useState<any[]>([]);
+  const [selectedCreditId, setSelectedCreditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -39,6 +43,14 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
     city: '',
     verificationPhrase: ''
   });
+
+  useEffect(() => {
+    const fetchCredits = async () => {
+      const credits = await databaseService.getUserCredits(userId);
+      setAvailableCredits(credits);
+    };
+    fetchCredits();
+  }, [userId]);
 
   const rawSubtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const totalShipping = items.reduce((acc, item) => acc + ((item.shippingFee || 0) * item.quantity), 0);
@@ -53,7 +65,10 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
     }
   }
   
-  const finalTotal = Math.floor(rawSubtotal - promoDiscount + totalShipping);
+  const selectedCredit = availableCredits.find(c => c.id === selectedCreditId);
+  const creditAmount = selectedCredit ? selectedCredit.amount : 0;
+  
+  const finalTotal = Math.max(0, Math.floor(rawSubtotal - promoDiscount - creditAmount + totalShipping));
   const availableCities = REGIONS.find(r => r.name === formData.region)?.cities || [];
 
   const handleNextStep = (e: React.FormEvent) => {
@@ -62,11 +77,16 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
     else if (step === 'LOGISTICS') setStep('PAYMENT');
   };
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
     if (!formData.verificationPhrase) {
       alert("Terminal Lock: Verification phrase required.");
       return;
     }
+    
+    if (selectedCreditId) {
+      await databaseService.useUserCredit(userId, selectedCreditId);
+    }
+
     setStep('PROCESSING');
     setTimeout(() => setStep('SUCCESS'), 3000);
   };
@@ -267,9 +287,52 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                </div>
 
                <div className="bg-zinc-950 border border-white/5 p-6 sm:p-10 rounded-[2rem] sm:rounded-[4rem] space-y-6 sm:space-y-8">
+                  {/* Credits Section */}
+                  {availableCredits.length > 0 && (
+                    <div className="space-y-4 pb-6 border-b border-white/5">
+                      <div className="text-[8px] sm:text-[10px] font-black text-blue-400 uppercase tracking-widest px-2">Available Sponsorship Credits</div>
+                      <div className="grid grid-cols-1 gap-3">
+                        {availableCredits.map(credit => (
+                          <button
+                            key={credit.id}
+                            type="button"
+                            onClick={() => setSelectedCreditId(selectedCreditId === credit.id ? null : credit.id)}
+                            className={`p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border transition-all text-left flex justify-between items-center ${
+                              selectedCreditId === credit.id 
+                                ? 'bg-blue-500/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]' 
+                                : 'bg-black border-white/10 hover:border-white/20'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className={`text-[9px] sm:text-[11px] font-black uppercase tracking-widest truncate ${selectedCreditId === credit.id ? 'text-white' : 'text-zinc-400'}`}>Sponsorship Credit</div>
+                              <div className="text-[7px] sm:text-[8px] text-zinc-600 uppercase font-bold mt-1">Issued: {new Date(credit.createdAt).toLocaleDateString()}</div>
+                            </div>
+                            <div className={`text-sm sm:text-base font-mono font-black ${selectedCreditId === credit.id ? 'text-blue-400' : 'text-zinc-600'}`}>GH₵{credit.amount}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
-                    <span>Dest Node</span>
-                    <span className="text-white">{formData.city}, {formData.region}</span>
+                    <span>Subtotal</span>
+                    <span className="text-white">GH₵{rawSubtotal}</span>
+                  </div>
+                  {promoDiscount > 0 && (
+                    <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">
+                      <span>Promo Discount</span>
+                      <span>-GH₵{promoDiscount}</span>
+                    </div>
+                  )}
+                  {creditAmount > 0 && (
+                    <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-blue-400">
+                      <span>Sponsorship Credit</span>
+                      <span>-GH₵{creditAmount}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
+                    <span>Logistics</span>
+                    <span className="text-white">GH₵{totalShipping}</span>
                   </div>
                   <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 border-t border-white/5 pt-4 sm:pt-6">
                     <span>Authorized Value</span>

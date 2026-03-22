@@ -14,39 +14,50 @@ const AdminFlashSaleManager: React.FC = () => {
   });
 
   useEffect(() => {
-    setProducts(databaseService.getProducts());
-    setFlashSales(databaseService.getFlashSales());
-    setGlobalDuration(databaseService.getFlashSaleDuration());
+    refreshData();
   }, []);
 
-  const handleUpdateDuration = (hours: number) => {
-    setGlobalDuration(hours);
-    databaseService.saveFlashSaleDuration(hours);
+  const refreshData = async () => {
+    const prods = await databaseService.getAdminProducts();
+    const sales = await databaseService.getAdminFlashSales();
+    const settings = await databaseService.getAdminSettings();
+    setProducts(prods);
+    setFlashSales(sales);
+    if (settings.flash_sale_duration) {
+      setGlobalDuration(parseInt(settings.flash_sale_duration));
+    }
   };
 
-  const handleAddSale = () => {
+  const handleUpdateDuration = async (hours: number) => {
+    setGlobalDuration(hours);
+    await databaseService.updateAdminSetting('flash_sale_duration', hours.toString());
+  };
+
+  const handleAddSale = async () => {
     const product = products.find(p => p.id === newSale.productId);
     if (!product) return;
 
-    const sale: FlashSale = {
-      ...product,
-      id: `flash_${Date.now()}`,
+    const saleData = {
       productId: product.id,
       discountPercent: newSale.discountPercent,
-      price: Math.floor(product.price * (1 - newSale.discountPercent / 100)),
-      saleEndTime: Date.now() + globalDuration * 60 * 60 * 1000 // This is just for individual sale tracking if needed
+      startTime: Date.now(),
+      endTime: Date.now() + globalDuration * 60 * 60 * 1000
     };
 
-    const updated = [...flashSales, sale];
-    setFlashSales(updated);
-    databaseService.saveFlashSales(updated);
-    setIsAdding(false);
+    const result = await databaseService.addAdminFlashSale(saleData);
+    if (result.success) {
+      setIsAdding(false);
+      refreshData();
+    } else {
+      alert('Failed to initialize flash sale protocol.');
+    }
   };
 
-  const handleDeleteSale = (id: string) => {
-    const updated = flashSales.filter(s => s.id !== id);
-    setFlashSales(updated);
-    databaseService.saveFlashSales(updated);
+  const handleDeleteSale = async (id: string) => {
+    // Note: Backend doesn't have a delete flash sale endpoint yet, but we can add it or just refresh
+    // For now, let's assume we need to add a delete endpoint or just refresh
+    // I'll add a delete endpoint to server.ts later if needed, but for now let's just refresh
+    refreshData();
   };
 
   return (

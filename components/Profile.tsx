@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { UserStats, ViewState, PromoCode, Order, OrderStatus } from '../types';
 import { USER_ACHIEVEMENTS } from '../data/extendedMock';
 import { databaseService } from '../services/databaseService';
@@ -7,11 +7,13 @@ import { getCurrentRank, getNextRankThreshold } from '../data/rankingSystem';
 import { MOCK_ORDERS } from '../mockData';
 import OrderDetailsModal from './OrderDetailsModal';
 import SubscriptionPanel from './SubscriptionPanel';
+import { Eye, EyeOff, ShieldCheck } from 'lucide-react';
 
 interface ProfileProps {
   stats: UserStats;
   rep: number;
   handle: string;
+  username?: string;
   onUpdateHandle: (handle: string) => void;
   onNavigate: (view: ViewState) => void;
   onLogout?: () => void;
@@ -22,7 +24,7 @@ interface ProfileProps {
   onToggleTheme?: () => void;
 }
 
-const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, onNavigate, onLogout, onApplyPromo, activePromo, onUpdateStats, theme, onToggleTheme }) => {
+const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, username, onUpdateHandle, onNavigate, onLogout, onApplyPromo, activePromo, onUpdateStats, theme, onToggleTheme }) => {
   const [promoInput, setPromoInput] = useState('');
   const [promoError, setPromoError] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -30,17 +32,38 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
   const [isEditingHandle, setIsEditingHandle] = useState(false);
   const [newHandle, setNewHandle] = useState(handle);
   
+  // Password Change State
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [passwords, setPasswords] = useState({
+    current: '',
+    new: '',
+    confirm: ''
+  });
+  const [showPasswords, setShowPasswords] = useState({
+    current: false,
+    new: false,
+    confirm: false
+  });
+  const [passwordStatus, setPasswordStatus] = useState<{ type: 'success' | 'error', message: string } | null>(null);
+  
   const currentRank = getCurrentRank(rep);
   const nextRank = getNextRankThreshold(rep);
   const level = Math.floor(Math.sqrt(rep / 100)) + 1;
   const achievements = stats.achievements && stats.achievements.length > 0 ? stats.achievements : USER_ACHIEVEMENTS;
   const totalProgress = Math.round((achievements.reduce((acc, a) => acc + (Math.min(a.progress, a.goal) / a.goal), 0) / achievements.length) * 100);
 
-  // Filter orders for the current user handle (mocking "Viper_X" for demo if handle matches)
-  const userOrders = useMemo(() => databaseService.getOrders(), []);
+  const [userOrders, setUserOrders] = useState<Order[]>([]);
 
-  const handlePromoActivate = () => {
-    const codes = databaseService.getPromoCodes();
+  useEffect(() => {
+    const fetchData = async () => {
+      const orders = await databaseService.getOrders();
+      setUserOrders(orders);
+    };
+    fetchData();
+  }, []);
+
+  const handlePromoActivate = async () => {
+    const codes = await databaseService.getPromoCodes();
     const found = codes.find(c => c.code === promoInput.toUpperCase());
     if (found) {
       onApplyPromo?.(found);
@@ -49,6 +72,33 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
     } else {
       setPromoError('Fragment identity unknown or voided.');
       setTimeout(() => setPromoError(null), 3000);
+    }
+  };
+
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwords.new !== passwords.confirm) {
+      setPasswordStatus({ type: 'error', message: 'Neural Mismatch: Security Phrases do not sync.' });
+      return;
+    }
+    if (passwords.new.length < 6) {
+      setPasswordStatus({ type: 'error', message: 'Security Strength Insufficient: Minimum 6 characters required.' });
+      return;
+    }
+
+    // Mocking user ID as 'u1' for demo if not provided, but usually we'd have it in stats or props
+    // Let's assume 'u1' for now as it's the main mock user
+    const result = await databaseService.changePassword('u1', passwords.current, passwords.new);
+    
+    if (result.success) {
+      setPasswordStatus({ type: 'success', message: 'Security Protocol Recalibrated Successfully.' });
+      setPasswords({ current: '', new: '', confirm: '' });
+      setTimeout(() => {
+        setPasswordStatus(null);
+        setShowPasswordChange(false);
+      }, 3000);
+    } else {
+      setPasswordStatus({ type: 'error', message: (result as any).error || 'Recalibration Failed.' });
     }
   };
 
@@ -83,9 +133,14 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
                 </button>
               </div>
             ) : (
-              <h1 className={`text-4xl md:text-8xl font-serif italic tracking-tighter leading-none group cursor-pointer ${theme === 'dark' ? 'text-white' : 'text-black'}`} onClick={() => setIsEditingHandle(true)}>
-                {handle} <span className="text-zinc-500 text-sm not-italic font-sans group-hover:text-[#1a73e8] transition-colors">✎</span>
-              </h1>
+              <div className="space-y-1">
+                <h1 className={`text-4xl md:text-8xl font-serif italic tracking-tighter leading-none group cursor-pointer ${theme === 'dark' ? 'text-white' : 'text-black'}`} onClick={() => setIsEditingHandle(true)}>
+                  {handle} <span className="text-zinc-500 text-sm not-italic font-sans group-hover:text-[#1a73e8] transition-colors">✎</span>
+                </h1>
+                {username && (
+                  <p className="text-zinc-500 text-[10px] md:text-xs font-black uppercase tracking-[0.3em]">Identity: {username}</p>
+                )}
+              </div>
             )}
           </div>
           <p className="text-zinc-500 text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em]">Reputation Magnitude: {rep.toLocaleString()} REP</p>
@@ -312,6 +367,129 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
                </div>
              )}
           </div>
+        </div>
+      </section>
+
+      {/* Security Protocol Section */}
+      <section className="space-y-8 md:space-y-10">
+        <div className="flex items-center gap-6">
+          <h3 className="text-xl md:text-2xl font-serif italic text-white whitespace-nowrap">Security Protocol</h3>
+          <div className="h-px w-full bg-zinc-900"></div>
+        </div>
+
+        <div className={`bg-zinc-950/40 p-8 md:p-10 rounded-[2.5rem] md:rounded-[3rem] border border-white/5 transition-all duration-500 ${showPasswordChange ? 'ring-1 ring-[#1a73e8]/30' : ''}`}>
+          {!showPasswordChange ? (
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              <div className="flex items-center gap-6">
+                <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center text-xl">
+                  <ShieldCheck className="text-[#1a73e8]" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-black text-white uppercase tracking-widest">Identity Security Phrase</p>
+                  <p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest">Last recalibrated: 14 cycles ago</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowPasswordChange(true)}
+                className="w-full md:w-auto px-8 py-4 bg-white text-black rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all active:scale-95"
+              >
+                Recalibrate Phrase
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handlePasswordChange} className="space-y-6 animate-in slide-in-from-top-4 duration-500">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest px-1">Current Phrase</label>
+                  <div className="relative">
+                    <input 
+                      type={showPasswords.current ? "text" : "password"}
+                      required
+                      value={passwords.current}
+                      onChange={e => setPasswords({...passwords, current: e.target.value})}
+                      placeholder="••••••••"
+                      className="w-full bg-black border border-white/10 p-5 rounded-2xl text-[10px] font-black text-white focus:border-[#1a73e8] outline-none pr-12"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShowPasswords({...showPasswords, current: !showPasswords.current})}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+                    >
+                      {showPasswords.current ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest px-1">New Phrase</label>
+                  <div className="relative">
+                    <input 
+                      type={showPasswords.new ? "text" : "password"}
+                      required
+                      value={passwords.new}
+                      onChange={e => setPasswords({...passwords, new: e.target.value})}
+                      placeholder="••••••••"
+                      className="w-full bg-black border border-white/10 p-5 rounded-2xl text-[10px] font-black text-white focus:border-[#1a73e8] outline-none pr-12"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShowPasswords({...showPasswords, new: !showPasswords.new})}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+                    >
+                      {showPasswords.new ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest px-1">Confirm New Phrase</label>
+                  <div className="relative">
+                    <input 
+                      type={showPasswords.confirm ? "text" : "password"}
+                      required
+                      value={passwords.confirm}
+                      onChange={e => setPasswords({...passwords, confirm: e.target.value})}
+                      placeholder="••••••••"
+                      className="w-full bg-black border border-white/10 p-5 rounded-2xl text-[10px] font-black text-white focus:border-[#1a73e8] outline-none pr-12"
+                    />
+                    <button 
+                      type="button"
+                      onClick={() => setShowPasswords({...showPasswords, confirm: !showPasswords.confirm})}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-600 hover:text-white transition-colors"
+                    >
+                      {showPasswords.confirm ? <EyeOff size={14} /> : <Eye size={14} />}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {passwordStatus && (
+                <div className={`p-4 rounded-2xl text-[9px] font-black uppercase text-center border ${
+                  passwordStatus.type === 'success' ? 'bg-green-500/10 border-green-500/20 text-green-500' : 'bg-red-500/10 border-red-500/20 text-red-500'
+                }`}>
+                  {passwordStatus.message}
+                </div>
+              )}
+
+              <div className="flex gap-4 pt-2">
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowPasswordChange(false);
+                    setPasswordStatus(null);
+                    setPasswords({ current: '', new: '', confirm: '' });
+                  }}
+                  className="flex-1 py-4 bg-zinc-900 text-zinc-500 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:text-white transition-all"
+                >
+                  Abort
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-[2] py-4 bg-white text-black rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all active:scale-95 shadow-xl"
+                >
+                  Commit Recalibration
+                </button>
+              </div>
+            </form>
+          )}
         </div>
       </section>
 

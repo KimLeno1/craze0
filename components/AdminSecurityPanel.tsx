@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { databaseService } from '../services/databaseService';
 
 interface SecurityEvent {
   id: string;
@@ -21,6 +22,7 @@ const AdminSecurityPanel: React.FC = () => {
   });
 
   useEffect(() => {
+    refreshData();
     // Generate some mock security events
     const mockEvents: SecurityEvent[] = [
       {
@@ -58,6 +60,27 @@ const AdminSecurityPanel: React.FC = () => {
     ];
     setEvents(mockEvents);
   }, []);
+
+  const refreshData = async () => {
+    const settings = await databaseService.getAdminSettings();
+    const metrics = await databaseService.getAdminMetrics();
+    
+    setSystemStatus(prev => ({
+      ...prev,
+      firewall: settings.firewall_status || 'ACTIVE',
+      activeSessions: metrics?.totalUsers || 0,
+      threatLevel: settings.threat_level || 'LOW'
+    }));
+  };
+
+  const handleAction = async (action: string) => {
+    if (action === 'SCAN') {
+      refreshData();
+    } else if (action === 'INITIATE') {
+      await databaseService.updateAdminSetting('firewall_status', 'LOCKDOWN');
+      refreshData();
+    }
+  };
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
@@ -153,7 +176,10 @@ const AdminSecurityPanel: React.FC = () => {
                   <div className="text-[10px] font-black text-white uppercase tracking-widest">{control.label}</div>
                   <div className="text-[8px] text-zinc-600 uppercase">{control.desc}</div>
                 </div>
-                <button className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${control.color} text-white active:scale-95`}>
+                <button 
+                  onClick={() => handleAction(control.action)}
+                  className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${control.color} text-white active:scale-95`}
+                >
                   {control.action}
                 </button>
               </div>

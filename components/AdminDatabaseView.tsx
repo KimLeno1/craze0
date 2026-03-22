@@ -9,14 +9,24 @@ const AdminDatabaseView: React.FC = () => {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    setUsers(databaseService.getUsers());
-    setProducts(databaseService.getProducts());
+    refreshData();
   }, []);
 
-  const handleToggleStatus = (userId: string, currentStatus: User['status']) => {
+  const refreshData = async () => {
+    const allUsers = await databaseService.getAdminUsers();
+    const allProducts = await databaseService.getAdminProducts();
+    setUsers(allUsers);
+    setProducts(allProducts);
+  };
+
+  const handleToggleStatus = async (userId: string, currentStatus: User['status']) => {
     const nextStatus = currentStatus === 'ACTIVE' ? 'BANNED' : 'ACTIVE';
-    const updated = databaseService.updateUserStatus(userId, nextStatus);
-    setUsers(updated);
+    const result = await databaseService.updateUserStatusOnBackend(userId, nextStatus);
+    if (result.success) {
+      refreshData();
+    } else {
+      alert('Failed to update user status.');
+    }
   };
 
   const filteredUsers = users.filter(u => 

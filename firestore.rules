@@ -1,0 +1,178 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId (auth.uid)
+    // Fields:
+    //   - id: string (required)
+    //   - handle: string (required)
+    //   - email: string (required)
+    //   - archetype: string
+    //   - rep: number
+    //   - level: number
+    //   - coins: number
+    //   - gems: number
+    //   - status: string (ACTIVE, BANNED, RESTRICTED)
+    //   - lastLogin: string
+    //   - totalSpent: number
+    //   - role: string (client, admin, supplier)
+    //
+    // Collection: products
+    // Document ID: productId
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - price: number (required)
+    //   - originalPrice: number (required)
+    //   - supplierId: string (required)
+    //   ... other fields
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "lenoakowan@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function isSupplier() {
+      return isAuthenticated() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'supplier';
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidUser(data) {
+      return hasRequiredFields(['id', 'handle', 'email', 'status', 'role']) &&
+             data.id is string &&
+             data.handle is string && data.handle.size() > 0 && data.handle.size() < 50 &&
+             isValidEmail(data.email) &&
+             data.status in ['ACTIVE', 'BANNED', 'RESTRICTED'] &&
+             data.role in ['client', 'admin', 'supplier'];
+    }
+
+    function isValidProduct(data) {
+      return hasRequiredFields(['id', 'name', 'price', 'originalPrice', 'category', 'supplierId']) &&
+             data.id is string &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.price is number && data.price >= 0 &&
+             data.originalPrice is number && data.originalPrice >= 0 &&
+             data.category is string &&
+             data.supplierId is string;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can only read their own profile (PII protection)
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Creation: User can create their own profile as 'client'
+      // Admins can create any profile
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && request.resource.data.role == 'client') || isAdmin());
+      
+      // Update: User can update their own profile but cannot change their role
+      // Admins can update anything
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && 
+                    ((isOwner(userId) && request.resource.data.role == resource.data.role) || isAdmin());
+      
+      allow delete: if isAdmin();
+    }
+
+    match /products/{productId} {
+      // Products are publicly readable (unless user specifically asked for restricted access)
+      // But we'll require authentication for now as per guidelines "initially restricted"
+      allow read: if isAuthenticated();
+      
+      // Only admins or the owning supplier can create/update products
+      allow create: if (isAdmin() || isSupplier()) && isValidProduct(request.resource.data);
+      allow update: if (isAdmin() || (isSupplier() && resource.data.supplierId == request.auth.uid)) && isValidProduct(request.resource.data);
+      allow delete: if isAdmin() || (isSupplier() && resource.data.supplierId == request.auth.uid);
+    }
+
+    match /suppliers/{supplierId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      // Users can read their own orders
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin() || (isSupplier() && resource.data.items.any(item, item.supplierId == request.auth.uid)));
+      
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAdmin() || (isSupplier() && resource.data.items.any(item, item.supplierId == request.auth.uid));
+      allow delete: if isAdmin();
+    }
+
+    match /promos/{promoId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /notifications/{notificationId} {
+      allow read: if isAuthenticated() && (resource.data.recipientId == request.auth.uid || resource.data.recipientId == null || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAuthenticated() && (resource.data.recipientId == request.auth.uid || isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    match /credits/{creditId} {
+      allow read: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isAdmin();
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']));
+      allow delete: if isAdmin();
+    }
+
+    match /social_posts/{postId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      allow update: if isAuthenticated() && (resource.data.userId == request.auth.uid || request.resource.data.diff(resource.data).affectedKeys().hasAny(['likes', 'loves', 'likedBy', 'lovedBy']));
+      allow delete: if isAuthenticated() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    match /bundles/{bundleId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /pay_for_me/{requestId} {
+      allow read: if isAuthenticated() && (resource.data.requesterId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && request.resource.data.requesterId == request.auth.uid;
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+  }
+}

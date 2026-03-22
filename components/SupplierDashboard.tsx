@@ -21,51 +21,69 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
   // Editor State
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [profileForm, setProfileForm] = useState({ name: '', contactEmail: '', region: '' });
 
   useEffect(() => {
     refreshData();
   }, [supplierId]);
 
-  const refreshData = () => {
-    const allSuppliers = databaseService.getSuppliers();
-    const current = allSuppliers.find(s => s.id === supplierId) || allSuppliers[0];
-    setSupplier(current);
+  useEffect(() => {
+    if (supplier) {
+      setProfileForm({
+        name: supplier.name,
+        contactEmail: supplier.contactEmail,
+        region: supplier.region
+      });
+    }
+  }, [supplier]);
 
-    const allProducts = databaseService.getProducts();
-    const myProducts = allProducts.filter(p => p.supplierId === current.id);
-    setProducts(myProducts);
-
-    const allOrders = databaseService.getOrders();
-    const myOrders = allOrders.filter(o => 
-      o.items.some(item => myProducts.find(mp => mp.id === item.id))
-    );
-    setOrders(myOrders);
+  const refreshData = async () => {
+    const current = await databaseService.getSupplierProfile(supplierId);
+    if (current) {
+      setSupplier(current);
+      const myProducts = await databaseService.getSupplierProducts(current.id);
+      setProducts(myProducts);
+      const myOrders = await databaseService.getSupplierOrders(current.id);
+      setOrders(myOrders);
+    }
   };
 
-  const handleSaveProduct = (formData: Partial<Product>) => {
-    const allProducts = databaseService.getProducts();
-    if (editingProduct) {
-      const updated = allProducts.map(p => p.id === editingProduct.id ? { ...p, ...formData } : p);
-      databaseService.saveProducts(updated);
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const result = await databaseService.updateSupplierProfile(supplierId, profileForm);
+    if (result.success) {
+      setIsEditingProfile(false);
+      refreshData();
     } else {
-      const newProduct: Product = {
-        ...formData as Product,
-        id: `SP-${Date.now()}`,
-        supplierId: supplier?.id,
-        inStock: (formData.stockCount || 0) > 0,
-        viewers: 0,
-        velocityScore: 0,
-        hypeScore: 0,
-        isNew: true
-      };
-      databaseService.saveProducts([newProduct, ...allProducts]);
+      alert('Failed to update profile');
+    }
+  };
+
+  const handleSaveProduct = async (formData: Partial<Product>) => {
+    if (editingProduct) {
+      const result = await databaseService.updateProductOnBackend(editingProduct.id, formData);
+      if (!result.success) {
+        alert('Failed to update silhouette in the core.');
+      }
+    } else {
+      const result = await databaseService.saveProductToBackend({
+        ...formData,
+        supplierId: supplier?.id
+      });
+      if (!result.success) {
+        alert('Failed to register silhouette in the core.');
+      }
     }
     setIsEditorOpen(false);
     refreshData();
   };
 
-  const handleUpdateOrderStatus = (orderId: string, status: OrderStatus) => {
-    databaseService.updateOrderStatus(orderId, status);
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
+    const result = await databaseService.updateOrderStatusOnBackend(orderId, status);
+    if (!result.success) {
+      alert('Failed to update logistics status.');
+    }
     refreshData();
   };
 
@@ -119,10 +137,16 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
       <section className="bg-zinc-950 border border-white/5 rounded-[3rem] p-10 space-y-8">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-[#f59e0b]/10 rounded-2xl flex items-center justify-center text-2xl">👤</div>
-          <div>
+          <div className="flex-1">
             <h3 className="text-xl font-serif italic text-white">Supplier Profile</h3>
             <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Node Identity & Logistics Config</p>
           </div>
+          <button 
+            onClick={() => setIsEditingProfile(true)}
+            className="px-6 py-2 bg-zinc-900 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:border-white/20 transition-all"
+          >
+            Edit Profile
+          </button>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -389,6 +413,70 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
           onSave={handleSaveProduct}
           onCancel={() => setIsEditorOpen(false)}
         />
+      )}
+
+      {isEditingProfile && (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-6 overflow-y-auto">
+          <div className="bg-zinc-950 border border-white/5 w-full max-w-2xl rounded-[3rem] p-12 space-y-12 animate-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-center border-b border-white/5 pb-8">
+              <div className="space-y-2">
+                <h2 className="text-4xl font-serif italic text-white">Edit Profile</h2>
+                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">Update your node identity</p>
+              </div>
+              <button 
+                onClick={() => setIsEditingProfile(false)}
+                className="w-12 h-12 bg-black border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-all"
+              >
+                <XCircle size={24} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateProfile} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Organization Name</label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.name}
+                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    className="w-full bg-black border border-white/5 p-5 rounded-2xl text-white font-bold focus:border-[#f59e0b] outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-4">
+                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Operational Region</label>
+                  <input
+                    type="text"
+                    required
+                    value={profileForm.region}
+                    onChange={(e) => setProfileForm({ ...profileForm, region: e.target.value })}
+                    className="w-full bg-black border border-white/5 p-5 rounded-2xl text-white font-bold focus:border-[#f59e0b] outline-none transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Contact Protocol (Email)</label>
+                <input
+                  type="email"
+                  required
+                  value={profileForm.contactEmail}
+                  onChange={(e) => setProfileForm({ ...profileForm, contactEmail: e.target.value })}
+                  className="w-full bg-black border border-white/5 p-5 rounded-2xl text-white font-bold focus:border-[#f59e0b] outline-none transition-all"
+                />
+              </div>
+
+              <div className="pt-8">
+                <button
+                  type="submit"
+                  className="w-full bg-white text-black py-6 rounded-3xl font-black uppercase tracking-[0.3em] text-xs hover:bg-[#f59e0b] transition-all shadow-2xl shadow-white/5"
+                >
+                  Confirm Synchronization
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       <style>{`

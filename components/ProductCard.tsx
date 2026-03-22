@@ -8,6 +8,8 @@ interface ProductCardProps {
   onAddToCart: (product: Product) => void;
   onToggleWishlist: (product: Product) => void;
   isWishlisted: boolean;
+  onSoftLock?: (productId: string) => void;
+  isSoftLocked?: boolean;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({ 
@@ -15,16 +17,27 @@ const ProductCard: React.FC<ProductCardProps> = ({
   onClick, 
   onAddToCart, 
   onToggleWishlist,
-  isWishlisted 
+  isWishlisted,
+  onSoftLock,
+  isSoftLocked
 }) => {
   const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
   const isHighHeat = product.hypeScore > 85;
   const demandWidth = Math.min(100, (product.viewers / 200) * 100);
 
+  const [isClicked, setIsClicked] = React.useState(false);
+
+  const handleAcquire = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsClicked(true);
+    onAddToCart(product);
+    setTimeout(() => setIsClicked(false), 1000);
+  };
+
   return (
-    <div className="group relative flex flex-col h-full animate-in fade-in duration-700">
+    <div className={`group relative flex flex-col h-full animate-in fade-in duration-700 ${isSoftLocked ? 'ring-1 ring-[#1a73e8] rounded-2xl p-2 bg-[#1a73e8]/5' : ''}`}>
       <div 
-        className="relative aspect-[3/4] overflow-hidden bg-black cursor-pointer mb-6"
+        className="relative aspect-[3/4] overflow-hidden bg-black cursor-pointer mb-6 rounded-xl"
         onClick={() => onClick(product)}
       >
         <img 
@@ -40,25 +53,40 @@ const ProductCard: React.FC<ProductCardProps> = ({
           {isHighHeat && (
             <div className="bg-[#1a73e8] text-white px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em]">Heat</div>
           )}
+          {isSoftLocked && (
+            <div className="bg-orange-500 text-white px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em] animate-pulse">Locked</div>
+          )}
         </div>
-
+ 
         {/* Choice Hub */}
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-500 bg-black/20 backdrop-blur-[2px] hidden sm:flex">
-          <div className="flex gap-2">
-            <button 
-              onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-              className="h-12 px-8 bg-white text-black text-[9px] uppercase tracking-[0.4em] font-black hover:bg-[#1a73e8] hover:text-white transition-all"
-            >
-              Acquire
-            </button>
-            <button 
-              onClick={(e) => { e.stopPropagation(); onToggleWishlist(product); }}
-              className={`w-12 h-12 flex items-center justify-center border transition-all ${
-                isWishlisted ? 'bg-[#1a73e8] border-[#1a73e8] text-white' : 'bg-black/50 border-white/20 text-white hover:bg-white hover:text-black'
-              }`}
-            >
-              {isWishlisted ? '💖' : '🤍'}
-            </button>
+          <div className="flex flex-col gap-2 items-center">
+            <div className="flex gap-2">
+              <button 
+                onClick={handleAcquire}
+                className={`h-12 px-8 text-[9px] uppercase tracking-[0.4em] font-black transition-all ${
+                  isClicked ? 'bg-green-500 text-white' : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
+                }`}
+              >
+                {isClicked ? 'Acquired' : 'Acquire'}
+              </button>
+              <button 
+                onClick={(e) => { e.stopPropagation(); onToggleWishlist(product); }}
+                className={`w-12 h-12 flex items-center justify-center border transition-all ${
+                  isWishlisted ? 'bg-[#1a73e8] border-[#1a73e8] text-white' : 'bg-black/50 border-white/20 text-white hover:bg-white hover:text-black'
+                }`}
+              >
+                {isWishlisted ? '💖' : '🤍'}
+              </button>
+            </div>
+            {onSoftLock && !isSoftLocked && (
+              <button 
+                onClick={(e) => { e.stopPropagation(); onSoftLock(product.id); }}
+                className="w-full h-10 bg-black/80 border border-white/10 text-[8px] text-white font-black uppercase tracking-[0.3em] hover:bg-orange-600 hover:border-orange-600 transition-all"
+              >
+                Soft Lock
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -90,10 +118,12 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
             <div className="text-base sm:text-lg font-mono tracking-tighter text-white">GH₵{product.price}</div>
             <button 
-              onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-              className="sm:hidden px-4 py-2 bg-white text-black text-[7px] font-black uppercase tracking-widest rounded-lg active:bg-[#1a73e8] active:text-white transition-all"
+              onClick={handleAcquire}
+              className={`sm:hidden px-4 py-2 text-[7px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                isClicked ? 'bg-green-500 text-white' : 'bg-white text-black active:bg-[#1a73e8] active:text-white'
+              }`}
             >
-              Acquire
+              {isClicked ? 'Acquired' : 'Acquire'}
             </button>
           </div>
         </div>

@@ -17,23 +17,40 @@ const AdminSupplierPanel: React.FC = () => {
     region: 'Neo Tokyo Central'
   });
 
+  const [supplierOrders, setSupplierOrders] = useState<Order[]>([]);
+
   useEffect(() => {
-    setSuppliers(databaseService.getSuppliers());
-    setAllProducts(databaseService.getProducts());
+    refreshData();
   }, []);
 
-  const handleRegister = (e: React.FormEvent) => {
+  const refreshData = async () => {
+    const supps = await databaseService.getAdminSuppliers();
+    const prods = await databaseService.getAdminProducts();
+    setSuppliers(supps);
+    setAllProducts(prods);
+  };
+
+  useEffect(() => {
+    const fetchSupplierOrders = async () => {
+      if (selectedSupplier) {
+        const orders = await databaseService.getSupplierOrders(selectedSupplier.id);
+        setSupplierOrders(orders);
+      }
+    };
+    fetchSupplierOrders();
+  }, [selectedSupplier]);
+
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const updated = databaseService.registerSupplier(newSupplier);
-    setSuppliers(updated);
-    setIsRegistering(false);
-    setNewSupplier({ name: '', contactEmail: '', region: 'Neo Tokyo Central' });
+    const result = await databaseService.registerSupplier(newSupplier as any);
+    if (result) {
+      setIsRegistering(false);
+      setNewSupplier({ name: '', contactEmail: '', region: 'Neo Tokyo Central' });
+      refreshData();
+    }
   };
 
   const supplierProducts = allProducts.filter(p => p.supplierId === selectedSupplier?.id);
-  const supplierOrders = MOCK_ORDERS.filter(o => 
-    o.items.some(item => allProducts.find(ap => ap.id === item.id)?.supplierId === selectedSupplier?.id)
-  );
 
   if (selectedSupplier) {
     return (

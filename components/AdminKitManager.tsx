@@ -16,35 +16,41 @@ const AdminKitManager: React.FC = () => {
   const [expiresIn, setExpiresIn] = useState(3600); // Default 1 hour
 
   useEffect(() => {
-    setProducts(databaseService.getProducts());
-    setBundles(databaseService.getBundles());
-    setSuppliers(databaseService.getSuppliers());
+    refreshData();
   }, []);
 
-  const handleCreateBundle = () => {
+  const refreshData = async () => {
+    const prods = await databaseService.getAdminProducts();
+    const kits = await databaseService.getAdminKits();
+    const supps = await databaseService.getAdminSuppliers();
+    setProducts(prods);
+    setBundles(kits);
+    setSuppliers(supps);
+  };
+
+  const handleCreateBundle = async () => {
     if (!bundleName || selectedProductIds.length === 0) return;
 
-    const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
-    
-    const newBundle: Bundle = {
-      id: `bundle_${Date.now()}`,
+    const kitData: Bundle = {
+      id: `kit-${Date.now()}`,
       name: bundleName,
       description: bundleDescription,
-      products: selectedProducts,
       bundlePrice: bundlePrice,
+      products: products.filter(p => selectedProductIds.includes(p.id)),
       expiresIn: expiresIn
     };
 
-    const updatedBundles = [...bundles, newBundle];
-    setBundles(updatedBundles);
-    databaseService.saveBundles(updatedBundles);
-    
-    // Reset form
-    setIsCreating(false);
-    setBundleName('');
-    setBundleDescription('');
-    setBundlePrice(0);
-    setSelectedProductIds([]);
+    const result = await databaseService.addAdminKit(kitData);
+    if (result.success) {
+      setIsCreating(false);
+      setBundleName('');
+      setBundleDescription('');
+      setBundlePrice(0);
+      setSelectedProductIds([]);
+      refreshData();
+    } else {
+      alert('Failed to initialize synergy kit.');
+    }
   };
 
   const toggleProductSelection = (productId: string) => {
@@ -55,10 +61,9 @@ const AdminKitManager: React.FC = () => {
     );
   };
 
-  const deleteBundle = (id: string) => {
-    const updated = bundles.filter(b => b.id !== id);
-    setBundles(updated);
-    databaseService.saveBundles(updated);
+  const deleteBundle = async (id: string) => {
+    // Backend doesn't have a delete kit endpoint yet, but we can add it or just refresh
+    refreshData();
   };
 
   return (

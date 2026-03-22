@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product, UserStats, ViewState } from '../types';
 import ProductCard from './ProductCard';
+import MicroCompliancePanel from './MicroCompliancePanel';
 import { LIVE_SOCIAL_FEED } from '../data/socialProofData';
 import { databaseService } from '../services/databaseService';
 
@@ -15,6 +16,8 @@ interface HomeLobbyProps {
   onToggleWishlist: (product: Product) => void;
   onProductClick: (product: Product) => void;
   onCompleteQuest: (questId: string) => void;
+  onCompleteMicroCommitment: (id: string) => void;
+  onSoftLock: (productId: string) => void;
 }
 
 const HomeLobby: React.FC<HomeLobbyProps> = ({ 
@@ -26,29 +29,35 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
   onNavigate, 
   onAddToCart, 
   onToggleWishlist,
-  onProductClick
+  onProductClick,
+  onCompleteMicroCommitment,
+  onSoftLock
 }) => {
   const [flashWindow, setFlashWindow] = useState<{ startTime: number; endTime: number } | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('');
 
   useEffect(() => {
-    let currentWindow = databaseService.getFlashSaleWindow();
-    if (!currentWindow) {
-      currentWindow = databaseService.initializeFlashSaleWindow();
-    }
-    setFlashWindow(currentWindow);
-
-    const timer = setInterval(() => {
-      if (currentWindow) {
-        const seconds = Math.max(0, Math.floor((currentWindow.endTime - Date.now()) / 1000));
-        const h = Math.floor(seconds / 3600);
-        const m = Math.floor((seconds % 3600) / 60);
-        const s = seconds % 60;
-        setTimeLeft(`${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+    const fetchData = async () => {
+      let currentWindow = await databaseService.getFlashSaleWindow();
+      if (!currentWindow) {
+        currentWindow = await databaseService.initializeFlashSaleWindow();
       }
-    }, 1000);
+      setFlashWindow(currentWindow);
 
-    return () => clearInterval(timer);
+      const timer = setInterval(() => {
+        if (currentWindow) {
+          const seconds = Math.max(0, Math.floor((currentWindow.endTime - Date.now()) / 1000));
+          const h = Math.floor(seconds / 3600);
+          const m = Math.floor((seconds % 3600) / 60);
+          const s = seconds % 60;
+          setTimeLeft(`${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+        }
+      }, 1000);
+
+      return () => clearInterval(timer);
+    };
+
+    fetchData();
   }, []);
 
   const newArrivals = products.slice(0, 4);
@@ -146,6 +155,11 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
         </div>
       </section>
 
+      {/* Micro-Compliance Panel */}
+      <section className="max-w-screen-2xl mx-auto px-4 sm:px-12 md:px-20 py-12">
+        <MicroCompliancePanel stats={stats} onComplete={onCompleteMicroCommitment} />
+      </section>
+
       {/* Pulse of the Circuit: Live Social Feed */}
       <div className="bg-zinc-950 border-y border-white/5 py-4 sm:py-6 overflow-hidden relative">
         <div className="flex gap-8 sm:gap-12 animate-[marquee_50s_linear_infinite] whitespace-nowrap px-6 items-center">
@@ -201,6 +215,8 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
               onAddToCart={() => onAddToCart(p.id)}
               onToggleWishlist={onToggleWishlist}
               onClick={() => onProductClick(p)} 
+              onSoftLock={onSoftLock}
+              isSoftLocked={!!stats.softLockedItems[p.id]}
             />
           ))}
         </div>

@@ -8,6 +8,14 @@ interface BundlesProps {
 }
 
 const Bundles: React.FC<BundlesProps> = ({ bundles, onAddBundle }) => {
+  const [clickedBundleId, setClickedBundleId] = React.useState<string | null>(null);
+
+  const handleAddBundle = (bundle: Bundle) => {
+    setClickedBundleId(bundle.id);
+    onAddBundle(bundle);
+    setTimeout(() => setClickedBundleId(null), 1000);
+  };
+
   return (
     <div className="p-6 md:p-12 space-y-12 animate-in fade-in duration-500 pb-32 max-w-7xl mx-auto">
       <header className="flex flex-col md:flex-row md:items-end justify-between gap-10 border-b border-white/5 pb-20">
@@ -72,10 +80,14 @@ const Bundles: React.FC<BundlesProps> = ({ bundles, onAddBundle }) => {
 
               <div className="flex justify-end">
                 <button 
-                  onClick={() => onAddBundle(bundle)}
-                  className="h-16 px-16 bg-white text-black text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl active:scale-95"
+                  onClick={() => handleAddBundle(bundle)}
+                  className={`h-16 px-16 text-[10px] font-black uppercase tracking-[0.4em] transition-all shadow-2xl active:scale-95 ${
+                    clickedBundleId === bundle.id 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
+                  }`}
                 >
-                  Acquire Synergy Kit
+                  {clickedBundleId === bundle.id ? 'Kit Secured' : 'Acquire Synergy Kit'}
                 </button>
               </div>
             </div>

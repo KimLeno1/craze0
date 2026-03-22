@@ -9,22 +9,31 @@ const AdminPayForMeManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    setRequests(databaseService.getPayForMeRequests());
+    refreshData();
   }, []);
 
-  const handleStatusUpdate = (requestId: string, status: PayForMeStatus) => {
-    const updated = databaseService.updatePayForMeStatus(requestId, status);
-    setRequests(updated);
-    
-    // Notify the user
-    const request = updated.find(r => r.id === requestId);
-    if (request) {
-      databaseService.sendNotification(
-        `Pay For Me Request ${status}`,
-        `Your request for "${request.items[0].name}" has been ${status.toLowerCase()}.`,
-        status === PayForMeStatus.APPROVED ? 'REWARD' : 'INFO',
-        request.userId
-      );
+  const refreshData = async () => {
+    const reqs = await databaseService.getAdminPayForMeRequests();
+    setRequests(reqs);
+  };
+
+  const handleStatusUpdate = async (requestId: string, status: PayForMeStatus) => {
+    const result = await databaseService.updateAdminPayForMeStatus(requestId, status);
+    if (result.success) {
+      refreshData();
+      
+      // Notify the user
+      const request = requests.find(r => r.id === requestId);
+      if (request) {
+        await databaseService.addAdminNotification({
+          title: `Pay For Me Request ${status}`,
+          message: `Your request for "${request.items[0].name}" has been ${status.toLowerCase()}.`,
+          type: status === PayForMeStatus.APPROVED ? 'REWARD' : 'INFO',
+          recipientId: request.userId
+        });
+      }
+    } else {
+      alert('Failed to update status.');
     }
   };
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Product } from '../types';
+import { Product, UserStats } from '../types';
 
 interface FamousProductsProps {
   products: Product[];
@@ -7,6 +7,8 @@ interface FamousProductsProps {
   onProductClick: (p: Product) => void;
   onAddToCart: (p: Product) => void;
   onToggleWishlist: (p: Product) => void;
+  onSoftLock?: (productId: string) => void;
+  stats?: UserStats;
 }
 
 const FamousProducts: React.FC<FamousProductsProps> = ({ 
@@ -14,7 +16,9 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
   wishlist,
   onProductClick, 
   onAddToCart,
-  onToggleWishlist
+  onToggleWishlist,
+  onSoftLock,
+  stats
 }) => {
   const sorted = [...products].sort((a, b) => {
     const scoreA = (a.hypeScore || 0) + (a.velocityScore || 0) + (a.isHallOfFame ? 100 : 0);
@@ -165,6 +169,19 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
                   </div>
                   
                   <div className="flex gap-4">
+                    {onSoftLock && stats && !stats.softLockedItems[p.id] && (
+                      <button 
+                        onClick={() => onSoftLock(p.id)}
+                        className="flex-1 sm:flex-none h-14 md:h-16 px-6 md:px-8 bg-black border border-white/10 text-white text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] hover:bg-orange-600 hover:border-orange-600 transition-all active:scale-95"
+                      >
+                        Soft Lock
+                      </button>
+                    )}
+                    {stats?.softLockedItems[p.id] && (
+                      <div className="flex-1 sm:flex-none h-14 md:h-16 px-6 md:px-8 bg-orange-600/20 border border-orange-600 text-orange-500 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] flex items-center justify-center animate-pulse">
+                        Locked
+                      </div>
+                    )}
                     <button 
                       onClick={() => onAddToCart(p)}
                       className="flex-1 sm:flex-none h-14 md:h-16 px-8 md:px-12 bg-white text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#1a73e8] hover:text-white transition-all active:scale-95"

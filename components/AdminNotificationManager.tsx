@@ -11,27 +11,43 @@ const AdminNotificationManager: React.FC = () => {
   const [type, setType] = useState<Notification['type']>('INFO');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success'>('idle');
 
+  const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
+
   useEffect(() => {
-    setUsers(databaseService.getUsers());
+    refreshData();
   }, []);
 
-  const handleSend = (e: React.FormEvent) => {
+  const refreshData = async () => {
+    const allUsers = await databaseService.getAdminUsers();
+    const allNotifs = await databaseService.getAdminNotifications();
+    setUsers(allUsers);
+    setRecentNotifications(allNotifs);
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !message) return;
 
     setStatus('sending');
     
-    // Simulate network delay
-    setTimeout(() => {
-      const recipientId = selectedRecipient === 'ALL' ? undefined : selectedRecipient;
-      databaseService.sendNotification(title, message, type, recipientId);
-      
+    const recipientId = selectedRecipient === 'ALL' ? undefined : selectedRecipient;
+    const result = await databaseService.addAdminNotification({
+      title,
+      message,
+      type,
+      recipientId
+    });
+    
+    if (result.success) {
       setStatus('success');
       setTitle('');
       setMessage('');
-      
+      refreshData();
       setTimeout(() => setStatus('idle'), 3000);
-    }, 800);
+    } else {
+      setStatus('idle');
+      alert('Transmission failure.');
+    }
   };
 
   return (
@@ -150,7 +166,7 @@ const AdminNotificationManager: React.FC = () => {
           </div>
           
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
-            {databaseService.getGlobalNotifications().slice(0, 10).map((notif) => (
+            {recentNotifications.slice(0, 10).map((notif) => (
               <div key={notif.id} className="glass border-white/5 rounded-3xl p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${

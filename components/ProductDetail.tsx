@@ -54,7 +54,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       .slice(0, 4);
   }, [allProducts, product.id, product.category]);
 
-  const handleAddToCart = () => {
+  const [isClicked, setIsClicked] = useState(false);
+
+  const handleAddToCartWithEffect = () => {
     if (product.isCustom && !showCustomForm) {
       setShowCustomForm(true);
       return;
@@ -69,7 +71,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       }
     }
 
+    setIsClicked(true);
     onAddToCart({ ...product, price: rankAdjustedPrice }, selectedSize, product.isCustom ? customizationData : undefined);
+    setTimeout(() => setIsClicked(false), 1000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -134,12 +138,9 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       >
         <button 
           onClick={onClose} 
-          className="group flex items-center gap-4 md:gap-6 bg-white text-black hover:bg-[#1a73e8] hover:text-white px-10 py-5 rounded-full border-2 border-white/20 hover:border-transparent transition-all shadow-[0_0_50px_rgba(255,255,255,0.1)] hover:shadow-[0_0_50px_rgba(26,115,232,0.4)]"
+          className="group flex items-center justify-center w-12 h-12 md:w-16 md:h-16 bg-white text-black hover:bg-[#1a73e8] hover:text-white rounded-full border-2 border-white/20 hover:border-transparent transition-all shadow-[0_0_50px_rgba(255,255,255,0.1)] hover:shadow-[0_0_50px_rgba(26,115,232,0.4)]"
         >
-          <div className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center group-hover:-translate-x-2 transition-transform">
-            <span className="text-2xl md:text-3xl font-black">←</span>
-          </div>
-          <span className="text-[12px] md:text-[14px] font-black uppercase tracking-[0.4em] md:tracking-[0.5em]">Back to Archive</span>
+          <span className="text-xl md:text-2xl font-black group-hover:-translate-x-1 transition-transform">←</span>
         </button>
         
         <div className="flex items-center gap-4 md:gap-6">
@@ -398,14 +399,16 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           {/* Action Bar */}
           <div className="p-6 md:p-12 border-t border-white/5 bg-[#050505] sticky bottom-0 z-20">
             <button 
-              onClick={handleAddToCart}
+              onClick={handleAddToCartWithEffect}
               className={`w-full h-16 md:h-20 rounded-2xl font-bold uppercase tracking-[0.3em] md:tracking-[0.4em] text-[10px] md:text-xs transition-all active:scale-[0.98] shadow-2xl ${
-                showCustomForm 
-                ? 'bg-amber-500 text-black hover:bg-white' 
-                : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
+                isClicked 
+                ? 'bg-green-500 text-white' 
+                : showCustomForm 
+                  ? 'bg-amber-500 text-black hover:bg-white' 
+                  : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
               }`}
             >
-              {showCustomForm ? 'Confirm Customization' : (product.isCustom ? 'Configure Silhouette' : 'Initialize Acquisition')}
+              {isClicked ? 'Initialized' : (showCustomForm ? 'Confirm Customization' : (product.isCustom ? 'Configure Silhouette' : 'Initialize Acquisition'))}
             </button>
             <p className="text-center mt-4 md:mt-6 text-[8px] md:text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">
               Secure checkout via neural link • Global logistics GH₵{product.shippingFee}

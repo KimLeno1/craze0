@@ -17,29 +17,32 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
 
   useEffect(() => {
-    const allRequests = databaseService.getPayForMeRequests();
-    setActiveRequests(allRequests.filter(r => r.userName === userHandle));
+    const fetchRequests = async () => {
+      const allRequests = await databaseService.getPayForMeRequests(userHandle);
+      setActiveRequests(allRequests);
+    };
+    fetchRequests();
   }, [userHandle, activeTab]);
 
   const canAddMore = activeRequests.filter(r => r.status === PayForMeStatus.PENDING || r.status === PayForMeStatus.APPROVED).length < rank.payForMeSlots;
 
-  const handleInitializeSponsorship = (product: Product) => {
+  const handleInitializeSponsorship = async (product: Product) => {
     if (!canAddMore) return;
     
     setGeneratingId(product.id);
-    setTimeout(() => {
-      const newRequest = databaseService.createPayForMeRequest({
-        userId: userHandle, // Using handle as ID for this mock
-        userName: userHandle,
-        items: [{ ...product, quantity: 1 }],
-        total: product.price,
-        message: `I'd love to have this ${product.name}! Can someone help me out?`
-      });
-      
-      setActiveRequests(prev => [newRequest, ...prev]);
-      setGeneratingId(null);
+    const result = await databaseService.createPayForMeRequest({
+      requesterId: userHandle, // Using handle as ID for this mock
+      productId: product.id,
+      total: product.price,
+      message: `I'd love to have this ${product.name}! Can someone help me out?`
+    });
+    
+    if (result.success) {
+      const allRequests = await databaseService.getPayForMeRequests(userHandle);
+      setActiveRequests(allRequests);
       setIsSelecting(false);
-    }, 1500);
+    }
+    setGeneratingId(null);
   };
 
   const handlePayRemaining = (request: PayForMeRequest) => {
@@ -56,8 +59,20 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
       case PayForMeStatus.APPROVED: return <CheckCircle2 className="w-4 h-4 text-blue-500" />;
       case PayForMeStatus.PAID: return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
       case PayForMeStatus.REJECTED: return <XCircle className="w-4 h-4 text-red-500" />;
+      case PayForMeStatus.EXPIRED: return <Clock className="w-4 h-4 text-zinc-500" />;
       default: return <AlertCircle className="w-4 h-4 text-zinc-500" />;
     }
+  };
+
+  const getExpirationText = (timestamp: string) => {
+    const created = new Date(timestamp).getTime();
+    const expires = created + 14 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const diff = expires - now;
+    
+    if (diff <= 0) return 'EXPIRED';
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+    return `Expires in ${days} days`;
   };
 
   const filteredRequests = useMemo(() => {
@@ -115,6 +130,12 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
                       <span>Target</span>
                       <span className="text-[#1a73e8]">GH₵{request.total}</span>
                     </div>
+                    {request.status === PayForMeStatus.PENDING && (
+                      <div className="text-[7px] md:text-[8px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1">
+                        <Clock className="w-2 h-2" />
+                        {getExpirationText(request.timestamp)}
+                      </div>
+                    )}
                     <div className="h-1 md:h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
                       <div 
                         className={`h-full transition-all duration-1000 ${

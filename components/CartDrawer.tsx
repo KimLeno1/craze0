@@ -75,6 +75,17 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   const sMin = Math.floor(surgeTimeRemaining / 60);
   const sSec = surgeTimeRemaining % 60;
 
+  const [isClicked, setIsClicked] = useState(false);
+
+  const handleCheckout = () => {
+    setIsClicked(true);
+    setTimeout(() => {
+      setIsClicked(false);
+      onClose();
+      if (onNavigate) onNavigate(ViewState.CHECKOUT);
+    }, 1000);
+  };
+
   return (
     <>
       <div 
@@ -187,9 +198,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   </div>
                 </div>
               </div>
-              <button onClick={() => { onClose(); if (onNavigate) onNavigate(ViewState.CHECKOUT); }} className="w-full py-6 md:py-8 bg-white text-black text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] rounded-2xl md:rounded-3xl hover:bg-[#1a73e8] hover:text-white transition-all shadow-[0_0_50px_rgba(26,115,232,0.3)]">
-                Initialize Acquisition
-              </button>
+                <button 
+                  onClick={handleCheckout}
+                  className={`w-full py-6 md:py-8 text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] rounded-2xl md:rounded-3xl transition-all shadow-[0_0_50px_rgba(26,115,232,0.3)] ${
+                    isClicked 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
+                  }`}
+                >
+                  {isClicked ? 'Initialized' : 'Initialize Acquisition'}
+                </button>
             </footer>
           )}
         </div>

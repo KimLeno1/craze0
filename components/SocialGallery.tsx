@@ -18,7 +18,11 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
   const [activeTab, setActiveTab] = useState<'FEED' | 'HALL_OF_FAME'>('FEED');
 
   useEffect(() => {
-    setPosts(databaseService.getSocialPosts());
+    const fetchData = async () => {
+      const socialPosts = await databaseService.getSocialPosts();
+      setPosts(socialPosts);
+    };
+    fetchData();
   }, []);
 
   const sortedPosts = useMemo(() => {
@@ -33,23 +37,23 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
 
   const currentUserId = 'current_user';
 
-  const handleLike = (postId: string) => {
-    const updatedPost = databaseService.likePost(postId, currentUserId);
+  const handleLike = async (postId: string) => {
+    const updatedPost = await databaseService.likePost(postId, currentUserId);
     if (updatedPost) {
       setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
       onGainRep?.(2);
     }
   };
 
-  const handleLove = (postId: string) => {
-    const updatedPost = databaseService.lovePost(postId, currentUserId);
+  const handleLove = async (postId: string) => {
+    const updatedPost = await databaseService.lovePost(postId, currentUserId);
     if (updatedPost) {
       setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
       onGainRep?.(5);
     }
   };
 
-  const handleCreatePost = () => {
+  const handleCreatePost = async () => {
     if (!newPostImage) return;
 
     const newPost: SocialPost = {
@@ -60,12 +64,12 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
       likes: 0,
       loves: 0,
       timestamp: new Date().toISOString(),
-      weekId: databaseService.getWeekId()
+      weekId: await databaseService.getWeekId()
     };
 
     const updated = [newPost, ...posts];
     setPosts(updated);
-    databaseService.saveSocialPosts(updated);
+    await databaseService.saveSocialPosts(updated);
     setNewPostImage('');
     setShowPostModal(false);
     onGainRep?.(50);
