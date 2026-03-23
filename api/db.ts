@@ -21,6 +21,7 @@ db.exec(`
     totalSpent REAL,
     role TEXT,
     password TEXT,
+    phone TEXT,
     stats TEXT -- JSON string
   );
 

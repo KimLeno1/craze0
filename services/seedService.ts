@@ -9,13 +9,14 @@ export const seedDatabase = async () => {
     const products = await databaseService.getProducts();
     if (products.length === 0) {
       console.log('Seeding products...');
-      for (const p of EXTENDED_PRODUCTS) {
-        await databaseService.saveProduct({
+      const seedPromises = EXTENDED_PRODUCTS.map(p => 
+        databaseService.saveProduct({
           ...p,
-          supplierId: 'sup1', // Default supplier for now
+          supplierId: 'sup1',
           shippingFee: 25
-        } as any);
-      }
+        } as any)
+      );
+      await Promise.all(seedPromises);
     }
 
     // 2. Seed Suppliers
@@ -44,7 +45,7 @@ export const seedDatabase = async () => {
         const user = await databaseService.getUserByEmail(u.email);
         if (!user) {
           console.log(`Creating demo user: ${u.email}`);
-          await databaseService.registerUser(u.email, u.password, u.handle, '0000000000');
+          await databaseService.registerUser(u.email, u.password, u.handle, '0000000000', u.archetype);
           // Note: registerUser might need to be updated to handle roles, 
           // but for now we'll just register them.
         }

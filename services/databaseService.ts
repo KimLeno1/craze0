@@ -4,13 +4,17 @@ const API_BASE = '/api';
 
 export const databaseService = {
   // --- Auth ---
-  registerUser: async (email: string, password: string, username: string, phone: string) => {
+  registerUser: async (email: string, password: string, username: string, phone: string, archetype?: string) => {
     try {
       const response = await fetch(`${API_BASE}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, username, phone })
+        body: JSON.stringify({ email, password, username, phone, archetype })
       });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Failed to archive identity.' }));
+        return { success: false, error: errorData.error };
+      }
       const result = await response.json();
       if (result.success) {
         localStorage.setItem('user', JSON.stringify(result.user));
@@ -29,6 +33,10 @@ export const databaseService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Identity not found or security phrase rejection.' }));
+        return { success: false, error: errorData.error };
+      }
       const result = await response.json();
       if (result.success) {
         localStorage.setItem('user', JSON.stringify(result.user));
@@ -62,7 +70,11 @@ export const databaseService = {
     try {
       const response = await fetch(`${API_BASE}/users/email/${email}`);
       if (!response.ok) return null;
-      return await response.json();
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      return null;
     } catch (error) {
       console.error('Error fetching user by email:', error);
       return null;
@@ -73,8 +85,17 @@ export const databaseService = {
   getProducts: async (): Promise<Product[]> => {
     try {
       const response = await fetch(`${API_BASE}/products`);
-      if (!response.ok) throw new Error('Failed to fetch products');
-      return await response.json();
+      if (!response.ok) {
+        console.error(`Failed to fetch products: ${response.status} ${response.statusText}`);
+        return [];
+      }
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      const text = await response.text();
+      console.error('Expected JSON response for products but got:', text.substring(0, 100));
+      return [];
     } catch (error) {
       console.error('Error fetching products:', error);
       return [];
@@ -82,10 +103,12 @@ export const databaseService = {
   },
 
   subscribeToProducts: (callback: (products: Product[]) => void) => {
-    const interval = setInterval(async () => {
+    const fetchProducts = async () => {
       const products = await databaseService.getProducts();
       callback(products);
-    }, 5000);
+    };
+    fetchProducts();
+    const interval = setInterval(fetchProducts, 5000);
     return () => clearInterval(interval);
   },
 
@@ -96,7 +119,12 @@ export const databaseService = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product)
       });
-      return await response.json();
+      if (!response.ok) return { success: false };
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      return { success: false };
     } catch (error) {
       console.error('Error saving product:', error);
       return { success: false };
@@ -106,9 +134,18 @@ export const databaseService = {
   // --- Users ---
   getUser: async (userId: string): Promise<User | null> => {
     try {
-      const response = await fetch(`${API_BASE}/admin/users`);
-      const users: User[] = await response.json();
-      return users.find(u => u.id === userId) || null;
+      const response = await fetch(`${API_BASE}/users/${userId}`);
+      if (!response.ok) {
+        console.error(`Failed to fetch user ${userId}: ${response.status} ${response.statusText}`);
+        return null;
+      }
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      const text = await response.text();
+      console.error(`Expected JSON response for user ${userId} but got:`, text.substring(0, 100));
+      return null;
     } catch (error) {
       console.error('Error fetching user:', error);
       return null;
@@ -116,10 +153,12 @@ export const databaseService = {
   },
 
   subscribeToUser: (userId: string, callback: (user: User | null) => void) => {
-    const interval = setInterval(async () => {
+    const fetchUser = async () => {
       const user = await databaseService.getUser(userId);
       callback(user);
-    }, 5000);
+    };
+    fetchUser();
+    const interval = setInterval(fetchUser, 5000);
     return () => clearInterval(interval);
   },
 
@@ -154,7 +193,11 @@ export const databaseService = {
     try {
       const response = await fetch(`${API_BASE}/orders`);
       if (!response.ok) throw new Error('Failed to fetch orders');
-      return await response.json();
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.includes('application/json')) {
+        return await response.json();
+      }
+      return [];
     } catch (error) {
       console.error('Error fetching orders:', error);
       return [];
@@ -200,10 +243,12 @@ export const databaseService = {
   },
 
   subscribeToNotifications: (userId: string | undefined, callback: (notifs: Notification[]) => void) => {
-    const interval = setInterval(async () => {
+    const fetchNotifs = async () => {
       const notifs = await databaseService.getNotifications(userId);
       callback(notifs);
-    }, 5000);
+    };
+    fetchNotifs();
+    const interval = setInterval(fetchNotifs, 5000);
     return () => clearInterval(interval);
   },
 

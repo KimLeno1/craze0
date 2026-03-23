@@ -89,33 +89,44 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      await seedDatabase();
-      const settings = await databaseService.getAdminSettings();
-      if (settings.jackpot_product_id) {
-        setJackpotProductId(settings.jackpot_product_id);
-      }
-
-      // Check for stored user
-      const storedUser = localStorage.getItem('cc-current-user');
-      if (storedUser) {
-        try {
-          const user = JSON.parse(storedUser);
-          // Verify user still exists and get latest data
-          const latestUser = await databaseService.getUser(user.id);
-          if (latestUser) {
-            setCurrentUser(latestUser);
-            setIsAuthenticated(true);
-            setRep(latestUser.rep);
-            setHandle(latestUser.handle);
-          } else {
-            localStorage.removeItem('cc-current-user');
-            localStorage.removeItem('cc-auth-token');
-          }
-        } catch (e) {
-          console.error('Error parsing stored user:', e);
+      console.log('App initialization started...');
+      try {
+        await seedDatabase();
+        console.log('Database seeding complete.');
+        const settings = await databaseService.getAdminSettings();
+        if (settings.jackpot_product_id) {
+          setJackpotProductId(settings.jackpot_product_id);
         }
+
+        // Check for stored user
+        const storedUser = localStorage.getItem('cc-current-user');
+        if (storedUser) {
+          try {
+            const user = JSON.parse(storedUser);
+            console.log('Verifying stored user:', user.id);
+            // Verify user still exists and get latest data
+            const latestUser = await databaseService.getUser(user.id);
+            if (latestUser) {
+              setCurrentUser(latestUser);
+              setIsAuthenticated(true);
+              setRep(latestUser.rep);
+              setHandle(latestUser.handle);
+              console.log('User verified:', latestUser.username);
+            } else {
+              console.log('Stored user not found in database, clearing local storage.');
+              localStorage.removeItem('cc-current-user');
+              localStorage.removeItem('cc-auth-token');
+            }
+          } catch (e) {
+            console.error('Error parsing stored user:', e);
+          }
+        }
+      } catch (error) {
+        console.error('Error during App initialization:', error);
+      } finally {
+        setIsAuthReady(true);
+        console.log('App initialization complete.');
       }
-      setIsAuthReady(true);
     };
     init();
   }, []);

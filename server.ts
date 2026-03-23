@@ -21,19 +21,28 @@ const __dirname = path.dirname(__filename);
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const NODE_ENV = process.env.NODE_ENV || 'development';
+  console.log(`Starting server in ${NODE_ENV} mode...`);
 
   app.use(cors());
   app.use(express.json());
 
   // --- Modular API Routes ---
-  app.use('/api', authRouter);
-  app.use('/api', userRouter);
-  app.use('/api/social', socialRouter);
-  app.use('/api/suppliers', supplierRouter);
-  app.use('/api/products', productRouter);
-  app.use('/api/orders', orderRouter);
-  app.use('/api/pay-for-me', payForMeRouter);
-  app.use('/api/admin', adminRouter);
+  const apiRouter = express.Router();
+  apiRouter.use('/auth', authRouter);
+  apiRouter.use('/users', userRouter);
+  apiRouter.use('/social', socialRouter);
+  apiRouter.use('/suppliers', supplierRouter);
+  apiRouter.use('/products', productRouter);
+  apiRouter.use('/orders', orderRouter);
+  apiRouter.use('/pay-for-me', payForMeRouter);
+  apiRouter.use('/admin', adminRouter);
+  app.use('/api', apiRouter);
+
+  // Health check
+  app.get('/api/health', (req, res) => {
+    res.json({ status: 'ok', db: !!db });
+  });
 
   // Process expired sponsorship requests every hour
   setInterval(processExpiredRequests, 60 * 60 * 1000);

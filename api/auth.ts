@@ -4,7 +4,7 @@ import { db } from './db';
 const router = Router();
 
 // User Login
-router.post('/auth/login', async (req, res) => {
+router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password) as any;
@@ -25,7 +25,7 @@ router.post('/auth/login', async (req, res) => {
 });
 
 // User Registration
-router.post('/auth/register', async (req, res) => {
+router.post('/register', async (req, res) => {
   const { email, password, username, phone, archetype } = req.body;
   
   try {
@@ -43,6 +43,7 @@ router.post('/auth/register', async (req, res) => {
       handle,
       email,
       password, // Note: In production, use hashing
+      phone,
       archetype: archetype || 'CYBER',
       lastLogin: new Date().toISOString(),
       rep: 100,
@@ -55,10 +56,10 @@ router.post('/auth/register', async (req, res) => {
     };
 
     db.prepare(`
-      INSERT INTO users (id, username, handle, email, password, archetype, lastLogin, rep, level, coins, gems, status, role, stats)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, handle, email, password, phone, archetype, lastLogin, rep, level, coins, gems, status, role, stats)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      newUser.id, newUser.username, newUser.handle, newUser.email, newUser.password,
+      newUser.id, newUser.username, newUser.handle, newUser.email, newUser.password, newUser.phone,
       newUser.archetype, newUser.lastLogin, newUser.rep, newUser.level, newUser.coins,
       newUser.gems, newUser.status, newUser.role, newUser.stats
     );
@@ -71,7 +72,7 @@ router.post('/auth/register', async (req, res) => {
 });
 
 // Supplier Login
-router.post('/auth/supplier/login', async (req, res) => {
+router.post('/supplier/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     // Check by ID or Name
@@ -95,7 +96,7 @@ router.post('/auth/supplier/login', async (req, res) => {
 });
 
 // Admin Login
-router.post('/auth/admin/login', (req, res) => {
+router.post('/admin/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'admin' && password === 'admin') {
     res.json({ success: true, token: 'admin-token' });
@@ -105,7 +106,7 @@ router.post('/auth/admin/login', (req, res) => {
 });
 
 // Change Password
-router.post('/auth/change-password', async (req, res) => {
+router.post('/change-password', async (req, res) => {
   const { userId, current, newPass } = req.body;
   try {
     const user = db.prepare('SELECT * FROM users WHERE id = ? AND password = ?').get(userId, current) as any;

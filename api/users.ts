@@ -20,6 +20,23 @@ router.get('/email/:email', async (req, res) => {
   }
 });
 
+// Get User by ID
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id) as any;
+    if (user) {
+      user.stats = JSON.parse(user.stats || '{}');
+      res.json(user);
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('Error fetching user by ID:', error);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
 // Get Users Ranked by Rep/Loves
 router.get('/ranked', async (req, res) => {
   try {
