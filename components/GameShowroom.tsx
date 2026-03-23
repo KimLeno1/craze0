@@ -19,7 +19,7 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
   if (!jackpotProduct) {
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <div className="w-12 h-12 border-2 border-[#EC4899] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-2 border-[#1a73e8] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -120,7 +120,7 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
     <div className={`p-6 md:p-12 space-y-12 animate-in fade-in duration-500 pb-32 max-w-5xl mx-auto transition-all ${glitchActive ? 'invert bg-red-900/20' : ''}`}>
       <header className="text-center space-y-8">
         <div className="flex flex-col gap-2">
-           <h1 className="text-6xl md:text-9xl font-serif italic text-white tracking-tighter">Play<span className="text-[#EC4899] not-italic font-sans font-black uppercase">room</span></h1>
+           <h1 className="text-6xl md:text-9xl font-serif italic text-white tracking-tighter">Play<span className="text-[#1a73e8] not-italic font-sans font-black uppercase">room</span></h1>
            <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.6em]">Win Archival Gear & Neural Credits</p>
         </div>
 
@@ -138,13 +138,13 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
           </div>
 
           {/* Cooldown Status */}
-          <div className={`glass px-8 py-6 rounded-[2rem] border-white/5 flex flex-col items-center justify-center gap-2 overflow-hidden relative ${timeLeft > 0 ? 'border-[#EC4899]/30' : 'border-[#EC4899]/30'}`}>
+          <div className={`glass px-8 py-6 rounded-[2rem] border-white/5 flex flex-col items-center justify-center gap-2 overflow-hidden relative ${timeLeft > 0 ? 'border-[#1a73e8]/30' : 'border-blue-500/30'}`}>
              <span className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Arena Status</span>
              <div className="flex items-center gap-3">
-                <span className={`text-xl font-mono font-black ${timeLeft > 0 ? 'text-[#EC4899]' : 'text-[#EC4899]'}`}>
+                <span className={`text-xl font-mono font-black ${timeLeft > 0 ? 'text-[#1a73e8]' : 'text-blue-400'}`}>
                    {timeLeft > 0 ? `RELOADING_${timeLeft}s` : 'READY_TO_PLAY'}
                 </span>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${timeLeft > 0 ? 'border-[#EC4899] animate-spin text-[#EC4899]' : 'border-[#EC4899] text-[#EC4899]'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all ${timeLeft > 0 ? 'border-[#1a73e8] animate-spin text-[#1a73e8]' : 'border-blue-500 text-blue-500'}`}>
                    {timeLeft > 0 ? '⏳' : '✓'}
                 </div>
              </div>
@@ -152,10 +152,10 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
 
           {/* Weekly Jackpot */}
           <div className="glass px-8 py-6 rounded-[2rem] border-white/5 flex flex-col items-center justify-center gap-1 group relative overflow-hidden bg-gradient-to-br from-zinc-900 to-black">
-            <span className="text-[8px] font-black text-[#EC4899] uppercase tracking-widest">Weekly Jackpot</span>
+            <span className="text-[8px] font-black text-[#1a73e8] uppercase tracking-widest">Weekly Jackpot</span>
             <span className="text-xs font-serif italic text-white text-center line-clamp-1">{jackpotProduct.name}</span>
             <div className="w-full h-1 bg-white/5 mt-2 rounded-full overflow-hidden">
-               <div className="h-full bg-[#EC4899] animate-[shimmer_2s_infinite]" style={{ width: '100%' }}></div>
+               <div className="h-full bg-[#1a73e8] animate-[shimmer_2s_infinite]" style={{ width: '100%' }}></div>
             </div>
           </div>
         </div>
@@ -194,8 +194,8 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
       {activeGame === 'NONE' ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
-            { id: 'DICE', name: 'Thermal Roll', icon: '🎲', desc: 'Roll 12 for Jackpot', cost: 1, color: 'from-pink-600/20 to-pink-900/40', border: 'border-pink-500/20' },
-            { id: 'GUESS', name: 'Oracle Range', icon: '🔮', desc: 'Match Oracle (1-10)', cost: 1, color: 'from-[#EC4899]/20 to-[#EC4899]/40', border: 'border-[#EC4899]/20' },
+            { id: 'DICE', name: 'Thermal Roll', icon: '🎲', desc: 'Roll 12 for Jackpot', cost: 1, color: 'from-[#1a73e8]/20 to-blue-900/40', border: 'border-[#1a73e8]/20' },
+            { id: 'GUESS', name: 'Oracle Range', icon: '🔮', desc: 'Match Oracle (1-10)', cost: 1, color: 'from-blue-600/20 to-blue-900/40', border: 'border-blue-500/20' },
             { id: 'GIFT', name: 'Identity Vault', icon: '📦', desc: 'Pick a container', cost: 1, color: 'from-purple-600/20 to-purple-900/40', border: 'border-purple-500/20' }
           ].map(g => (
             <button
@@ -209,7 +209,7 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
                   {g.icon}
                 </div>
                 <div className="space-y-1">
-                  <h3 className="text-2xl font-serif italic text-white group-hover:text-[#EC4899] transition-colors">{g.name}</h3>
+                  <h3 className="text-2xl font-serif italic text-white group-hover:text-[#1a73e8] transition-colors">{g.name}</h3>
                   <p className="text-[9px] font-black uppercase tracking-widest text-zinc-500">{g.desc}</p>
                 </div>
                 <div className="pt-2">
@@ -243,10 +243,10 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
                   <button 
                     disabled={isSpinning || isLocked}
                     onClick={handleRollDice}
-                    className="group relative px-20 py-8 bg-white text-black rounded-3xl font-black uppercase tracking-[0.5em] text-xs hover:bg-[#EC4899] hover:text-white transition-all shadow-3xl disabled:opacity-20 overflow-hidden"
+                    className="group relative px-20 py-8 bg-white text-black rounded-3xl font-black uppercase tracking-[0.5em] text-xs hover:bg-[#1a73e8] hover:text-white transition-all shadow-3xl disabled:opacity-20 overflow-hidden"
                   >
                     <span className="relative z-10">{isSpinning ? 'ROLLING...' : `Roll Dice`}</span>
-                    <div className="absolute inset-0 bg-[#EC4899] translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                    <div className="absolute inset-0 bg-[#1a73e8] translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                   </button>
                 </div>
               )}
@@ -284,10 +284,10 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
                         key={idx}
                         disabled={isLocked}
                         onClick={() => handleGiftBox(idx)}
-                        className="w-40 h-40 rounded-[3rem] glass border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-[#EC4899]/10 hover:-translate-y-4 transition-all shadow-2xl group disabled:opacity-20"
+                        className="w-40 h-40 rounded-[3rem] glass border-white/10 flex flex-col items-center justify-center gap-4 hover:bg-[#1a73e8]/10 hover:-translate-y-4 transition-all shadow-2xl group disabled:opacity-20"
                        >
                          <span className="text-7xl group-hover:scale-110 transition-transform">📦</span>
-                         <span className="text-[9px] font-black text-zinc-700 uppercase tracking-widest group-hover:text-[#EC4899]">Vault_{idx + 1}</span>
+                         <span className="text-[9px] font-black text-zinc-700 uppercase tracking-widest group-hover:text-[#1a73e8]">Vault_{idx + 1}</span>
                        </button>
                      ))}
                    </div>
@@ -296,11 +296,11 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
             </div>
           ) : (
             <div className="space-y-12 animate-in zoom-in-90 duration-500 py-10">
-               <div className={`text-9xl mb-6 transition-all duration-[1.5s] ${!gameState.win ? 'grayscale blur-lg opacity-40 scale-150 rotate-12' : 'drop-shadow-[0_0_50px_#EC4899] scale-110 animate-bounce'}`}>
+               <div className={`text-9xl mb-6 transition-all duration-[1.5s] ${!gameState.win ? 'grayscale blur-lg opacity-40 scale-150 rotate-12' : 'drop-shadow-[0_0_50px_#1a73e8] scale-110 animate-bounce'}`}>
                  {gameState.icon}
                </div>
                <div className="space-y-6">
-                 <h2 className={`text-6xl md:text-8xl font-serif italic uppercase tracking-tighter leading-none ${gameState.win ? 'text-[#EC4899] glow-text' : 'text-red-600'}`}>
+                 <h2 className={`text-6xl md:text-8xl font-serif italic uppercase tracking-tighter leading-none ${gameState.win ? 'text-[#1a73e8] glow-text' : 'text-red-600'}`}>
                     {gameState.result.replace(/_/g, ' ')}
                  </h2>
                  <div className="h-px w-20 bg-zinc-900 mx-auto"></div>
@@ -313,7 +313,7 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
                <div className="pt-8">
                 <button 
                   onClick={reset} 
-                  className={`w-full max-w-md py-8 rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-xs transition-all shadow-3xl border ${gameState.win ? 'bg-white text-black hover:bg-[#EC4899] hover:text-white border-transparent' : 'bg-black text-zinc-600 hover:text-white border-white/5'}`}
+                  className={`w-full max-w-md py-8 rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-xs transition-all shadow-3xl border ${gameState.win ? 'bg-white text-black hover:bg-[#1a73e8] hover:text-white border-transparent' : 'bg-black text-zinc-600 hover:text-white border-white/5'}`}
                 >
                   Return to Playroom
                 </button>

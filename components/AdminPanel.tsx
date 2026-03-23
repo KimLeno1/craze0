@@ -12,6 +12,7 @@ import AdminFlashSaleManager from './AdminFlashSaleManager';
 import AdminKitManager from './AdminKitManager';
 import AdminNotificationManager from './AdminNotificationManager';
 import AdminPayForMeManager from './AdminPayForMeManager';
+import AdminPromoManager from './AdminPromoManager';
 
 interface AdminPanelProps {
   onExit: () => void;
@@ -23,26 +24,42 @@ interface AdminPanelProps {
 const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpot, currentJackpotId }) => {
   const [activeTab, setActiveTab] = useState<'METRICS' | 'INVENTORY' | 'JACKPOT' | 'ORDERS' | 'DATABASE' | 'SUPPLIERS' | 'PROMOS' | 'SECURITY' | 'FLASH' | 'KITS' | 'NOTIFICATIONS' | 'SPONSORSHIPS'>('METRICS');
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
-  const [localOrders, setLocalOrders] = useState<Order[]>(MOCK_ORDERS);
+  const [localOrders, setLocalOrders] = useState<Order[]>([]);
+  const [metrics, setMetrics] = useState<any>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    setLocalProducts(databaseService.getProducts());
-  }, []);
+    refreshData();
+  }, [activeTab]);
+
+  const refreshData = async () => {
+    if (activeTab === 'INVENTORY' || activeTab === 'JACKPOT') {
+      const products = await databaseService.getAdminProducts();
+      setLocalProducts(products);
+    } else if (activeTab === 'ORDERS') {
+      const orders = await databaseService.getAdminOrders();
+      setLocalOrders(orders);
+    } else if (activeTab === 'METRICS') {
+      const data = await databaseService.getAdminMetrics();
+      setMetrics(data);
+    }
+  };
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
     setIsEditorOpen(true);
   };
 
-  const handleSaveProduct = (formData: Partial<Product>) => {
+  const handleSaveProduct = async (formData: Partial<Product>) => {
     if (editingProduct) {
-      const updated = localProducts.map(p => p.id === editingProduct.id ? { ...p, ...formData } : p);
-      setLocalProducts(updated);
-      databaseService.saveProducts(updated);
+      const result = await databaseService.updateProductOnBackend(editingProduct.id, formData);
+      if (!result.success) {
+        alert('Failed to update product.');
+      }
     }
     setIsEditorOpen(false);
+    refreshData();
   };
 
   return (
@@ -92,9 +109,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
                </header>
 
                <div className="bg-zinc-950 border border-white/5 p-10 rounded-[3rem] space-y-8">
-                  <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-widest">Active Jackpot</div>
+                  <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest">Active Jackpot</div>
                   {localProducts.find(p => p.id === currentJackpotId) && (
-                    <div className="flex gap-8 items-center bg-black/50 p-6 rounded-3xl border border-[#EC4899]/30">
+                    <div className="flex gap-8 items-center bg-black/50 p-6 rounded-3xl border border-[#1a73e8]/30">
                        <img src={localProducts.find(p => p.id === currentJackpotId)?.image} className="w-24 h-24 object-cover rounded-xl" />
                        <div>
                           <div className="text-xl font-black text-white">{localProducts.find(p => p.id === currentJackpotId)?.name}</div>
@@ -109,7 +126,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
                       <button 
                         key={p.id}
                         onClick={() => onSetJackpot(p.id)}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${currentJackpotId === p.id ? 'border-[#EC4899] bg-[#EC4899]/5' : 'border-white/5 hover:border-white/20'}`}
+                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${currentJackpotId === p.id ? 'border-[#1a73e8] bg-[#1a73e8]/5' : 'border-white/5 hover:border-white/20'}`}
                       >
                         <span className="text-xs font-black text-white">{p.name}</span>
                         <span className="text-[8px] font-bold text-zinc-600 uppercase">GH₵{p.price}</span>
@@ -120,7 +137,28 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
             </div>
           )}
 
-          {activeTab === 'METRICS' && <div className="text-zinc-500">Analytics Terminal Loading...</div>}
+          {activeTab === 'METRICS' && metrics && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in duration-500">
+              <div className="bg-zinc-950 p-8 rounded-[2rem] border border-white/5 space-y-2">
+                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Total Users</div>
+                <div className="text-3xl font-mono font-black text-white">{metrics.totalUsers}</div>
+              </div>
+              <div className="bg-zinc-950 p-8 rounded-[2rem] border border-white/5 space-y-2">
+                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Total Revenue</div>
+                <div className="text-3xl font-mono font-black text-emerald-500">GH₵{metrics.totalRevenue.toLocaleString()}</div>
+              </div>
+              <div className="bg-zinc-950 p-8 rounded-[2rem] border border-white/5 space-y-2">
+                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Active Orders</div>
+                <div className="text-3xl font-mono font-black text-blue-500">{metrics.totalOrders}</div>
+              </div>
+              <div className="bg-zinc-950 p-8 rounded-[2rem] border border-white/5 space-y-2">
+                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">System Health</div>
+                <div className="text-3xl font-mono font-black text-amber-500">{metrics.systemHealth}</div>
+              </div>
+            </div>
+          )}
+          {activeTab === 'METRICS' && !metrics && <div className="text-zinc-500">Analytics Terminal Loading...</div>}
+          
           {activeTab === 'INVENTORY' && (
             <div className="grid gap-4">
               {localProducts.map(p => (
@@ -145,15 +183,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
                           min="0" 
                           max="100" 
                           value={p.hypeScore || 0} 
-                          onChange={(e) => {
+                          onChange={async (e) => {
                             const newHype = parseInt(e.target.value);
                             const updated = localProducts.map(prod => prod.id === p.id ? { ...prod, hypeScore: newHype } : prod);
                             setLocalProducts(updated);
-                            databaseService.updateProductHype(p.id, newHype);
+                            await databaseService.updateProductOnBackend(p.id, { hypeScore: newHype });
                           }}
-                          className="w-32 accent-[#EC4899] bg-zinc-900 h-1 rounded-full appearance-none cursor-pointer"
+                          className="w-32 accent-[#1a73e8] bg-zinc-900 h-1 rounded-full appearance-none cursor-pointer"
                         />
-                        <span className="text-[10px] font-mono font-black text-[#EC4899] w-8 text-right">{p.hypeScore || 0}%</span>
+                        <span className="text-[10px] font-mono font-black text-[#1a73e8] w-8 text-right">{p.hypeScore || 0}%</span>
                       </div>
                     </div>
                     
@@ -165,9 +203,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
               ))}
             </div>
           )}
-          {activeTab === 'ORDERS' && <AdminOrderManager orders={localOrders} onUpdateStatus={() => {}} />}
+          {activeTab === 'ORDERS' && <AdminOrderManager orders={localOrders} onUpdateStatus={async (id, status) => {
+            await databaseService.updateOrderStatusOnBackend(id, status);
+            refreshData();
+          }} />}
           {activeTab === 'DATABASE' && <AdminDatabaseView />}
           {activeTab === 'SUPPLIERS' && <AdminSupplierPanel />}
+          {activeTab === 'PROMOS' && <AdminPromoManager />}
           {activeTab === 'FLASH' && <AdminFlashSaleManager />}
           {activeTab === 'KITS' && <AdminKitManager />}
           {activeTab === 'NOTIFICATIONS' && <AdminNotificationManager />}

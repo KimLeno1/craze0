@@ -77,12 +77,12 @@ const StylistAI: React.FC = () => {
     <div className="max-w-7xl mx-auto px-4 sm:px-8 lg:px-12 py-8 md:py-24 pb-40">
       <header className="text-center mb-16 md:mb-32">
         <h1 className="text-4xl sm:text-6xl lg:text-[8rem] font-serif italic mb-6 tracking-tighter leading-[0.9] animate-in slide-in-from-top-4 duration-1000">
-          Neural Style <span className="text-[#EC4899] not-italic font-sans font-black uppercase glow-text">Studio</span>
+          Neural Style <span className="text-[#1a73e8] not-italic font-sans font-black uppercase glow-text">Studio</span>
         </h1>
         <div className="flex items-center justify-center gap-4 opacity-40">
-           <div className="h-px w-20 bg-[#EC4899]"></div>
+           <div className="h-px w-20 bg-[#1a73e8]"></div>
            <p className="text-zinc-500 uppercase text-[10px] font-black tracking-[0.5em]">LOCAL_SYNTHESIS_v3.0</p>
-           <div className="h-px w-20 bg-[#EC4899]"></div>
+           <div className="h-px w-20 bg-[#1a73e8]"></div>
         </div>
       </header>
 
@@ -96,7 +96,7 @@ const StylistAI: React.FC = () => {
                 <input 
                   type="text" value={mood} onChange={(e) => setMood(e.target.value)}
                   placeholder="Lethal / Minimalist"
-                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-5 text-white focus:border-[#EC4899] outline-none font-mono"
+                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-5 text-white focus:border-[#1a73e8] outline-none font-mono"
                 />
               </div>
               <div className="space-y-2">
@@ -104,13 +104,13 @@ const StylistAI: React.FC = () => {
                 <input 
                   type="text" value={occasion} onChange={(e) => setOccasion(e.target.value)}
                   placeholder="District 9 Gala"
-                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-5 text-white focus:border-[#EC4899] outline-none font-mono"
+                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-5 text-white focus:border-[#1a73e8] outline-none font-mono"
                 />
               </div>
             </div>
             <button 
               onClick={handleConsult} disabled={isLoadingAdvice || !mood || !occasion}
-              className="w-full py-7 bg-white text-black rounded-3xl font-black uppercase tracking-[0.4em] text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl"
+              className="w-full py-7 bg-white text-black rounded-3xl font-black uppercase tracking-[0.4em] text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl"
             >
               {isLoadingAdvice ? adviceLoadingText : 'Initialize Scan'}
             </button>
@@ -118,10 +118,10 @@ const StylistAI: React.FC = () => {
 
           <div className="min-h-[300px] flex items-center justify-center">
             {isLoadingAdvice ? (
-              <div className="w-20 h-20 border-4 border-[#EC4899]/20 border-t-[#EC4899] rounded-full animate-spin" />
+              <div className="w-20 h-20 border-4 border-[#1a73e8]/20 border-t-[#1a73e8] rounded-full animate-spin" />
             ) : advice ? (
               <div className="w-full p-12 bg-white/5 border border-white/10 rounded-[4rem] relative group overflow-hidden animate-in zoom-in-95 duration-700">
-                <div className="absolute top-0 right-0 p-8 text-[#EC4899]/5 text-[15rem] font-serif italic pointer-events-none select-none">"</div>
+                <div className="absolute top-0 right-0 p-8 text-[#1a73e8]/5 text-[15rem] font-serif italic pointer-events-none select-none">"</div>
                 <p className="text-2xl md:text-4xl font-serif italic text-white relative z-10">&ldquo;{advice}&rdquo;</p>
               </div>
             ) : (

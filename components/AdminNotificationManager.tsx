@@ -11,27 +11,43 @@ const AdminNotificationManager: React.FC = () => {
   const [type, setType] = useState<Notification['type']>('INFO');
   const [status, setStatus] = useState<'idle' | 'sending' | 'success'>('idle');
 
+  const [recentNotifications, setRecentNotifications] = useState<Notification[]>([]);
+
   useEffect(() => {
-    setUsers(databaseService.getUsers());
+    refreshData();
   }, []);
 
-  const handleSend = (e: React.FormEvent) => {
+  const refreshData = async () => {
+    const allUsers = await databaseService.getAdminUsers();
+    const allNotifs = await databaseService.getAdminNotifications();
+    setUsers(allUsers);
+    setRecentNotifications(allNotifs);
+  };
+
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !message) return;
 
     setStatus('sending');
     
-    // Simulate network delay
-    setTimeout(() => {
-      const recipientId = selectedRecipient === 'ALL' ? undefined : selectedRecipient;
-      databaseService.sendNotification(title, message, type, recipientId);
-      
+    const recipientId = selectedRecipient === 'ALL' ? undefined : selectedRecipient;
+    const result = await databaseService.addAdminNotification({
+      title,
+      message,
+      type,
+      recipientId
+    });
+    
+    if (result.success) {
       setStatus('success');
       setTitle('');
       setMessage('');
-      
+      refreshData();
       setTimeout(() => setStatus('idle'), 3000);
-    }, 800);
+    } else {
+      setStatus('idle');
+      alert('Transmission failure.');
+    }
   };
 
   return (
@@ -39,7 +55,7 @@ const AdminNotificationManager: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
-            <Bell className="w-6 h-6 text-[#EC4899]" />
+            <Bell className="w-6 h-6 text-[#1a73e8]" />
             Broadcast_Center
           </h2>
           <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.4em] mt-1">Neural Messaging Protocol v4.0</p>
@@ -49,7 +65,7 @@ const AdminNotificationManager: React.FC = () => {
       <div className="grid lg:grid-cols-2 gap-8">
         {/* Send Notification Form */}
         <div className="glass border-white/10 rounded-[2.5rem] p-8 space-y-8">
-          <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-widest border-l-2 border-[#EC4899] pl-3">
+          <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest border-l-2 border-[#1a73e8] pl-3">
             Compose_Transmission
           </div>
 
@@ -60,7 +76,7 @@ const AdminNotificationManager: React.FC = () => {
                 <select
                   value={selectedRecipient}
                   onChange={(e) => setSelectedRecipient(e.target.value)}
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none appearance-none"
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none appearance-none"
                 >
                   <option value="ALL">ALL_USERS (Global Broadcast)</option>
                   {users.map(user => (
@@ -81,7 +97,7 @@ const AdminNotificationManager: React.FC = () => {
                 <select
                   value={type}
                   onChange={(e) => setType(e.target.value as any)}
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none appearance-none"
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none appearance-none"
                 >
                   <option value="INFO">INFO</option>
                   <option value="URGENT">URGENT</option>
@@ -98,7 +114,7 @@ const AdminNotificationManager: React.FC = () => {
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="Transmission Title..."
-                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none"
+                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none"
                 required
               />
             </div>
@@ -110,7 +126,7 @@ const AdminNotificationManager: React.FC = () => {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Enter notification message..."
                 rows={4}
-                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#EC4899] transition-all outline-none resize-none"
+                className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none resize-none"
                 required
               />
             </div>
@@ -121,7 +137,7 @@ const AdminNotificationManager: React.FC = () => {
               className={`w-full py-5 rounded-3xl font-black uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 transition-all ${
                 status === 'success' 
                 ? 'bg-emerald-500 text-white' 
-                : 'bg-white text-black hover:bg-[#EC4899] hover:text-white'
+                : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
               }`}
             >
               {status === 'idle' && (
@@ -145,18 +161,18 @@ const AdminNotificationManager: React.FC = () => {
 
         {/* Recent Notifications Log */}
         <div className="space-y-6">
-          <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-widest border-l-2 border-[#EC4899] pl-3">
+          <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-3">
             Transmission_Log
           </div>
           
           <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scrollbar-hide">
-            {databaseService.getGlobalNotifications().slice(0, 10).map((notif) => (
+            {recentNotifications.slice(0, 10).map((notif) => (
               <div key={notif.id} className="glass border-white/5 rounded-3xl p-6 space-y-3">
                 <div className="flex items-center justify-between">
                   <span className={`text-[8px] font-black px-2 py-1 rounded uppercase tracking-widest ${
                     notif.type === 'URGENT' ? 'bg-red-500/20 text-red-500' :
                     notif.type === 'REWARD' ? 'bg-emerald-500/20 text-emerald-500' :
-                    'bg-[#EC4899]/20 text-[#EC4899]'
+                    'bg-blue-500/20 text-blue-500'
                   }`}>
                     {notif.type}
                   </span>

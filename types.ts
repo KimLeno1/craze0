@@ -22,6 +22,8 @@ export interface PromoCode {
   type: 'PERCENT' | 'AMOUNT';
   value: number;
   description: string;
+  expiresAt: string;
+  usageLimit?: number;
 }
 
 export interface Notification {
@@ -69,6 +71,7 @@ export interface Product {
   isCustom?: boolean;
   priceRange?: { min: number; max: number };
   customizationFields?: CustomizationField[];
+  images?: string[];
 }
 
 export interface Supplier {
@@ -85,7 +88,10 @@ export interface Supplier {
 export interface User {
   id: string;
   handle: string;
+  username?: string; // Added for registration
   email: string;
+  phone?: string; // Added for registration
+  password?: string; // Added for authentication
   archetype: string;
   rep: number;
   level: number;
@@ -94,6 +100,8 @@ export interface User {
   status: 'ACTIVE' | 'BANNED' | 'RESTRICTED';
   lastLogin: string;
   totalSpent: number;
+  role: 'client' | 'admin' | 'supplier';
+  stats?: UserStats;
 }
 
 export interface Bundle {
@@ -162,16 +170,36 @@ export interface Quest {
   completed: boolean;
 }
 
+export interface MicroCommitment {
+  id: string;
+  type: 'VERIFY_TREND' | 'SYNC_LINK' | 'ENDORSE_STYLE' | 'RESERVE_SLOT' | 'SHARE_RANK';
+  label: string;
+  rewardXP: number;
+  completed: boolean;
+  expiresAt: number;
+}
+
 export interface UserStats {
   dailyGameAttempts: number;
   lastGameReset: string;
   quests: Quest[];
+  microCommitments: MicroCommitment[];
+  commitmentStreak: number;
+  softLockedItems: Record<string, number>; // productId -> expiry timestamp
   selectedPath: string | null;
   aiTryOnsUsedToday: number;
   tickets: number;
   brandSubscriptions: string[];
   tagSubscriptions: string[];
   achievements: Achievement[];
+}
+
+export interface UserCredit {
+  id: string;
+  userId: string;
+  amount: number;
+  createdAt: number;
+  status: 'AVAILABLE' | 'USED';
 }
 
 export interface Order {
@@ -253,7 +281,8 @@ export enum PayForMeStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
-  PAID = 'PAID'
+  PAID = 'PAID',
+  EXPIRED = 'EXPIRED'
 }
 
 export interface PayForMeRequest {
@@ -278,4 +307,6 @@ export interface SocialPost {
   loves: number;
   timestamp: string;
   weekId: string;
+  likedBy?: string[];
+  lovedBy?: string[];
 }

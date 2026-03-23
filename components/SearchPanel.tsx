@@ -58,7 +58,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Enter silhouette name or style..."
-                className="w-full bg-black border border-white/10 rounded-2xl py-4 sm:py-5 pl-12 pr-4 text-xs sm:text-sm text-white focus:outline-none focus:border-[#EC4899] transition-all placeholder:text-zinc-800"
+                className="w-full bg-black border border-white/10 rounded-2xl py-4 sm:py-5 pl-12 pr-4 text-xs sm:text-sm text-white focus:outline-none focus:border-[#1a73e8] transition-all placeholder:text-zinc-800"
               />
             </div>
           </div>
@@ -68,7 +68,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
               <div className="space-y-6 sm:space-y-8">
                 <div className="flex justify-between items-center">
                   <div className="text-[9px] sm:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Matches Found</div>
-                  <div className="text-[9px] sm:text-[10px] font-mono text-[#EC4899]">{filteredProducts.length} Results</div>
+                  <div className="text-[9px] sm:text-[10px] font-mono text-[#1a73e8]">{filteredProducts.length} Results</div>
                 </div>
                 
                 {filteredProducts.length > 0 ? (
@@ -111,7 +111,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                       <button 
                         key={tag}
                         onClick={() => setSearchQuery(tag)}
-                        className="px-4 py-2 bg-white/5 border border-white/5 text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:border-[#EC4899] hover:text-white transition-all"
+                        className="px-4 py-2 bg-white/5 border border-white/5 text-[10px] font-black text-zinc-400 uppercase tracking-widest hover:border-[#1a73e8] hover:text-white transition-all"
                       >
                         {tag}
                       </button>
@@ -120,7 +120,7 @@ const SearchPanel: React.FC<SearchPanelProps> = ({
                 </div>
 
                 <div className="p-8 border border-white/5 bg-white/[0.01] rounded-2xl space-y-4">
-                  <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-widest">Archive Tip</div>
+                  <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest">Archive Tip</div>
                   <p className="text-[11px] text-zinc-500 leading-relaxed">
                     Use specific style archetypes like "Old Money" or "Streets" to filter the global archive more effectively.
                   </p>

@@ -33,7 +33,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
               {notifications.some(n => !n.read) && (
                 <button 
                   onClick={onMarkAllRead}
-                  className="text-[7px] sm:text-[8px] font-black text-[#EC4899] hover:text-white uppercase tracking-widest transition-colors"
+                  className="text-[7px] sm:text-[8px] font-black text-[#1a73e8] hover:text-white uppercase tracking-widest transition-colors"
                 >
                   Clear_All
                 </button>
@@ -54,25 +54,25 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   key={n.id} 
                   onClick={() => onMarkRead(n.id)}
                   className={`group relative p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border transition-all cursor-pointer overflow-hidden ${
-                    n.read ? 'bg-zinc-900/20 border-white/5 opacity-60' : 'bg-white/5 border-[#EC4899]/30 shadow-[0_0_20px_rgba(236,72,153,0.05)]'
+                    n.read ? 'bg-zinc-900/20 border-white/5 opacity-60' : 'bg-white/5 border-[#1a73e8]/30 shadow-[0_0_20px_rgba(26,115,232,0.05)]'
                   }`}
                 >
                   {!n.read && (
-                    <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse shadow-[0_0_8px_#EC4899]"></div>
+                    <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-1.5 h-1.5 rounded-full bg-[#1a73e8] animate-pulse shadow-[0_0_8px_#1a73e8]"></div>
                   )}
                   <div className="space-y-2 sm:space-y-3">
                     <div className="flex items-center gap-2 sm:gap-3">
                       <span className={`text-[7px] sm:text-[8px] font-black uppercase px-1.5 sm:px-2 py-0.5 rounded ${
                         n.type === 'URGENT' ? 'bg-red-500 text-white' : 
                         n.type === 'REWARD' ? 'bg-yellow-500 text-black' : 
-                        n.type === 'WELCOME' ? 'bg-[#EC4899] text-white' : 
+                        n.type === 'WELCOME' ? 'bg-blue-500 text-white' : 
                         'bg-zinc-800 text-zinc-400'
                       }`}>
                         {n.type}
                       </span>
                       <span className="text-[7px] sm:text-[8px] font-mono text-zinc-600 uppercase">{n.timestamp}</span>
                     </div>
-                    <h3 className="text-xs sm:text-sm font-black uppercase text-white group-hover:text-[#EC4899] transition-colors">{n.title}</h3>
+                    <h3 className="text-xs sm:text-sm font-black uppercase text-white group-hover:text-[#1a73e8] transition-colors">{n.title}</h3>
                     <p className="text-[9px] sm:text-[10px] text-zinc-400 font-medium leading-relaxed italic">
                       "{n.message}"
                     </p>

@@ -14,14 +14,19 @@ const FlashSales: React.FC<FlashSalesProps> = ({ onAddToCart, onNavigate }) => {
   const [isFirstVisit, setIsFirstVisit] = useState(false);
 
   useEffect(() => {
-    setSales(databaseService.getFlashSales());
-    
-    let currentWindow = databaseService.getFlashSaleWindow();
-    if (!currentWindow) {
-      currentWindow = databaseService.initializeFlashSaleWindow();
-      setIsFirstVisit(true);
-    }
-    setWindow(currentWindow);
+    const fetchData = async () => {
+      const fetchedSales = await databaseService.getFlashSales();
+      setSales(fetchedSales);
+      
+      let currentWindow = await databaseService.getFlashSaleWindow();
+      if (!currentWindow) {
+        currentWindow = await databaseService.initializeFlashSaleWindow();
+        setIsFirstVisit(true);
+      }
+      setWindow(currentWindow);
+    };
+
+    fetchData();
 
     const timer = setInterval(() => {
       setSales(prev => [...prev]); // Force re-render for timer

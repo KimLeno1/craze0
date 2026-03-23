@@ -19,12 +19,12 @@ const Hero: React.FC<HeroProps> = ({ onShopNow }) => {
 
       <div className="relative z-10 max-w-4xl">
         <div className="inline-flex items-center gap-4 bg-white/10 backdrop-blur border border-white/20 px-4 py-2 rounded-full mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <span className="w-2 h-2 rounded-full bg-[#EC4899] animate-pulse"></span>
+          <span className="w-2 h-2 rounded-full bg-[#1a73e8] animate-pulse"></span>
           <span className="text-[10px] font-black uppercase tracking-[0.3em]">Season 01: The New Tokyo Drop</span>
         </div>
         
         <h1 className="text-7xl md:text-[11rem] font-serif italic leading-[0.8] tracking-tighter mb-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
-          Command <br/><span className="not-italic font-sans font-black text-[#EC4899] glow-text uppercase">Attention.</span>
+          Command <br/><span className="not-italic font-sans font-black text-[#1a73e8] glow-text uppercase">Attention.</span>
         </h1>
         
         <p className="text-xl md:text-2xl font-medium mb-12 text-zinc-400 max-w-xl leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-300">
@@ -34,7 +34,7 @@ const Hero: React.FC<HeroProps> = ({ onShopNow }) => {
         <div className="flex gap-6 animate-in fade-in slide-in-from-bottom-16 duration-1000 delay-400">
           <button 
             onClick={onShopNow}
-            className="px-14 py-6 bg-[#EC4899] text-white text-[11px] uppercase tracking-[0.4em] font-black hover:bg-white hover:text-black transition-all duration-500 shadow-[0_0_30px_rgba(236,72,153,0.4)]"
+            className="px-14 py-6 bg-[#1a73e8] text-white text-[11px] uppercase tracking-[0.4em] font-black hover:bg-white hover:text-black transition-all duration-500 shadow-[0_0_30px_rgba(26,115,232,0.4)]"
           >
             Claim Yours
           </button>

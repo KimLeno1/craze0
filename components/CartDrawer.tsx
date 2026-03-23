@@ -75,6 +75,17 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
   const sMin = Math.floor(surgeTimeRemaining / 60);
   const sSec = surgeTimeRemaining % 60;
 
+  const [isClicked, setIsClicked] = useState(false);
+
+  const handleCheckout = () => {
+    setIsClicked(true);
+    setTimeout(() => {
+      setIsClicked(false);
+      onClose();
+      if (onNavigate) onNavigate(ViewState.CHECKOUT);
+    }, 1000);
+  };
+
   return (
     <>
       <div 
@@ -90,19 +101,19 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
           <header className="relative z-10 px-6 py-8 md:px-12 md:py-10 flex justify-between items-start border-b border-white/5">
             <div className="space-y-2 md:space-y-3">
               <div className="flex items-center gap-3">
-                <span className={`w-2 h-2 rounded-full ${items.length > 0 ? 'bg-[#EC4899] animate-pulse' : 'bg-zinc-800'}`}></span>
-                <span className="text-[8px] md:text-[10px] font-black text-[#EC4899] uppercase tracking-[0.3em] md:tracking-[0.4em]">{rank.tier} Archive Terminal</span>
+                <span className={`w-2 h-2 rounded-full ${items.length > 0 ? 'bg-[#1a73e8] animate-pulse' : 'bg-zinc-800'}`}></span>
+                <span className="text-[8px] md:text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.3em] md:tracking-[0.4em]">{rank.tier} Archive Terminal</span>
               </div>
               <h2 className="text-3xl md:text-5xl font-serif italic text-white tracking-tighter leading-none">Your Haul</h2>
             </div>
             <button 
               onClick={onClose} 
-              className="w-10 h-10 md:w-12 md:h-12 rounded-full glass border-white/10 flex items-center justify-center text-white hover:bg-[#EC4899] transition-all hover:rotate-90"
+              className="w-10 h-10 md:w-12 md:h-12 rounded-full glass border-white/10 flex items-center justify-center text-white hover:bg-[#1a73e8] transition-all hover:rotate-90"
             >✕</button>
           </header>
 
           {isSurgeActive && items.length > 0 && (
-            <div className="mx-6 md:mx-12 mt-4 md:mt-6 p-3 md:p-4 bg-[#EC4899] rounded-2xl flex items-center justify-between shadow-[0_0_30px_rgba(236,72,153,0.3)] animate-in slide-in-from-top-4 duration-500">
+            <div className="mx-6 md:mx-12 mt-4 md:mt-6 p-3 md:p-4 bg-[#1a73e8] rounded-2xl flex items-center justify-between shadow-[0_0_30px_rgba(26,115,232,0.3)] animate-in slide-in-from-top-4 duration-500">
                <div className="flex items-center gap-3 md:gap-4">
                   <div className="text-xl md:text-2xl animate-bounce">⚡</div>
                   <div className="flex flex-col">
@@ -118,7 +129,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
             {items.length === 0 ? (
               <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
                 <div className="text-7xl md:text-9xl mb-8 md:mb-10 grayscale brightness-50">🎒</div>
-                <button onClick={onClose} className="mt-8 md:mt-12 px-8 md:px-12 py-4 md:py-5 bg-white text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em] rounded-2xl hover:bg-[#EC4899] hover:text-white transition-all">Return to Circuit</button>
+                <button onClick={onClose} className="mt-8 md:mt-12 px-8 md:px-12 py-4 md:py-5 bg-white text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.3em] rounded-2xl hover:bg-[#1a73e8] hover:text-white transition-all">Return to Circuit</button>
               </div>
             ) : (
               items.map((item, idx) => (
@@ -130,7 +141,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                     <div className="space-y-3 md:space-y-4">
                       <div className="flex justify-between items-start">
                         <div className="space-y-1">
-                            <div className="text-[7px] md:text-[9px] font-black text-[#EC4899] uppercase tracking-widest">
+                            <div className="text-[7px] md:text-[9px] font-black text-[#1a73e8] uppercase tracking-widest">
                               {item.isBundle ? 'Synergy Kit' : `Sector_${item.category}`}
                             </div>
                             <h3 className="text-base md:text-xl font-serif italic text-white tracking-tight leading-tight">{item.name}</h3>
@@ -161,7 +172,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                       </div>
                     </div>
                     <div className="mt-4 md:mt-8 flex justify-between items-end">
-                       <span className="text-[7px] md:text-[8px] font-black text-[#EC4899] uppercase tracking-[0.2em] md:tracking-[0.3em]">+ GH₵{item.shippingFee * item.quantity}</span>
+                       <span className="text-[7px] md:text-[8px] font-black text-blue-400 uppercase tracking-[0.2em] md:tracking-[0.3em]">+ GH₵{item.shippingFee * item.quantity}</span>
                        <div className="text-right">
                           <span className="text-zinc-600 text-[10px] md:text-xs font-mono line-through block">GH₵{item.originalPrice * item.quantity}</span>
                           <span className="text-lg md:text-2xl font-mono font-black text-white leading-none">GH₵{Math.floor(item.originalPrice - ((item.originalPrice - item.price) * rank.discountMultiplier)) * item.quantity}</span>
@@ -178,7 +189,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
               <div className="grid grid-cols-2 gap-3 md:gap-4">
                 <div className="bg-zinc-950 border border-white/5 p-4 md:p-5 rounded-2xl md:rounded-3xl flex flex-col items-center">
                   <span className="text-[7px] md:text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Rank Yield</span>
-                  <span className="text-lg md:text-xl font-mono font-black text-[#EC4899]">{efficiency}% Eff.</span>
+                  <span className="text-lg md:text-xl font-mono font-black text-[#1a73e8]">{efficiency}% Eff.</span>
                 </div>
                 <div className="bg-zinc-950 border border-white/5 p-4 md:p-5 rounded-2xl md:rounded-3xl flex flex-col items-center">
                   <span className="text-[7px] md:text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Total Valuation</span>
@@ -187,9 +198,16 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   </div>
                 </div>
               </div>
-              <button onClick={() => { onClose(); if (onNavigate) onNavigate(ViewState.CHECKOUT); }} className="w-full py-6 md:py-8 bg-white text-black text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] rounded-2xl md:rounded-3xl hover:bg-[#EC4899] hover:text-white transition-all shadow-[0_0_50px_rgba(236,72,153,0.3)]">
-                Initialize Acquisition
-              </button>
+                <button 
+                  onClick={handleCheckout}
+                  className={`w-full py-6 md:py-8 text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] rounded-2xl md:rounded-3xl transition-all shadow-[0_0_50px_rgba(26,115,232,0.3)] ${
+                    isClicked 
+                    ? 'bg-green-500 text-white' 
+                    : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
+                  }`}
+                >
+                  {isClicked ? 'Initialized' : 'Initialize Acquisition'}
+                </button>
             </footer>
           )}
         </div>
