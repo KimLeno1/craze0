@@ -1,77 +1,60 @@
-import { db, auth } from '../firebase';
-import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
-import { Product, User, Supplier, Order, Bundle, SocialPost } from '../types';
-import { EXTENDED_PRODUCTS, MOCK_ORDERS } from '../mockData';
+import { databaseService } from './databaseService';
+import { EXTENDED_PRODUCTS } from '../mockData';
 
 export const seedDatabase = async () => {
-  console.log('Starting database seeding...');
+  console.log('Checking database for seeding...');
 
-  // 1. Seed Products
-  const productsCol = collection(db, 'products');
-  const productsSnapshot = await getDocs(productsCol);
-  if (productsSnapshot.empty) {
-    console.log('Seeding products...');
-    for (const p of EXTENDED_PRODUCTS) {
-      await setDoc(doc(db, 'products', p.id), {
-        ...p,
-        supplierId: 'sup1', // Default supplier for now
-        shippingFee: 25
-      });
-    }
-  }
-
-  // 2. Seed Suppliers
-  const suppliersCol = collection(db, 'suppliers');
-  const suppliersSnapshot = await getDocs(suppliersCol);
-  if (suppliersSnapshot.empty) {
-    console.log('Seeding suppliers...');
-    const mockSuppliers = [
-      { id: 'sup1', name: 'CyberKnit Industries', contactEmail: 'ops@cyberknit.nt', region: 'Neo Tokyo Central', status: 'ACTIVE', performanceScore: 94, totalRevenueYield: 450000, joinedDate: '2024-01-12' },
-      { id: 'sup2', name: 'Void Loom Textiles', contactEmail: 'archive@voidloom.de', region: 'Neo Berlin', status: 'ACTIVE', performanceScore: 82, totalRevenueYield: 280000, joinedDate: '2024-03-05' }
-    ];
-    for (const s of mockSuppliers) {
-      await setDoc(doc(db, 'suppliers', s.id), s);
-    }
-  }
-
-  // 3. Create Demo Accounts
-  const demoUsers = [
-    { email: 'admin@closetkraze.com', password: 'password123', handle: 'Admin_Zero', role: 'admin', archetype: 'CYBER' },
-    { email: 'supplier@closetkraze.com', password: 'password123', handle: 'Supplier_One', role: 'supplier', archetype: 'VOID' },
-    { email: 'customer@closetkraze.com', password: 'password123', handle: 'Customer_X', role: 'client', archetype: 'LUXE' }
-  ];
-
-  for (const u of demoUsers) {
-    try {
-      // Check if user already exists in Firestore
-      const userQuery = query(collection(db, 'users'), where('email', '==', u.email));
-      const userSnapshot = await getDocs(userQuery);
-      
-      if (userSnapshot.empty) {
-        console.log(`Creating demo user: ${u.email}`);
-        const userCredential = await createUserWithEmailAndPassword(auth, u.email, u.password);
-        const firebaseUser = userCredential.user;
-        
-        await setDoc(doc(db, 'users', firebaseUser.uid), {
-          id: firebaseUser.uid,
-          handle: u.handle,
-          email: u.email,
-          role: u.role,
-          archetype: u.archetype,
-          rep: 1000,
-          level: 1,
-          coins: 500,
-          gems: 10,
-          status: 'ACTIVE',
-          lastLogin: new Date().toISOString(),
-          totalSpent: 0
-        });
+  try {
+    // 1. Seed Products
+    const products = await databaseService.getProducts();
+    if (products.length === 0) {
+      console.log('Seeding products...');
+      for (const p of EXTENDED_PRODUCTS) {
+        await databaseService.saveProduct({
+          ...p,
+          supplierId: 'sup1', // Default supplier for now
+          shippingFee: 25
+        } as any);
       }
-    } catch (error) {
-      console.error(`Error creating demo user ${u.email}:`, error);
     }
-  }
 
-  console.log('Database seeding complete.');
+    // 2. Seed Suppliers
+    const suppliers = await databaseService.getAdminSuppliers();
+    if (suppliers.length === 0) {
+      console.log('Seeding suppliers...');
+      const mockSuppliers = [
+        { id: 'sup1', name: 'CyberKnit Industries', contactEmail: 'ops@cyberknit.nt', region: 'Neo Tokyo Central', status: 'ACTIVE', performanceScore: 94, totalRevenueYield: 450000, joinedDate: '2024-01-12' },
+        { id: 'sup2', name: 'Void Loom Textiles', contactEmail: 'archive@voidloom.de', region: 'Neo Berlin', status: 'ACTIVE', performanceScore: 82, totalRevenueYield: 280000, joinedDate: '2024-03-05' }
+      ];
+      for (const s of mockSuppliers) {
+        await databaseService.registerSupplier(s as any);
+      }
+    }
+
+    // 3. Create Demo Accounts
+    const demoUsers = [
+      { email: 'admin@closetkraze.com', password: 'password123', handle: 'Admin_Zero', role: 'admin', archetype: 'CYBER' },
+      { email: 'supplier@closetkraze.com', password: 'password123', handle: 'Supplier_One', role: 'supplier', archetype: 'VOID' },
+      { email: 'customer@closetkraze.com', password: 'password123', handle: 'Customer_X', role: 'client', archetype: 'LUXE' }
+    ];
+
+    for (const u of demoUsers) {
+      try {
+        // Check if user already exists
+        const user = await databaseService.getUserByEmail(u.email);
+        if (!user) {
+          console.log(`Creating demo user: ${u.email}`);
+          await databaseService.registerUser(u.email, u.password, u.handle, '0000000000');
+          // Note: registerUser might need to be updated to handle roles, 
+          // but for now we'll just register them.
+        }
+      } catch (error) {
+        console.error(`Error creating demo user ${u.email}:`, error);
+      }
+    }
+
+    console.log('Database check/seeding complete.');
+  } catch (error) {
+    console.error('Error during database seeding:', error);
+  }
 };

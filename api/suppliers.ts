@@ -6,9 +6,9 @@ const router = Router();
 // Get Supplier Profile
 router.get('/:id', async (req, res) => {
   try {
-    const docSnap = await db.collection('suppliers').doc(req.params.id).get();
-    if (docSnap.exists) {
-      res.json(docSnap.data());
+    const supplier = db.prepare('SELECT * FROM suppliers WHERE id = ?').get(req.params.id);
+    if (supplier) {
+      res.json(supplier);
     } else {
       res.status(404).json({ error: 'Supplier not found' });
     }
@@ -23,7 +23,7 @@ router.put('/:id', async (req, res) => {
   const { name, contactEmail, region } = req.body;
   const id = req.params.id;
   try {
-    await db.collection('suppliers').doc(id).update({ name, contactEmail, region });
+    db.prepare('UPDATE suppliers SET name = ?, contactEmail = ?, region = ? WHERE id = ?').run(name, contactEmail, region, id);
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating supplier profile:', error);
@@ -34,8 +34,17 @@ router.put('/:id', async (req, res) => {
 // Get Supplier Products
 router.get('/:id/products', async (req, res) => {
   try {
-    const snapshot = await db.collection('products').where('supplierId', '==', req.params.id).get();
-    res.json(snapshot.docs.map(doc => doc.data()));
+    const products = db.prepare('SELECT * FROM products WHERE supplierId = ?').all(req.params.id);
+    const parsedProducts = products.map((p: any) => ({
+      ...p,
+      details: JSON.parse(p.details || '[]'),
+      tags: JSON.parse(p.tags || '[]'),
+      sizes: JSON.parse(p.sizes || '[]'),
+      inStock: !!p.inStock,
+      isNew: !!p.isNew,
+      isHallOfFame: !!p.isHallOfFame
+    }));
+    res.json(parsedProducts);
   } catch (error) {
     console.error('Error fetching supplier products:', error);
     res.status(500).json({ error: 'Failed to fetch supplier products' });
@@ -45,9 +54,12 @@ router.get('/:id/products', async (req, res) => {
 // Get Supplier Orders
 router.get('/:id/orders', async (req, res) => {
   try {
-    const snapshot = await db.collection('orders').get();
-    const allOrders = snapshot.docs.map(doc => doc.data());
-    const supplierOrders = allOrders.filter((o: any) => {
+    const orders = db.prepare('SELECT * FROM orders').all();
+    const parsedOrders = orders.map((o: any) => ({
+      ...o,
+      items: JSON.parse(o.items || '[]')
+    }));
+    const supplierOrders = parsedOrders.filter((o: any) => {
       const items = o.items || [];
       return items.some((item: any) => item.supplierId === req.params.id);
     });

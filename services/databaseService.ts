@@ -1,72 +1,22 @@
-import { db, auth, handleFirestoreError, OperationType } from '../firebase';
-import { 
-  collection, 
-  doc, 
-  getDoc, 
-  getDocs, 
-  setDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  onSnapshot, 
-  orderBy, 
-  limit,
-  Timestamp,
-  addDoc
-} from 'firebase/firestore';
 import { Product, User, Supplier, Notification, PromoCode, Order, OrderStatus, Bundle, SocialPost, UserCredit } from '../types';
 
-import { 
-  createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword, 
-  signOut 
-} from 'firebase/auth';
+const API_BASE = '/api';
 
 export const databaseService = {
   // --- Auth ---
   registerUser: async (email: string, password: string, username: string, phone: string) => {
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const firebaseUser = userCredential.user;
-      
-      const newUser: User = {
-        id: firebaseUser.uid,
-        username,
-        email,
-        phone,
-        handle: username.replace(/\s+/g, '_'),
-        rep: 100,
-        role: 'client',
-        archetype: 'CYBER',
-        level: 1,
-        coins: 500,
-        gems: 10,
-        status: 'ACTIVE',
-        lastLogin: new Date().toISOString(),
-        totalSpent: 0,
-        stats: {
-          dailyGameAttempts: 0,
-          lastGameReset: new Date().toISOString(),
-          quests: [],
-          aiTryOnsUsedToday: 0,
-          tickets: 5,
-          achievements: [],
-          microCommitments: [
-            { id: 'mc1', label: 'Sync Neural Link', type: 'SYNC_LINK', completed: false, rewardXP: 50, expiresAt: Date.now() + 86400000 },
-            { id: 'mc2', label: 'Verify Sector Trends', type: 'VERIFY_TREND', completed: false, rewardXP: 50, expiresAt: Date.now() + 86400000 },
-            { id: 'mc3', label: 'Broadcast Status', type: 'SHARE_RANK', completed: false, rewardXP: 50, expiresAt: Date.now() + 86400000 }
-          ],
-          softLockedItems: {},
-          commitmentStreak: 0,
-          selectedPath: null,
-          brandSubscriptions: [],
-          tagSubscriptions: []
-        }
-      };
-      
-      await databaseService.saveUser(newUser);
-      return { success: true, user: newUser };
+      const response = await fetch(`${API_BASE}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, username, phone })
+      });
+      const result = await response.json();
+      if (result.success) {
+        localStorage.setItem('user', JSON.stringify(result.user));
+        return { success: true, user: result.user };
+      }
+      return { success: false, error: result.error };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
@@ -74,62 +24,74 @@ export const databaseService = {
 
   verifyUser: async (email: string, password: string) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = await databaseService.getUser(userCredential.user.uid);
-      return { success: true, user };
+      const response = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const result = await response.json();
+      if (result.success) {
+        localStorage.setItem('user', JSON.stringify(result.user));
+        return { success: true, user: result.user };
+      }
+      return { success: false, error: result.error };
     } catch (error: any) {
       return { success: false, error: error.message };
     }
   },
 
   logout: async () => {
-    await signOut(auth);
+    localStorage.removeItem('user');
   },
 
   saveUser: async (user: User) => {
-    const path = `users/${user.id}`;
     try {
-      await setDoc(doc(db, 'users', user.id), user);
-      return { success: true };
+      const response = await fetch(`${API_BASE}/admin/users/${user.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(user)
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, path);
+      console.error('Error saving user:', error);
       return { success: false };
+    }
+  },
+
+  getUserByEmail: async (email: string): Promise<User | null> => {
+    try {
+      const response = await fetch(`${API_BASE}/users/email/${email}`);
+      if (!response.ok) return null;
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching user by email:', error);
+      return null;
     }
   },
 
   // --- Products ---
   getProducts: async (): Promise<Product[]> => {
     try {
-      const response = await fetch('/api/products');
+      const response = await fetch(`${API_BASE}/products`);
       if (!response.ok) throw new Error('Failed to fetch products');
       return await response.json();
     } catch (error) {
       console.error('Error fetching products:', error);
-      // Fallback to direct firestore if API fails
-      const path = 'products';
-      try {
-        const q = query(collection(db, path));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data() as Product);
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.GET, path);
-        return [];
-      }
+      return [];
     }
   },
 
   subscribeToProducts: (callback: (products: Product[]) => void) => {
-    const path = 'products';
-    return onSnapshot(collection(db, path), (snapshot) => {
-      callback(snapshot.docs.map(doc => doc.data() as Product));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, path);
-    });
+    const interval = setInterval(async () => {
+      const products = await databaseService.getProducts();
+      callback(products);
+    }, 5000);
+    return () => clearInterval(interval);
   },
 
   saveProduct: async (product: Product) => {
     try {
-      const response = await fetch('/api/products', {
+      const response = await fetch(`${API_BASE}/products`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(product)
@@ -137,58 +99,52 @@ export const databaseService = {
       return await response.json();
     } catch (error) {
       console.error('Error saving product:', error);
-      const path = `products/${product.id}`;
-      try {
-        await setDoc(doc(db, 'products', product.id), product);
-        return { success: true };
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.WRITE, path);
-        return { success: false };
-      }
+      return { success: false };
     }
   },
 
   // --- Users ---
   getUser: async (userId: string): Promise<User | null> => {
-    const path = `users/${userId}`;
     try {
-      const userDoc = await getDoc(doc(db, 'users', userId));
-      return userDoc.exists() ? (userDoc.data() as User) : null;
+      const response = await fetch(`${API_BASE}/admin/users`);
+      const users: User[] = await response.json();
+      return users.find(u => u.id === userId) || null;
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching user:', error);
       return null;
     }
   },
 
   subscribeToUser: (userId: string, callback: (user: User | null) => void) => {
-    const path = `users/${userId}`;
-    return onSnapshot(doc(db, 'users', userId), (snapshot) => {
-      callback(snapshot.exists() ? (snapshot.data() as User) : null);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, path);
-    });
+    const interval = setInterval(async () => {
+      const user = await databaseService.getUser(userId);
+      callback(user);
+    }, 5000);
+    return () => clearInterval(interval);
   },
 
   updateUser: async (userId: string, data: Partial<User>) => {
-    const path = `users/${userId}`;
     try {
-      await updateDoc(doc(db, 'users', userId), data);
-      return { success: true };
+      const response = await fetch(`${API_BASE}/admin/users/${userId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      console.error('Error updating user:', error);
       return { success: false };
     }
   },
 
   // --- Suppliers ---
   getSuppliers: async (): Promise<Supplier[]> => {
-    const path = 'suppliers';
     try {
-      const q = query(collection(db, path));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data() as Supplier);
+      const response = await fetch(`${API_BASE}/admin/suppliers`);
+      if (!response.ok) throw new Error('Failed to fetch suppliers');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching suppliers:', error);
       return [];
     }
   },
@@ -196,26 +152,18 @@ export const databaseService = {
   // --- Orders ---
   getOrders: async (): Promise<Order[]> => {
     try {
-      const response = await fetch('/api/orders');
+      const response = await fetch(`${API_BASE}/orders`);
       if (!response.ok) throw new Error('Failed to fetch orders');
       return await response.json();
     } catch (error) {
       console.error('Error fetching orders:', error);
-      const path = 'orders';
-      try {
-        const q = query(collection(db, path), orderBy('timestamp', 'desc'));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data() as Order);
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.GET, path);
-        return [];
-      }
+      return [];
     }
   },
 
   createOrder: async (order: Order) => {
     try {
-      const response = await fetch('/api/orders', {
+      const response = await fetch(`${API_BASE}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(order)
@@ -223,93 +171,78 @@ export const databaseService = {
       return await response.json();
     } catch (error) {
       console.error('Error creating order:', error);
-      const path = `orders/${order.id}`;
-      try {
-        await setDoc(doc(db, 'orders', order.id), order);
-        return { success: true };
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.CREATE, path);
-        return { success: false };
-      }
+      return { success: false };
     }
   },
 
   // --- Notifications ---
   getAdminNotifications: async (): Promise<Notification[]> => {
-    const path = 'notifications';
     try {
-      const q = query(collection(db, path), orderBy('timestamp', 'desc'));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Notification));
+      const response = await fetch(`${API_BASE}/admin/notifications`);
+      if (!response.ok) throw new Error('Failed to fetch admin notifications');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching admin notifications:', error);
       return [];
     }
   },
 
   getNotifications: async (userId?: string): Promise<Notification[]> => {
-    const path = 'notifications';
     try {
-      let q;
+      const response = await fetch(`${API_BASE}/admin/notifications`);
+      const allNotifs: Notification[] = await response.json();
       if (userId) {
-        q = query(collection(db, path), where('recipientId', '==', userId), orderBy('timestamp', 'desc'));
-      } else {
-        q = query(collection(db, path), where('recipientId', '==', null), orderBy('timestamp', 'desc'));
+        return allNotifs.filter(n => n.recipientId === userId || n.recipientId === null);
       }
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data() as Notification);
+      return allNotifs.filter(n => n.recipientId === null);
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching notifications:', error);
       return [];
     }
   },
 
   subscribeToNotifications: (userId: string | undefined, callback: (notifs: Notification[]) => void) => {
-    const path = 'notifications';
-    const q = userId 
-      ? query(collection(db, path), where('recipientId', 'in', [userId, null]), orderBy('timestamp', 'desc'))
-      : query(collection(db, path), where('recipientId', '==', null), orderBy('timestamp', 'desc'));
-    
-    return onSnapshot(q, (snapshot) => {
-      callback(snapshot.docs.map(doc => doc.data() as Notification));
-    }, (error) => {
-      handleFirestoreError(error, OperationType.GET, path);
-    });
+    const interval = setInterval(async () => {
+      const notifs = await databaseService.getNotifications(userId);
+      callback(notifs);
+    }, 5000);
+    return () => clearInterval(interval);
   },
 
   // --- Promo Codes ---
   getPromoCodes: async (): Promise<PromoCode[]> => {
-    const path = 'promos';
     try {
-      const q = query(collection(db, path));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data() as PromoCode);
+      const response = await fetch(`${API_BASE}/admin/promos`);
+      if (!response.ok) throw new Error('Failed to fetch promos');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching promos:', error);
       return [];
     }
   },
 
   // --- Admin Settings ---
   getAdminSettings: async (): Promise<any> => {
-    const path = 'settings/admin';
     try {
-      const docRef = doc(db, 'settings', 'admin');
-      const docSnap = await getDoc(docRef);
-      return docSnap.exists() ? docSnap.data() : {};
+      const response = await fetch(`${API_BASE}/admin/settings`);
+      if (!response.ok) throw new Error('Failed to fetch settings');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching settings:', error);
       return {};
     }
   },
 
   updateAdminSetting: async (key: string, value: any) => {
-    const path = 'settings/admin';
     try {
-      await setDoc(doc(db, 'settings', 'admin'), { [key]: value }, { merge: true });
-      return { success: true };
+      const response = await fetch(`${API_BASE}/admin/settings/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ value })
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      console.error('Error updating setting:', error);
       return { success: false };
     }
   },
@@ -351,7 +284,7 @@ export const databaseService = {
     } else {
       achievements.push({ id: achievementId, title: 'Achievement', description: '', icon: '', progress, goal: 100, rewardREP: 100, unlocked: false });
     }
-    await databaseService.updateUser(userId, { 'stats.achievements': achievements } as any);
+    await databaseService.updateUser(userId, { stats: { ...user.stats, achievements } } as any);
   },
 
   completeMicroCommitment: async (userId: string, commitmentId: string) => {
@@ -362,7 +295,7 @@ export const databaseService = {
     );
     const newRep = (user.rep || 0) + 50;
     await databaseService.updateUser(userId, { 
-      'stats.microCommitments': commitments,
+      stats: { ...user.stats, microCommitments: commitments },
       rep: newRep
     } as any);
     return { ...user.stats, microCommitments: commitments };
@@ -373,7 +306,7 @@ export const databaseService = {
     if (!user) return null;
     const softLockedItems = { ...(user.stats?.softLockedItems || {}) };
     softLockedItems[productId] = Date.now() + 300000;
-    await databaseService.updateUser(userId, { 'stats.softLockedItems': softLockedItems } as any);
+    await databaseService.updateUser(userId, { stats: { ...user.stats, softLockedItems } } as any);
     return { ...user.stats, softLockedItems };
   },
 
@@ -381,31 +314,25 @@ export const databaseService = {
   calculateLevel: (rep: number) => Math.floor(rep / 1000) + 1,
 
   getSocialPosts: async (): Promise<SocialPost[]> => {
-    const path = 'social_posts';
     try {
-      const q = query(collection(db, path), orderBy('timestamp', 'desc'));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data() as SocialPost);
+      const response = await fetch(`${API_BASE}/social/posts`);
+      if (!response.ok) throw new Error('Failed to fetch social posts');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching social posts:', error);
       return [];
     }
   },
 
   sendNotification: async (title: string, message: string, type: string, recipientId: string | null = null) => {
-    const path = 'notifications';
     try {
-      await addDoc(collection(db, path), {
-        id: Math.random().toString(36).substr(2, 9),
-        title,
-        message,
-        type,
-        recipientId,
-        read: false,
-        timestamp: Date.now()
+      await fetch(`${API_BASE}/admin/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, message, type, recipientId })
       });
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      console.error('Error sending notification:', error);
     }
   },
 
@@ -417,23 +344,14 @@ export const databaseService = {
     return databaseService.getNotifications();
   },
 
-  // --- Admin Methods ---
   getAdminUsers: async (): Promise<User[]> => {
     try {
-      const response = await fetch('/api/admin/users');
+      const response = await fetch(`${API_BASE}/admin/users`);
       if (!response.ok) throw new Error('Failed to fetch admin users');
       return await response.json();
     } catch (error) {
       console.error('Error fetching admin users:', error);
-      const path = 'users';
-      try {
-        const q = query(collection(db, path));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data() as User);
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.GET, path);
-        return [];
-      }
+      return [];
     }
   },
 
@@ -443,7 +361,7 @@ export const databaseService = {
 
   updateUserStatusOnBackend: async (userId: string, status: string) => {
     try {
-      const response = await fetch(`/api/admin/users/${userId}/status`, {
+      const response = await fetch(`${API_BASE}/admin/users/${userId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -451,32 +369,24 @@ export const databaseService = {
       return await response.json();
     } catch (error) {
       console.error('Error updating user status on backend:', error);
-      return databaseService.updateUser(userId, { status } as any);
+      return { success: false };
     }
   },
 
   getAdminFlashSales: async (): Promise<any[]> => {
     try {
-      const response = await fetch('/api/admin/flash-sales');
+      const response = await fetch(`${API_BASE}/admin/flash-sales`);
       if (!response.ok) throw new Error('Failed to fetch admin flash sales');
       return await response.json();
     } catch (error) {
       console.error('Error fetching admin flash sales:', error);
-      const path = 'flash_sales';
-      try {
-        const q = query(collection(db, path));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data());
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.GET, path);
-        return [];
-      }
+      return [];
     }
   },
 
   addAdminFlashSale: async (sale: any) => {
     try {
-      const response = await fetch('/api/admin/flash-sales', {
+      const response = await fetch(`${API_BASE}/admin/flash-sales`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(sale)
@@ -484,40 +394,42 @@ export const databaseService = {
       return await response.json();
     } catch (error) {
       console.error('Error adding admin flash sale:', error);
-      const path = `flash_sales/${sale.id}`;
-      try {
-        await setDoc(doc(db, 'flash_sales', sale.id), sale);
-        return { success: true };
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.CREATE, path);
-        return { success: false };
-      }
+      return { success: false };
     }
   },
 
   getAdminKits: async (): Promise<Bundle[]> => {
-    const path = 'bundles';
     try {
-      const q = query(collection(db, path));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data() as Bundle);
+      const response = await fetch(`${API_BASE}/admin/kits`);
+      if (!response.ok) throw new Error('Failed to fetch admin kits');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching admin kits:', error);
       return [];
     }
   },
 
   getAdminSuppliers: async (): Promise<Supplier[]> => {
-    return databaseService.getSuppliers();
+    try {
+      const response = await fetch(`${API_BASE}/admin/suppliers`);
+      if (!response.ok) throw new Error('Failed to fetch admin suppliers');
+      return await response.json();
+    } catch (error) {
+      console.error('Error fetching admin suppliers:', error);
+      return [];
+    }
   },
 
   addAdminKit: async (kit: Bundle) => {
-    const path = `bundles/${kit.id}`;
     try {
-      await setDoc(doc(db, 'bundles', kit.id), kit);
-      return { success: true };
+      const response = await fetch(`${API_BASE}/admin/kits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(kit)
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      console.error('Error adding admin kit:', error);
       return { success: false };
     }
   },
@@ -528,12 +440,11 @@ export const databaseService = {
 
   getAdminMetrics: async (): Promise<any> => {
     try {
-      const response = await fetch('/api/admin/metrics');
+      const response = await fetch(`${API_BASE}/admin/metrics`);
       if (!response.ok) throw new Error('Failed to fetch admin metrics');
       return await response.json();
     } catch (error) {
       console.error('Error fetching admin metrics:', error);
-      // Fallback logic if needed, but metrics are complex to calculate client-side
       return {
         totalUsers: 0,
         totalProducts: 0,
@@ -546,45 +457,41 @@ export const databaseService = {
     }
   },
 
-  // --- Products ---
-
   getAdminPayForMeRequests: async (): Promise<any[]> => {
     try {
-      const response = await fetch('/api/admin/pay-for-me');
+      const response = await fetch(`${API_BASE}/admin/pay-for-me`);
       if (!response.ok) throw new Error('Failed to fetch admin pay-for-me requests');
       return await response.json();
     } catch (error) {
       console.error('Error fetching admin pay-for-me requests:', error);
-      const path = 'pay_for_me';
-      try {
-        const q = query(collection(db, path), orderBy('timestamp', 'desc'));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data());
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.GET, path);
-        return [];
-      }
+      return [];
     }
   },
 
   updateAdminPayForMeStatus: async (requestId: string, status: string) => {
-    const path = `pay_for_me/${requestId}`;
     try {
-      await updateDoc(doc(db, 'pay_for_me', requestId), { status });
-      return { success: true };
+      const response = await fetch(`${API_BASE}/admin/pay-for-me/${requestId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      console.error('Error updating pay-for-me status:', error);
       return { success: false };
     }
   },
 
   addAdminNotification: async (notif: any) => {
-    const path = 'notifications';
     try {
-      await addDoc(collection(db, path), notif);
-      return { success: true };
+      const response = await fetch(`${API_BASE}/admin/notifications`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notif)
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      console.error('Error adding admin notification:', error);
       return { success: false };
     }
   },
@@ -594,47 +501,55 @@ export const databaseService = {
   },
 
   addAdminPromo: async (promo: PromoCode) => {
-    const path = `promos/${promo.id}`;
     try {
-      await setDoc(doc(db, 'promos', promo.id), promo);
-      return { success: true };
+      const response = await fetch(`${API_BASE}/admin/promos`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(promo)
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      console.error('Error adding admin promo:', error);
       return { success: false };
     }
   },
 
   registerSupplier: async (supplier: Supplier) => {
-    const path = `suppliers/${supplier.id}`;
     try {
-      await setDoc(doc(db, 'suppliers', supplier.id), supplier);
-      return { success: true };
+      const response = await fetch(`${API_BASE}/admin/suppliers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(supplier)
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      console.error('Error registering supplier:', error);
       return { success: false };
     }
   },
 
   // --- Credits ---
   getUserCredits: async (userId: string): Promise<UserCredit[]> => {
-    const path = 'credits';
     try {
-      const q = query(collection(db, path), where('userId', '==', userId), where('status', '==', 'AVAILABLE'));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as UserCredit));
+      const response = await fetch(`${API_BASE}/users/${userId}/credits`);
+      if (!response.ok) throw new Error('Failed to fetch credits');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching credits:', error);
       return [];
     }
   },
 
   useUserCredit: async (userId: string, creditId: string) => {
-    const path = `credits/${creditId}`;
     try {
-      await updateDoc(doc(db, 'credits', creditId), { status: 'USED' });
-      return { success: true };
+      const response = await fetch(`${API_BASE}/user-credits/use`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, creditId })
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      console.error('Error using credit:', error);
       return { success: false };
     }
   },
@@ -660,13 +575,12 @@ export const databaseService = {
 
   // --- Hall of Fame ---
   getUsersRankedByLoves: async (): Promise<User[]> => {
-    const path = 'users';
     try {
-      const q = query(collection(db, path), orderBy('rep', 'desc'), limit(10));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data() as User);
+      const response = await fetch(`${API_BASE}/users/ranked`);
+      if (!response.ok) throw new Error('Failed to fetch ranked users');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching ranked users:', error);
       return [];
     }
   },
@@ -674,32 +588,19 @@ export const databaseService = {
   // --- Pay For Me ---
   getPayForMeRequests: async (userId?: string): Promise<any[]> => {
     try {
-      const url = userId ? `/api/pay-for-me/${userId}` : '/api/admin/pay-for-me';
+      const url = userId ? `${API_BASE}/users/${userId}/pay-for-me` : `${API_BASE}/admin/pay-for-me`;
       const response = await fetch(url);
       if (!response.ok) throw new Error('Failed to fetch pay-for-me requests');
       return await response.json();
     } catch (error) {
       console.error('Error fetching pay-for-me requests:', error);
-      const path = 'pay_for_me';
-      try {
-        let q;
-        if (userId) {
-          q = query(collection(db, path), where('userId', '==', userId), orderBy('timestamp', 'desc'));
-        } else {
-          q = query(collection(db, path), orderBy('timestamp', 'desc'));
-        }
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(doc => doc.data());
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.GET, path);
-        return [];
-      }
+      return [];
     }
   },
 
   createPayForMeRequest: async (request: any) => {
     try {
-      const response = await fetch('/api/pay-for-me', {
+      const response = await fetch(`${API_BASE}/pay-for-me`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(request)
@@ -707,20 +608,13 @@ export const databaseService = {
       return await response.json();
     } catch (error) {
       console.error('Error creating pay-for-me request:', error);
-      const path = `pay_for_me/${request.id}`;
-      try {
-        await setDoc(doc(db, 'pay_for_me', request.id), request);
-        return { success: true };
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.CREATE, path);
-        return { success: false };
-      }
+      return { success: false };
     }
   },
 
   updatePayForMeStatus: async (requestId: string, status: string) => {
     try {
-      const response = await fetch(`/api/pay-for-me/${requestId}/status`, {
+      const response = await fetch(`${API_BASE}/pay-for-me/${requestId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -728,57 +622,37 @@ export const databaseService = {
       return await response.json();
     } catch (error) {
       console.error('Error updating pay-for-me status:', error);
-      return databaseService.updateAdminPayForMeStatus(requestId, status);
+      return { success: false };
     }
   },
 
   // --- Social ---
   likePost: async (postId: string, userId: string): Promise<SocialPost | null> => {
-    const path = `social_posts/${postId}`;
     try {
-      const docRef = doc(db, 'social_posts', postId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const post = docSnap.data() as SocialPost;
-        const likedBy = post.likedBy || [];
-        if (!likedBy.includes(userId)) {
-          const updatedData = {
-            likes: (post.likes || 0) + 1,
-            likedBy: [...likedBy, userId]
-          };
-          await updateDoc(docRef, updatedData);
-          return { ...post, ...updatedData };
-        }
-        return post;
-      }
-      return null;
+      const response = await fetch(`${API_BASE}/social/posts/${postId}/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+      if (!response.ok) throw new Error('Failed to like post');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      console.error('Error liking post:', error);
       return null;
     }
   },
 
   lovePost: async (postId: string, userId: string): Promise<SocialPost | null> => {
-    const path = `social_posts/${postId}`;
     try {
-      const docRef = doc(db, 'social_posts', postId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        const post = docSnap.data() as SocialPost;
-        const lovedBy = post.lovedBy || [];
-        if (!lovedBy.includes(userId)) {
-          const updatedData = {
-            loves: (post.loves || 0) + 1,
-            lovedBy: [...lovedBy, userId]
-          };
-          await updateDoc(docRef, updatedData);
-          return { ...post, ...updatedData };
-        }
-        return post;
-      }
-      return null;
+      const response = await fetch(`${API_BASE}/social/posts/${postId}/love`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+      });
+      if (!response.ok) throw new Error('Failed to love post');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      console.error('Error loving post:', error);
       return null;
     }
   },
@@ -793,69 +667,63 @@ export const databaseService = {
   },
 
   saveSocialPosts: async (posts: SocialPost[]) => {
-    const path = 'social_posts';
     try {
-      // For simplicity, we'll just save the latest one if it's a new post
-      // In a real app, we'd save each one individually
-      for (const post of posts) {
-        await setDoc(doc(db, 'social_posts', post.id), post);
-      }
-      return { success: true };
+      const response = await fetch(`${API_BASE}/social/posts/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posts })
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.CREATE, path);
+      console.error('Error saving social posts:', error);
       return { success: false };
     }
   },
 
   // --- Supplier ---
   getSupplierProfile: async (supplierId: string): Promise<Supplier | null> => {
-    const path = `suppliers/${supplierId}`;
     try {
-      const docSnap = await getDoc(doc(db, 'suppliers', supplierId));
-      return docSnap.exists() ? (docSnap.data() as Supplier) : null;
+      const response = await fetch(`${API_BASE}/suppliers/${supplierId}`);
+      if (!response.ok) throw new Error('Failed to fetch supplier profile');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching supplier profile:', error);
       return null;
     }
   },
 
   getSupplierProducts: async (supplierId: string): Promise<Product[]> => {
-    const path = 'products';
     try {
-      const q = query(collection(db, path), where('supplierId', '==', supplierId));
-      const snapshot = await getDocs(q);
-      return snapshot.docs.map(doc => doc.data() as Product);
+      const response = await fetch(`${API_BASE}/suppliers/${supplierId}/products`);
+      if (!response.ok) throw new Error('Failed to fetch supplier products');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching supplier products:', error);
       return [];
     }
   },
 
   getSupplierOrders: async (supplierId: string): Promise<Order[]> => {
-    const path = 'orders';
     try {
-      const q = query(collection(db, path));
-      const snapshot = await getDocs(q);
-      const allOrders = snapshot.docs.map(doc => doc.data() as Order);
-      return allOrders.filter(order => 
-        order.items.some(item => 
-          item.supplierId === supplierId || 
-          (item.isBundle && item.bundleProducts?.some(bp => bp.supplierId === supplierId))
-        )
-      );
+      const response = await fetch(`${API_BASE}/suppliers/${supplierId}/orders`);
+      if (!response.ok) throw new Error('Failed to fetch supplier orders');
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.GET, path);
+      console.error('Error fetching supplier orders:', error);
       return [];
     }
   },
 
   updateSupplierProfile: async (supplierId: string, data: Partial<Supplier>) => {
-    const path = `suppliers/${supplierId}`;
     try {
-      await updateDoc(doc(db, 'suppliers', supplierId), data);
-      return { success: true };
+      const response = await fetch(`${API_BASE}/suppliers/${supplierId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      return await response.json();
     } catch (error) {
-      handleFirestoreError(error, OperationType.UPDATE, path);
+      console.error('Error updating supplier profile:', error);
       return { success: false };
     }
   },
@@ -866,7 +734,7 @@ export const databaseService = {
 
   updateProductOnBackend: async (productId: string, data: Partial<Product>) => {
     try {
-      const response = await fetch(`/api/products/${productId}`, {
+      const response = await fetch(`${API_BASE}/products/${productId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -874,20 +742,13 @@ export const databaseService = {
       return await response.json();
     } catch (error) {
       console.error('Error updating product on backend:', error);
-      const path = `products/${productId}`;
-      try {
-        await updateDoc(doc(db, 'products', productId), data);
-        return { success: true };
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.UPDATE, path);
-        return { success: false };
-      }
+      return { success: false };
     }
   },
 
   updateOrderStatusOnBackend: async (orderId: string, status: OrderStatus) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}/status`, {
+      const response = await fetch(`${API_BASE}/orders/${orderId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -895,21 +756,21 @@ export const databaseService = {
       return await response.json();
     } catch (error) {
       console.error('Error updating order status on backend:', error);
-      const path = `orders/${orderId}`;
-      try {
-        await updateDoc(doc(db, 'orders', orderId), { status });
-        return { success: true };
-      } catch (fsError) {
-        handleFirestoreError(fsError, OperationType.UPDATE, path);
-        return { success: false };
-      }
+      return { success: false };
     }
   },
 
   changePassword: async (userId: string, current: string, newPass: string) => {
-    // This would normally use updatePassword(auth.currentUser, newPass)
-    // But for simplicity and safety in this environment, we'll just log it
-    console.log(`Password change requested for ${userId} (simulated)`);
-    return { success: true };
+    try {
+      const response = await fetch(`${API_BASE}/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, current, newPass })
+      });
+      return await response.json();
+    } catch (error) {
+      console.error('Error changing password:', error);
+      return { success: false };
+    }
   }
 };

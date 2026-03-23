@@ -7,14 +7,14 @@ const router = Router();
 router.post('/user/login', async (req, res) => {
   const { email, password } = req.body;
   try {
-    const snapshot = await db.collection('users')
-      .where('email', '==', email)
-      .where('password', '==', password)
-      .get();
+    const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password) as any;
     
-    if (!snapshot.empty) {
-      const user = snapshot.docs[0].data();
-      res.json({ success: true, user });
+    if (user) {
+      const parsedUser = {
+        ...user,
+        stats: JSON.parse(user.stats || '{}')
+      };
+      res.json({ success: true, user: parsedUser });
     } else {
       res.status(401).json({ success: false, error: 'Identity not found or security phrase rejection.' });
     }
@@ -29,8 +29,8 @@ router.post('/user/register', async (req, res) => {
   const { email, password, username, phone, archetype } = req.body;
   
   try {
-    const snapshot = await db.collection('users').where('email', '==', email).get();
-    if (!snapshot.empty) {
+    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    if (existingUser) {
       return res.status(400).json({ success: false, error: 'Identity already archived.' });
     }
 
@@ -49,10 +49,20 @@ router.post('/user/register', async (req, res) => {
       level: 1,
       coins: 500,
       gems: 10,
-      status: 'ACTIVE'
+      status: 'ACTIVE',
+      role: 'USER',
+      stats: JSON.stringify({ totalSpent: 0, ordersCount: 0 })
     };
 
-    await db.collection('users').doc(id).set(newUser);
+    db.prepare(`
+      INSERT INTO users (id, username, handle, email, password, archetype, lastLogin, rep, level, coins, gems, status, role, stats)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      newUser.id, newUser.username, newUser.handle, newUser.email, newUser.password,
+      newUser.archetype, newUser.lastLogin, newUser.rep, newUser.level, newUser.coins,
+      newUser.gems, newUser.status, newUser.role, newUser.stats
+    );
+
     res.json({ success: true, user: newUser });
   } catch (error) {
     console.error('Registration error:', error);
@@ -65,21 +75,14 @@ router.post('/supplier/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     // Check by ID or Name
-    let snapshot = await db.collection('suppliers')
-      .where('id', '==', username)
-      .where('password', '==', password)
-      .get();
+    let supplier = db.prepare('SELECT * FROM suppliers WHERE id = ? AND password = ?').get(username, password);
     
-    if (snapshot.empty) {
-      snapshot = await db.collection('suppliers')
-        .where('name', '==', username)
-        .where('password', '==', password)
-        .get();
+    if (!supplier) {
+      supplier = db.prepare('SELECT * FROM suppliers WHERE name = ? AND password = ?').get(username, password);
     }
 
-    if (!snapshot.empty) {
-      const supplier = snapshot.docs[0].data();
-      res.json({ success: true, supplierId: supplier.id });
+    if (supplier) {
+      res.json({ success: true, supplierId: (supplier as any).id });
     } else if (username.toLowerCase() === 'supplier' && password === 'NODE_2025') {
       res.json({ success: true, supplierId: 'sup1' });
     } else {

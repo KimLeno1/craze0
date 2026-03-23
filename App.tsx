@@ -1,7 +1,5 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from './firebase';
 import { seedDatabase } from './services/seedService';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import Header from './components/Header';
@@ -96,26 +94,30 @@ const App: React.FC = () => {
       if (settings.jackpot_product_id) {
         setJackpotProductId(settings.jackpot_product_id);
       }
-    };
-    init();
 
-    const unsubscribeAuth = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
-        const user = await databaseService.getUser(firebaseUser.uid);
-        setCurrentUser(user);
-        setIsAuthenticated(true);
-        if (user) {
-          setRep(user.rep);
-          setHandle(user.handle);
+      // Check for stored user
+      const storedUser = localStorage.getItem('cc-current-user');
+      if (storedUser) {
+        try {
+          const user = JSON.parse(storedUser);
+          // Verify user still exists and get latest data
+          const latestUser = await databaseService.getUser(user.id);
+          if (latestUser) {
+            setCurrentUser(latestUser);
+            setIsAuthenticated(true);
+            setRep(latestUser.rep);
+            setHandle(latestUser.handle);
+          } else {
+            localStorage.removeItem('cc-current-user');
+            localStorage.removeItem('cc-auth-token');
+          }
+        } catch (e) {
+          console.error('Error parsing stored user:', e);
         }
-      } else {
-        setCurrentUser(null);
-        setIsAuthenticated(false);
       }
       setIsAuthReady(true);
-    });
-
-    return () => unsubscribeAuth();
+    };
+    init();
   }, []);
 
   useEffect(() => {

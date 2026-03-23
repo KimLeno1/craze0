@@ -9,17 +9,30 @@ router.post('/', async (req, res) => {
   const id = `pfm_${Date.now()}`;
   const timestamp = new Date().toISOString();
   try {
-    await db.collection('pay_for_me').doc(id).set({
+    const stmt = db.prepare(`
+      INSERT INTO pay_for_me (
+        id, requesterId, amount, reason, status, timestamp, items
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+    
+    const items = JSON.stringify([{ 
+      id: productId, 
+      name: productName || 'Product', 
+      image: productImage || '', 
+      price: total, 
+      quantity: 1 
+    }]);
+
+    stmt.run(
       id,
       requesterId,
-      productId,
-      productName,
-      productImage,
       total,
       message,
-      timestamp,
-      status: 'PENDING'
-    });
+      'PENDING',
+      Date.now(),
+      items
+    );
+    
     res.json({ success: true, id, timestamp });
   } catch (error) {
     console.error('Error creating sponsorship request:', error);
@@ -31,25 +44,12 @@ router.post('/', async (req, res) => {
 router.get('/:userId', async (req, res) => {
   const { userId } = req.params;
   try {
-    const snapshot = await db.collection('pay_for_me')
-      .where('requesterId', '==', userId)
-      .orderBy('timestamp', 'desc')
-      .get();
-    
-    const requests = snapshot.docs.map(doc => {
-      const r = doc.data();
-      return {
-        ...r,
-        items: [{ 
-          id: r.productId, 
-          name: r.productName || 'Product', 
-          image: r.productImage || '', 
-          price: r.total, 
-          quantity: 1 
-        }]
-      };
-    });
-    res.json(requests);
+    const requests = db.prepare('SELECT * FROM pay_for_me WHERE requesterId = ? ORDER BY timestamp DESC').all(userId);
+    const parsedRequests = requests.map((r: any) => ({
+      ...r,
+      items: JSON.parse(r.items || '[]')
+    }));
+    res.json(parsedRequests);
   } catch (error) {
     console.error('Error fetching requests:', error);
     res.status(500).json({ error: 'Failed to fetch requests' });
@@ -61,7 +61,7 @@ router.patch('/:requestId/status', async (req, res) => {
   const { requestId } = req.params;
   const { status } = req.body;
   try {
-    await db.collection('pay_for_me').doc(requestId).update({ status });
+    db.prepare('UPDATE pay_for_me SET status = ? WHERE id = ?').run(status, requestId);
     res.json({ success: true });
   } catch (error) {
     console.error('Error updating pay-for-me status:', error);
@@ -72,47 +72,42 @@ router.patch('/:requestId/status', async (req, res) => {
 // Helper to process expired Pay For Me requests
 export const processExpiredRequests = async () => {
   const twoWeeksAgo = Date.now() - 14 * 24 * 60 * 60 * 1000;
-  const twoWeeksAgoIso = new Date(twoWeeksAgo).toISOString();
   
   try {
-    const snapshot = await db.collection('pay_for_me')
-      .where('status', '==', 'PENDING')
-      .where('timestamp', '<', twoWeeksAgoIso)
-      .get();
+    const expiredRequests = db.prepare('SELECT * FROM pay_for_me WHERE status = ? AND timestamp < ?').all('PENDING', twoWeeksAgo);
     
-    for (const docSnap of snapshot.docs) {
-      const req = docSnap.data();
-      const amount = req.total || 0;
+    const processTransaction = db.transaction((req: any) => {
+      const amount = req.amount || 0;
       const creditId = `credit_${Date.now()}_${req.id}`;
-      
-      await db.runTransaction(async (transaction) => {
-        // Create credit
-        const creditRef = db.collection('credits').doc(creditId);
-        transaction.set(creditRef, {
-          id: creditId,
-          userId: req.requesterId,
-          amount,
-          status: 'AVAILABLE',
-          createdAt: new Date().toISOString()
-        });
+      const now = Date.now();
 
-        // Update request status
-        const requestRef = db.collection('pay_for_me').doc(req.id);
-        transaction.update(requestRef, { status: 'EXPIRED' });
+      // Create credit
+      db.prepare(`
+        INSERT INTO credits (id, userId, amount, status, createdAt)
+        VALUES (?, ?, ?, ?, ?)
+      `).run(creditId, req.requesterId, amount, 'AVAILABLE', now);
 
-        // Notify user
-        const notifId = `notif_${Date.now()}_${req.id}`;
-        const notifRef = db.collection('notifications').doc(notifId);
-        transaction.set(notifRef, {
-          id: notifId,
-          title: 'Sponsorship Expired',
-          message: `Your sponsorship request for ${req.id} has expired. A credit of GH₵${amount} has been added to your account.`,
-          type: 'INFO',
-          timestamp: Date.now(),
-          recipientId: req.requesterId,
-          read: false
-        });
-      });
+      // Update request status
+      db.prepare('UPDATE pay_for_me SET status = ? WHERE id = ?').run('EXPIRED', req.id);
+
+      // Notify user
+      const notifId = `notif_${Date.now()}_${req.id}`;
+      db.prepare(`
+        INSERT INTO notifications (id, title, message, type, timestamp, recipientId, read)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        notifId,
+        'Sponsorship Expired',
+        `Your sponsorship request for ${req.id} has expired. A credit of GH₵${amount} has been added to your account.`,
+        'INFO',
+        now,
+        req.requesterId,
+        0
+      );
+    });
+
+    for (const req of expiredRequests) {
+      processTransaction(req);
     }
   } catch (error) {
     console.error('Error processing expired requests:', error);
