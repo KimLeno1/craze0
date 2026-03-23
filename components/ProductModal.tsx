@@ -11,16 +11,6 @@ interface ProductModalProps {
 
 const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCart, onToggleWishlist, isWishlisted }) => {
   const discountPercent = Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100);
-  const [isClicked, setIsClicked] = React.useState(false);
-
-  const handleAcquire = () => {
-    setIsClicked(true);
-    onAddToCart(product);
-    setTimeout(() => {
-      setIsClicked(false);
-      onClose();
-    }, 1000);
-  };
 
   return (
     <div className="fixed inset-0 z-[150] flex items-center justify-center p-0 md:p-12">
@@ -32,7 +22,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
       <div className="relative bg-[#09090B] w-full max-w-7xl h-full md:h-fit md:max-h-[90vh] flex flex-col md:flex-row shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 border border-white/5">
         <button 
           onClick={onClose}
-          className="absolute top-8 right-8 z-20 w-12 h-12 rounded-full glass flex items-center justify-center hover:bg-[#1a73e8] hover:text-white transition-all shadow-lg text-white"
+          className="absolute top-8 right-8 z-20 w-12 h-12 rounded-full glass flex items-center justify-center hover:bg-[#EC4899] hover:text-white transition-all shadow-lg text-white"
         >
           ✕
         </button>
@@ -43,7 +33,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
           
           <div className="absolute bottom-8 left-8 flex flex-col gap-2">
             <div className="flex items-center gap-3">
-              <div className="bg-[#1a73e8] px-4 py-2 rounded-xl shadow-[0_0_20px_rgba(26,115,232,0.6)]">
+              <div className="bg-[#EC4899] px-4 py-2 rounded-xl shadow-[0_0_20px_rgba(236,72,153,0.6)]">
                 <span className="text-xs font-black uppercase tracking-[0.2em] text-white">
                   URGENT: {discountPercent}% VALUE SECURED
                 </span>
@@ -56,7 +46,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
           <div className="space-y-12">
             <div>
               <div className="flex justify-between items-center mb-6">
-                <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">{product.category} // ARCHIVE SKU-{product.id}</div>
+                <div className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em]">{product.category} // ARCHIVE SKU-{product.id}</div>
                 <div className="text-[10px] font-black text-zinc-600 uppercase">Tier 01 // ARCHIVED</div>
               </div>
               <h2 className="text-5xl md:text-7xl font-serif italic mb-6 leading-[0.85] tracking-tighter text-white">{product.name}</h2>
@@ -84,7 +74,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
               <div className="grid grid-cols-1 gap-4">
                 {product.details.map((detail, i) => (
                   <div key={i} className="flex items-center gap-4 text-[10px] font-black uppercase tracking-[0.3em] text-zinc-500">
-                    <span className="w-4 h-[1px] bg-[#1a73e8]" />
+                    <span className="w-4 h-[1px] bg-[#EC4899]" />
                     {detail}
                   </div>
                 ))}
@@ -106,18 +96,19 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
             <div className="pt-8 space-y-4">
               <div className="flex gap-4 w-full">
                 <button 
-                  onClick={handleAcquire}
+                  onClick={() => {
+                    onAddToCart(product);
+                    onClose();
+                  }}
                   disabled={!product.inStock}
                   className={`flex-[3] py-7 text-[12px] uppercase tracking-[0.4em] font-black transition-all shadow-2xl relative overflow-hidden group ${
-                    isClicked 
-                    ? 'bg-green-500 text-white' 
-                    : product.inStock 
-                      ? 'bg-white text-black hover:bg-[#1a73e8] hover:text-white' 
-                      : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
+                    product.inStock 
+                    ? 'bg-white text-black hover:bg-[#EC4899] hover:text-white' 
+                    : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                   }`}
                 >
-                  <span className="relative z-10">{isClicked ? 'Initialized' : (product.inStock ? 'Initialize Acquisition' : 'Archive Locked')}</span>
-                  {!isClicked && <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>}
+                  <span className="relative z-10">{product.inStock ? 'Initialize Acquisition' : 'Archive Locked'}</span>
+                  <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                 </button>
                 
                 {onToggleWishlist && (
@@ -125,7 +116,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
                     onClick={() => onToggleWishlist(product)}
                     className={`flex-1 rounded-2xl border flex items-center justify-center text-xl transition-all ${
                       isWishlisted 
-                      ? 'bg-[#1a73e8] border-[#1a73e8] text-white shadow-lg' 
+                      ? 'bg-[#EC4899] border-[#EC4899] text-white shadow-lg' 
                       : 'bg-transparent border-white/10 text-zinc-400 hover:border-white/30'
                     }`}
                   >

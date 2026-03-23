@@ -70,7 +70,7 @@ const SubscriptionPanel: React.FC<SubscriptionPanelProps> = ({
           <header className="p-6 sm:p-10 border-b border-white/5 flex items-center justify-between bg-black">
             <div className="space-y-1">
               <h2 className="text-2xl sm:text-3xl font-serif italic text-white tracking-tighter">Neural Subscriptions</h2>
-              <div className="text-[7px] sm:text-[8px] font-black text-[#1a73e8] uppercase tracking-[0.5em]">Signal_Monitoring_Protocol</div>
+              <div className="text-[7px] sm:text-[8px] font-black text-[#EC4899] uppercase tracking-[0.5em]">Signal_Monitoring_Protocol</div>
             </div>
             <button 
               onClick={onClose}
@@ -97,11 +97,11 @@ const SubscriptionPanel: React.FC<SubscriptionPanelProps> = ({
                   value={brandInput}
                   onChange={(e) => setBrandInput(e.target.value)}
                   placeholder="Enter Brand Identity..."
-                  className="w-full bg-black border border-white/10 rounded-xl sm:rounded-2xl py-4 sm:py-5 px-5 sm:px-6 text-[10px] sm:text-xs font-black text-white focus:border-[#1a73e8] transition-all outline-none"
+                  className="w-full bg-black border border-white/10 rounded-xl sm:rounded-2xl py-4 sm:py-5 px-5 sm:px-6 text-[10px] sm:text-xs font-black text-white focus:border-[#EC4899] transition-all outline-none"
                 />
                 <button 
                   type="submit"
-                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-white text-black px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-[7px] sm:text-[8px] font-black uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all"
+                  className="absolute right-2 sm:right-3 top-1/2 -translate-y-1/2 bg-white text-black px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-[7px] sm:text-[8px] font-black uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all"
                 >
                   Link
                 </button>
@@ -116,7 +116,7 @@ const SubscriptionPanel: React.FC<SubscriptionPanelProps> = ({
                       onClick={() => toggleBrand(brand)}
                       className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest border transition-all ${
                         isActive 
-                        ? 'bg-[#1a73e8] border-[#1a73e8] text-white shadow-[0_0_15px_rgba(26,115,232,0.3)]' 
+                        ? 'bg-[#EC4899] border-[#EC4899] text-white shadow-[0_0_15px_rgba(236,72,153,0.3)]' 
                         : 'bg-white/[0.02] border-white/5 text-zinc-500 hover:border-white/20 hover:text-white'
                       }`}
                     >
@@ -134,7 +134,7 @@ const SubscriptionPanel: React.FC<SubscriptionPanelProps> = ({
                       <button
                         key={brand}
                         onClick={() => toggleBrand(brand)}
-                        className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest border bg-[#1a73e8]/20 border-[#1a73e8]/40 text-[#1a73e8] hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-500 transition-all"
+                        className="px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl text-[8px] sm:text-[9px] font-black uppercase tracking-widest border bg-[#EC4899]/20 border-[#EC4899]/40 text-[#EC4899] hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-500 transition-all"
                       >
                         {brand} ✕
                       </button>

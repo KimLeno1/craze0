@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Star, Share2, Camera, X, MessageSquare, TrendingUp, Clock } from 'lucide-react';
-import { SocialPost, UserStats } from '../types';
+import { SocialPost, UserStats, Product } from '../types';
 import { databaseService } from '../services/databaseService';
 
 interface SocialGalleryProps {
@@ -16,13 +16,11 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
   const [showPostModal, setShowPostModal] = useState(false);
   const [newPostImage, setNewPostImage] = useState('');
   const [activeTab, setActiveTab] = useState<'FEED' | 'HALL_OF_FAME'>('FEED');
+  const [hallOfFameProducts, setHallOfFameProducts] = useState<Product[]>([]);
 
   useEffect(() => {
-    const fetchData = async () => {
-      const socialPosts = await databaseService.getSocialPosts();
-      setPosts(socialPosts);
-    };
-    fetchData();
+    setPosts(databaseService.getSocialPosts());
+    setHallOfFameProducts(databaseService.getHallOfFameProducts());
   }, []);
 
   const sortedPosts = useMemo(() => {
@@ -31,29 +29,25 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
 
   const starPosts = useMemo(() => {
     return [...posts]
-      .sort((a, b) => b.loves - a.loves)
+      .sort((a, b) => (b.likes + b.loves) - (a.likes + a.loves))
       .slice(0, 10);
   }, [posts]);
 
-  const currentUserId = 'current_user';
-
-  const handleLike = async (postId: string) => {
-    const updatedPost = await databaseService.likePost(postId, currentUserId);
-    if (updatedPost) {
-      setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
-      onGainRep?.(2);
-    }
+  const handleLike = (postId: string) => {
+    const updated = posts.map(p => p.id === postId ? { ...p, likes: p.likes + 1 } : p);
+    setPosts(updated);
+    databaseService.saveSocialPosts(updated);
+    onGainRep?.(2);
   };
 
-  const handleLove = async (postId: string) => {
-    const updatedPost = await databaseService.lovePost(postId, currentUserId);
-    if (updatedPost) {
-      setPosts(prev => prev.map(p => p.id === postId ? updatedPost : p));
-      onGainRep?.(5);
-    }
+  const handleLove = (postId: string) => {
+    const updated = posts.map(p => p.id === postId ? { ...p, loves: p.loves + 1 } : p);
+    setPosts(updated);
+    databaseService.saveSocialPosts(updated);
+    onGainRep?.(2);
   };
 
-  const handleCreatePost = async () => {
+  const handleCreatePost = () => {
     if (!newPostImage) return;
 
     const newPost: SocialPost = {
@@ -64,12 +58,12 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
       likes: 0,
       loves: 0,
       timestamp: new Date().toISOString(),
-      weekId: await databaseService.getWeekId()
+      weekId: databaseService.getWeekId()
     };
 
     const updated = [newPost, ...posts];
     setPosts(updated);
-    await databaseService.saveSocialPosts(updated);
+    databaseService.saveSocialPosts(updated);
     setNewPostImage('');
     setShowPostModal(false);
     onGainRep?.(50);
@@ -89,11 +83,11 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
       <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-8 mb-12 md:mb-20">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-[#1a73e8] animate-pulse shadow-[0_0_10px_#1a73e8]"></div>
-            <span className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">Live Matrix Feed</span>
+            <div className="w-2 h-2 rounded-full bg-[#EC4899] animate-pulse shadow-[0_0_10px_#EC4899]"></div>
+            <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em]">Live Matrix Feed</span>
           </div>
           <h1 className="text-6xl md:text-9xl font-serif italic text-white tracking-tighter leading-none">
-            Circuit <span className="text-[#1a73e8] not-italic font-sans">Feed</span>
+            Circuit <span className="text-[#EC4899] not-italic font-sans">Feed</span>
           </h1>
           <p className="text-zinc-500 font-mono text-[10px] tracking-[0.3em] uppercase flex items-center gap-2">
             <Clock className="w-3 h-3" />
@@ -106,7 +100,7 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
             <button
               onClick={() => setActiveTab('FEED')}
               className={`flex-1 sm:flex-none px-6 py-3 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${
-                activeTab === 'FEED' ? 'bg-[#1a73e8] text-white shadow-[0_0_20px_rgba(26,115,232,0.4)]' : 'text-zinc-500 hover:text-white'
+                activeTab === 'FEED' ? 'bg-[#EC4899] text-white shadow-[0_0_20px_rgba(236,72,153,0.4)]' : 'text-zinc-500 hover:text-white'
               }`}
             >
               Live Feed
@@ -144,19 +138,10 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.9 }}
                 transition={{ delay: index * 0.05 }}
-                className="group relative bg-white/5 rounded-3xl overflow-hidden border border-white/10 hover:border-[#1a73e8]/50 transition-colors"
+                className="group relative bg-white/5 rounded-3xl overflow-hidden border border-white/10 hover:border-[#EC4899]/50 transition-colors"
               >
                 {/* Image Container */}
-                <div 
-                  className="aspect-[4/5] relative overflow-hidden cursor-pointer"
-                  onClick={(e) => {
-                    if (e.detail === 2) {
-                      handleLove(post.id);
-                    } else if (e.detail === 1) {
-                      handleLike(post.id);
-                    }
-                  }}
-                >
+                <div className="aspect-[4/5] relative overflow-hidden">
                   <img
                     src={post.image}
                     alt={`Post by ${post.userHandle}`}
@@ -169,7 +154,7 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
                   <div className="absolute bottom-0 left-0 right-0 p-6 translate-y-4 group-hover:translate-y-0 transition-transform duration-300">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-[#1a73e8] flex items-center justify-center text-[10px] font-black text-white">
+                        <div className="w-8 h-8 rounded-full bg-[#EC4899] flex items-center justify-center text-[10px] font-black text-white">
                           {post.userHandle[0]}
                         </div>
                         <span className="text-xs font-black text-white uppercase tracking-tight">@{post.userHandle}</span>
@@ -183,20 +168,16 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
                   <div className="flex items-center gap-4">
                     <button
                       onClick={() => handleLike(post.id)}
-                      className={`flex items-center gap-1.5 transition-colors ${
-                        post.likedBy?.includes(currentUserId) ? 'text-[#1a73e8]' : 'text-zinc-400 hover:text-[#1a73e8]'
-                      }`}
+                      className="flex items-center gap-1.5 text-zinc-400 hover:text-[#EC4899] transition-colors"
                     >
-                      <Heart className={`w-4 h-4 ${post.likedBy?.includes(currentUserId) ? 'fill-current' : ''}`} />
+                      <Heart className="w-4 h-4" />
                       <span className="text-[10px] font-bold">{post.likes}</span>
                     </button>
                     <button
                       onClick={() => handleLove(post.id)}
-                      className={`flex items-center gap-1.5 transition-colors ${
-                        post.lovedBy?.includes(currentUserId) ? 'text-amber-500' : 'text-zinc-400 hover:text-amber-500'
-                      }`}
+                      className="flex items-center gap-1.5 text-zinc-400 hover:text-red-500 transition-colors"
                     >
-                      <Star className={`w-4 h-4 ${post.lovedBy?.includes(currentUserId) ? 'fill-current' : ''}`} />
+                      <Star className="w-4 h-4" />
                       <span className="text-[10px] font-bold">{post.loves}</span>
                     </button>
                   </div>
@@ -207,80 +188,36 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
               </motion.div>
             ))
           ) : (
-            starPosts.map((post, index) => (
+            hallOfFameProducts.map((product, index) => (
               <motion.div
-                key={post.id}
+                key={product.id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.1 }}
-                className={`group relative bg-zinc-950 rounded-[2.5rem] overflow-hidden border transition-all duration-500 ${
-                  index === 0 ? 'border-amber-500 shadow-[0_0_40px_rgba(245,158,11,0.2)]' : 
-                  index === 1 ? 'border-zinc-300 shadow-[0_0_30px_rgba(212,212,216,0.1)]' :
-                  index === 2 ? 'border-orange-700 shadow-[0_0_20px_rgba(194,65,12,0.1)]' :
-                  'border-white/5 hover:border-amber-500/50'
-                }`}
+                className="group relative bg-zinc-950 rounded-3xl overflow-hidden border border-amber-500/20 hover:border-amber-500 transition-all"
               >
-                <div className="aspect-[4/5] relative overflow-hidden">
+                <div className="aspect-square relative overflow-hidden">
                   <img 
-                    src={post.image} 
-                    alt={post.userHandle}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
+                    src={product.image} 
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
-                  
-                  {/* Rank Badge */}
-                  <div className={`absolute top-6 left-6 w-12 h-12 rounded-2xl flex items-center justify-center font-serif italic text-2xl z-20 shadow-2xl ${
-                    index === 0 ? 'bg-amber-500 text-black' : 
-                    index === 1 ? 'bg-zinc-300 text-black' :
-                    index === 2 ? 'bg-orange-700 text-white' :
-                    'bg-black/60 text-white border border-white/10'
-                  }`}>
-                    {index + 1}
-                  </div>
-
-                  <div className="absolute top-6 right-6 bg-black/60 backdrop-blur-md text-amber-500 px-4 py-2 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-2 border border-amber-500/30">
-                    <Star className="w-3 h-3 fill-current" />
-                    Elite Archive
+                  <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-60" />
+                  <div className="absolute top-4 right-4 bg-amber-500 text-black px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest flex items-center gap-1">
+                    <Star className="w-2 h-2 fill-current" />
+                    Hall of Fame
                   </div>
                 </div>
-
-                <div className="p-8 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-black ${
-                      index === 0 ? 'bg-amber-500 text-black' : 'bg-white/10 text-white'
-                    }`}>
-                      {post.userHandle[0]}
+                <div className="p-6 space-y-2">
+                  <div className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">{product.brand}</div>
+                  <h3 className="text-lg font-black text-white uppercase tracking-tighter leading-none">{product.name}</h3>
+                  <div className="flex items-center justify-between pt-2">
+                    <span className="text-amber-500 font-mono font-black">GH₵{product.price}</span>
+                    <div className="flex items-center gap-1 text-[8px] font-black text-zinc-500 uppercase">
+                      <TrendingUp className="w-3 h-3 text-emerald-500" />
+                      {product.hypeScore}% Hype
                     </div>
-                    <div className="space-y-0.5">
-                      <div className="text-xs font-black text-white uppercase tracking-tight">@{post.userHandle}</div>
-                      <div className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Circuit_Archiver</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                    <div className="flex items-center gap-6">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Loves</span>
-                        <div className="flex items-center gap-2 text-amber-500">
-                          <Star className="w-4 h-4 fill-current" />
-                          <span className="text-sm font-mono font-black">{post.loves}</span>
-                        </div>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Likes</span>
-                        <div className="flex items-center gap-2 text-zinc-400">
-                          <Heart className="w-4 h-4" />
-                          <span className="text-sm font-mono font-black">{post.likes}</span>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    {index < 3 && (
-                      <div className="text-[10px] font-serif italic text-amber-500/50">
-                        {index === 0 ? 'Grand_Master' : index === 1 ? 'Elite_Contender' : 'Rising_Star'}
-                      </div>
-                    )}
                   </div>
                 </div>
               </motion.div>
@@ -334,7 +271,7 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
                       value={newPostImage}
                       onChange={(e) => setNewPostImage(e.target.value)}
                       placeholder="https://images.unsplash.com/..."
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-[#1a73e8] transition-colors"
+                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-[#EC4899] transition-colors"
                     />
                   </div>
 
@@ -344,9 +281,9 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
                     </div>
                   )}
 
-                  <div className="bg-[#1a73e8]/10 border border-[#1a73e8]/20 rounded-2xl p-4 flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-[#1a73e8]/20 flex items-center justify-center shrink-0">
-                      <Clock className="w-5 h-5 text-[#1a73e8]" />
+                  <div className="bg-[#EC4899]/10 border border-[#EC4899]/20 rounded-2xl p-4 flex gap-4">
+                    <div className="w-10 h-10 rounded-full bg-[#EC4899]/20 flex items-center justify-center shrink-0">
+                      <Clock className="w-5 h-5 text-[#EC4899]" />
                     </div>
                     <div>
                       <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-1">Weekly Reset Protocol</h4>
@@ -359,7 +296,7 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
                   <button
                     onClick={handleCreatePost}
                     disabled={!newPostImage}
-                    className="w-full bg-white text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black active:scale-95"
+                    className="w-full bg-white text-black py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all disabled:opacity-50 disabled:hover:bg-white disabled:hover:text-black active:scale-95"
                   >
                     Initiate Transmission
                   </button>

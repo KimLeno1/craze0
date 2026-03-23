@@ -29,8 +29,8 @@ const WishlistView: React.FC<WishlistViewProps> = ({
       <header className="flex flex-col md:flex-row justify-between items-end gap-8 border-b border-white/5 pb-12">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-             <div className="w-2 h-2 rounded-full bg-[#1a73e8] glow-text animate-pulse"></div>
-             <span className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">{rank.tier} Archive</span>
+             <div className="w-2 h-2 rounded-full bg-[#EC4899] glow-text animate-pulse"></div>
+             <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em]">{rank.tier} Archive</span>
           </div>
           <h1 className="text-5xl md:text-8xl font-serif italic text-white tracking-tighter leading-none">
             The Saved <span className="text-white not-italic font-sans font-black uppercase glow-text">Circuit</span>
@@ -49,9 +49,9 @@ const WishlistView: React.FC<WishlistViewProps> = ({
                   value={searchHandle}
                   onChange={e => setSearchHandle(e.target.value)}
                   placeholder="USER_HANDLE_OR_ID"
-                  className="bg-zinc-950 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-black text-white focus:border-blue-500 outline-none w-40"
+                  className="bg-zinc-950 border border-white/10 px-4 py-2 rounded-xl text-[10px] font-black text-white focus:border-[#EC4899] outline-none w-40"
                 />
-                <button className="bg-white text-black px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all">Scan</button>
+                <button className="bg-white text-black px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all">Scan</button>
              </div>
           </div>
         )}

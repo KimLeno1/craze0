@@ -17,40 +17,23 @@ const AdminSupplierPanel: React.FC = () => {
     region: 'Neo Tokyo Central'
   });
 
-  const [supplierOrders, setSupplierOrders] = useState<Order[]>([]);
-
   useEffect(() => {
-    refreshData();
+    setSuppliers(databaseService.getSuppliers());
+    setAllProducts(databaseService.getProducts());
   }, []);
 
-  const refreshData = async () => {
-    const supps = await databaseService.getAdminSuppliers();
-    const prods = await databaseService.getAdminProducts();
-    setSuppliers(supps);
-    setAllProducts(prods);
-  };
-
-  useEffect(() => {
-    const fetchSupplierOrders = async () => {
-      if (selectedSupplier) {
-        const orders = await databaseService.getSupplierOrders(selectedSupplier.id);
-        setSupplierOrders(orders);
-      }
-    };
-    fetchSupplierOrders();
-  }, [selectedSupplier]);
-
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    const result = await databaseService.registerSupplier(newSupplier as any);
-    if (result) {
-      setIsRegistering(false);
-      setNewSupplier({ name: '', contactEmail: '', region: 'Neo Tokyo Central' });
-      refreshData();
-    }
+    const updated = databaseService.registerSupplier(newSupplier);
+    setSuppliers(updated);
+    setIsRegistering(false);
+    setNewSupplier({ name: '', contactEmail: '', region: 'Neo Tokyo Central' });
   };
 
   const supplierProducts = allProducts.filter(p => p.supplierId === selectedSupplier?.id);
+  const supplierOrders = MOCK_ORDERS.filter(o => 
+    o.items.some(item => allProducts.find(ap => ap.id === item.id)?.supplierId === selectedSupplier?.id)
+  );
 
   if (selectedSupplier) {
     return (
@@ -81,7 +64,7 @@ const AdminSupplierPanel: React.FC = () => {
              </div>
              <div className="bg-zinc-950 px-8 py-4 rounded-2xl border border-white/5 flex flex-col items-center">
                 <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Performance Sync</span>
-                <span className="text-xl font-mono font-black text-[#1a73e8]">{selectedSupplier.performanceScore}%</span>
+                <span className="text-xl font-mono font-black text-[#EC4899]">{selectedSupplier.performanceScore}%</span>
              </div>
           </div>
         </header>
@@ -94,7 +77,7 @@ const AdminSupplierPanel: React.FC = () => {
            </div>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {supplierProducts.map(p => (
-                <div key={p.id} className="group glass p-6 rounded-3xl border border-white/5 hover:border-[#1a73e8]/30 transition-all">
+                <div key={p.id} className="group glass p-6 rounded-3xl border border-white/5 hover:border-[#EC4899]/30 transition-all">
                   <div className="aspect-square rounded-2xl overflow-hidden mb-4 grayscale group-hover:grayscale-0 transition-all">
                     <img src={p.image} className="w-full h-full object-cover" />
                   </div>
@@ -104,7 +87,7 @@ const AdminSupplierPanel: React.FC = () => {
                        <div className="text-[9px] text-zinc-600 uppercase tracking-widest">SKU_{p.id}</div>
                     </div>
                     <div className="text-right">
-                       <div className="text-xs font-mono font-black text-[#1a73e8]">GH₵{p.price}</div>
+                       <div className="text-xs font-mono font-black text-[#EC4899]">GH₵{p.price}</div>
                        <div className="text-[8px] text-zinc-700 uppercase">Stock: {p.stockCount}</div>
                     </div>
                   </div>
@@ -170,7 +153,7 @@ const AdminSupplierPanel: React.FC = () => {
         
         <button 
           onClick={() => setIsRegistering(true)}
-          className="bg-white text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all shadow-xl"
+          className="bg-white text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all shadow-xl"
         >
           Register Node
         </button>
@@ -193,7 +176,7 @@ const AdminSupplierPanel: React.FC = () => {
                       required
                       value={newSupplier.name}
                       onChange={e => setNewSupplier({...newSupplier, name: e.target.value})}
-                      className="w-full bg-zinc-900 border border-white/10 p-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none"
+                      className="w-full bg-zinc-900 border border-white/10 p-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none"
                       placeholder="e.g. Neo-Mesh Foundry"
                     />
                  </div>
@@ -204,7 +187,7 @@ const AdminSupplierPanel: React.FC = () => {
                       required
                       value={newSupplier.contactEmail}
                       onChange={e => setNewSupplier({...newSupplier, contactEmail: e.target.value})}
-                      className="w-full bg-zinc-900 border border-white/10 p-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none"
+                      className="w-full bg-zinc-900 border border-white/10 p-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none"
                       placeholder="ops@node.net"
                     />
                  </div>
@@ -213,7 +196,7 @@ const AdminSupplierPanel: React.FC = () => {
                     <select 
                       value={newSupplier.region}
                       onChange={e => setNewSupplier({...newSupplier, region: e.target.value})}
-                      className="w-full bg-zinc-900 border border-white/10 p-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none appearance-none"
+                      className="w-full bg-zinc-900 border border-white/10 p-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none appearance-none"
                     >
                       <option>Neo Tokyo Central</option>
                       <option>Neo Berlin</option>
@@ -232,7 +215,7 @@ const AdminSupplierPanel: React.FC = () => {
                     </button>
                     <button 
                       type="submit"
-                      className="flex-[2] py-4 bg-[#1a73e8] text-white rounded-2xl font-black uppercase tracking-widest text-[9px] hover:bg-white hover:text-[#1a73e8] transition-all shadow-2xl"
+                      className="flex-[2] py-4 bg-[#EC4899] text-white rounded-2xl font-black uppercase tracking-widest text-[9px] hover:bg-white hover:text-[#EC4899] transition-all shadow-2xl"
                     >
                       Initialize Provisioning
                     </button>
@@ -248,10 +231,10 @@ const AdminSupplierPanel: React.FC = () => {
           <div 
             key={sup.id} 
             onClick={() => setSelectedSupplier(sup)}
-            className="group glass p-10 rounded-[3rem] border border-white/5 hover:border-[#1a73e8]/50 transition-all cursor-pointer relative overflow-hidden"
+            className="group glass p-10 rounded-[3rem] border border-white/5 hover:border-[#EC4899]/50 transition-all cursor-pointer relative overflow-hidden"
           >
             {/* Visual Flare */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-[#1a73e8]/5 blur-[60px] rounded-full group-hover:bg-[#1a73e8]/10 transition-colors"></div>
+            <div className="absolute top-0 right-0 w-32 h-32 bg-[#EC4899]/5 blur-[60px] rounded-full group-hover:bg-[#EC4899]/10 transition-colors"></div>
             
             <div className="relative z-10 space-y-6">
                <div className="flex justify-between items-start">
@@ -264,7 +247,7 @@ const AdminSupplierPanel: React.FC = () => {
                </div>
                
                <div className="space-y-1">
-                  <h3 className="text-2xl font-serif italic text-white group-hover:text-[#1a73e8] transition-colors">{sup.name}</h3>
+                  <h3 className="text-2xl font-serif italic text-white group-hover:text-[#EC4899] transition-colors">{sup.name}</h3>
                   <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">{sup.region}</p>
                </div>
                
@@ -275,7 +258,7 @@ const AdminSupplierPanel: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest block mb-1">Sync</span>
-                    <span className="text-sm font-mono font-black text-[#1a73e8]">{sup.performanceScore}%</span>
+                    <span className="text-sm font-mono font-black text-[#EC4899]">{sup.performanceScore}%</span>
                   </div>
                </div>
             </div>

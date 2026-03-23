@@ -11,33 +11,33 @@ interface TourStep {
 const TOUR_STEPS: TourStep[] = [
   {
     view: ViewState.LOBBY,
-    title: "Home Base",
-    description: "Welcome to Closet Kraze! This is your main page. See the latest fashion drops and new arrivals here."
+    title: "The Signal Core",
+    description: "Welcome to Closet Kraze. This is your primary uplink to the high-fashion circuit. Here you'll find active drops and editorial silhouettes currently materializing in the archives."
   },
   {
     view: ViewState.FAMOUS,
-    title: "Trending Now",
-    description: "See what's popular right now. These items sell out fast, so grab them while you can!"
+    title: "Velocity Heat",
+    description: "Our algorithmic demand matrix. Items here are ranked by global acquisition velocity. High heat indicates imminent stock depletion. Secure them before they de-materialize."
   },
   {
     view: ViewState.BUNDLES,
-    title: "Full Outfits",
-    description: "Get full outfits in one click. Buying a kit saves you time and boosts your style rank."
+    title: "Synergy Kits",
+    description: "Optimized collections designed for maximum status efficiency. Acquiring a full kit provides a significant reputation yield compared to individual acquisition."
   },
   {
     view: ViewState.TRY_ON,
-    title: "AI Try On",
-    description: "Use your camera to see how clothes look on you. Your rank determines how many times you can try on items each day."
+    title: "The Materializer",
+    description: "Spatial AI synthesis. Project any archive silhouette onto your physical architecture using the camera uplink. Your rank determines your daily materialization limit."
   },
   {
     view: ViewState.PAY_FOR_ME,
-    title: "Pay For Me",
-    description: "Want someone else to buy it for you? Create a link for your wishlist items and share it with friends or the community."
+    title: "Sponsorship Protocol",
+    description: "External funding initialization. Generate strategic links for your wishlisted items. Allow other nodes in the circuit to contribute to your acquisition."
   },
   {
     view: ViewState.PROFILE,
-    title: "Your Profile",
-    description: "Track your progress here. As you shop and engage, you'll level up and unlock better discounts and perks."
+    title: "Reputation Hierarchy",
+    description: "This is your dossier. Your standing—from Novice to Appeal God—is calculated by REP. Higher ranks unlock vault capacity, discount multipliers, and Oracle visibility."
   }
 ];
 
@@ -74,7 +74,7 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete, onNavigate }) => {
       
       {/* Scanning effect */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden opacity-20">
-        <div className="absolute top-0 left-0 w-full h-px bg-[#1a73e8] animate-[scan_8s_linear_infinite]" />
+        <div className="absolute top-0 left-0 w-full h-px bg-[#EC4899] animate-[scan_8s_linear_infinite]" />
       </div>
 
       <div className="relative z-10 w-full max-w-xl animate-in zoom-in-95 duration-500">
@@ -82,27 +82,27 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete, onNavigate }) => {
           {/* Welcome View */}
           {currentStep === -1 ? (
             <div className="space-y-10 text-center">
-              <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-[#1a73e8] to-purple-600 p-0.5 mx-auto animate-bounce">
+              <div className="w-24 h-24 rounded-[2.5rem] bg-gradient-to-tr from-[#EC4899] to-purple-600 p-0.5 mx-auto animate-bounce">
                 <div className="w-full h-full bg-black rounded-[2.4rem] flex items-center justify-center text-4xl">👋</div>
               </div>
               <div className="space-y-4">
-                <h1 className="text-5xl font-serif italic text-white tracking-tighter">Welcome to <span className="text-[#1a73e8] not-italic font-sans font-black">CLOSET KRAZE</span></h1>
+                <h1 className="text-5xl font-serif italic text-white tracking-tighter">Initialize <span className="text-[#EC4899] not-italic font-sans font-black">PROTOCOLS?</span></h1>
                 <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em] leading-relaxed max-w-sm mx-auto">
-                  Ready to start your fashion journey? Let's take a quick tour of how everything works.
+                  New identity detected in Sector_01. Do you require a guided synchronization of the Closet Kraze circuit?
                 </p>
               </div>
               <div className="flex flex-col gap-4">
                 <button 
                   onClick={() => handleNext()}
-                  className="w-full py-6 bg-white text-black rounded-3xl font-black uppercase tracking-[0.4em] text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl"
+                  className="w-full py-6 bg-white text-black rounded-3xl font-black uppercase tracking-[0.4em] text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl"
                 >
-                  Start Tour
+                  Begin Synchronization
                 </button>
                 <button 
                   onClick={handleClose}
                   className="text-[10px] font-black text-zinc-700 hover:text-zinc-400 uppercase tracking-[0.3em] transition-colors"
                 >
-                  Skip Tour
+                  Skip Protocol [Manual Override]
                 </button>
               </div>
             </div>
@@ -111,8 +111,8 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete, onNavigate }) => {
             <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
               <header className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-[#1a73e8] animate-pulse"></div>
-                  <span className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">Step {currentStep + 1} of {TOUR_STEPS.length}</span>
+                  <div className="w-2 h-2 rounded-full bg-[#EC4899] animate-pulse"></div>
+                  <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em]">Step {currentStep + 1} of {TOUR_STEPS.length}</span>
                 </div>
                 <button onClick={handleClose} className="text-zinc-600 hover:text-white transition-colors">✕</button>
               </header>
@@ -127,7 +127,7 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete, onNavigate }) => {
               <div className="pt-6 border-t border-white/5 flex gap-4">
                 <button 
                   onClick={handleNext}
-                  className="flex-1 py-5 bg-white text-black rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-xl"
+                  className="flex-1 py-5 bg-white text-black rounded-2xl font-black uppercase tracking-[0.3em] text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-xl"
                 >
                   {currentStep === TOUR_STEPS.length - 1 ? 'Complete Link' : 'Next Signal'}
                 </button>
@@ -136,7 +136,7 @@ const Tutorial: React.FC<TutorialProps> = ({ onComplete, onNavigate }) => {
               {/* Step indicator dots */}
               <div className="flex justify-center gap-2">
                 {TOUR_STEPS.map((_, i) => (
-                  <div key={i} className={`h-1 transition-all duration-500 rounded-full ${i === currentStep ? 'w-8 bg-[#1a73e8]' : 'w-2 bg-zinc-800'}`} />
+                  <div key={i} className={`h-1 transition-all duration-500 rounded-full ${i === currentStep ? 'w-8 bg-[#EC4899]' : 'w-2 bg-zinc-800'}`} />
                 ))}
               </div>
             </div>

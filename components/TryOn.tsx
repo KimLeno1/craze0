@@ -55,7 +55,7 @@ const TryOn: React.FC<TryOnProps> = ({ rank, stats, onUsed }) => {
   return (
     <div className="p-8 space-y-12 animate-in fade-in duration-500 pb-32">
       <header className="text-center">
-        <h1 className="text-5xl font-serif italic text-white leading-none">The <span className="text-[#1a73e8] not-italic font-sans font-black glow-text">MATERIALIZER</span></h1>
+        <h1 className="text-5xl font-serif italic text-white leading-none">The <span className="text-[#EC4899] not-italic font-sans font-black glow-text">MATERIALIZER</span></h1>
         <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.3em] mt-6">{rank.tier} Access Level // Daily attempts used: {stats.aiTryOnsUsedToday}/{rank.aiTryOnLimit}</p>
       </header>
 
@@ -71,18 +71,18 @@ const TryOn: React.FC<TryOnProps> = ({ rank, stats, onUsed }) => {
         
         <div className="absolute inset-0 pointer-events-none p-10 flex flex-col justify-between border-[20px] border-transparent">
           <div className="flex justify-between">
-            <div className="w-12 h-12 border-t-2 border-l-2 border-[#1a73e8]/50"></div>
-            <div className="w-12 h-12 border-t-2 border-r-2 border-[#1a73e8]/50"></div>
+            <div className="w-12 h-12 border-t-2 border-l-2 border-[#EC4899]/50"></div>
+            <div className="w-12 h-12 border-t-2 border-r-2 border-[#EC4899]/50"></div>
           </div>
           <div className="flex flex-col items-center gap-4">
-            <div className="glass px-6 py-2 rounded-full border-[#1a73e8]/30">
-               <span className="text-[9px] font-black uppercase text-[#1a73e8] tracking-widest">Scanning {rank.tier} Silhouette...</span>
+            <div className="glass px-6 py-2 rounded-full border-[#EC4899]/30">
+               <span className="text-[9px] font-black uppercase text-[#EC4899] tracking-widest">Scanning {rank.tier} Silhouette...</span>
             </div>
-            <div className="w-full h-px bg-gradient-to-r from-transparent via-[#1a73e8]/50 to-transparent animate-pulse"></div>
+            <div className="w-full h-px bg-gradient-to-r from-transparent via-[#EC4899]/50 to-transparent animate-pulse"></div>
           </div>
           <div className="flex justify-between">
-            <div className="w-12 h-12 border-b-2 border-l-2 border-[#1a73e8]/50"></div>
-            <div className="w-12 h-12 border-b-2 border-r-2 border-[#1a73e8]/50"></div>
+            <div className="w-12 h-12 border-b-2 border-l-2 border-[#EC4899]/50"></div>
+            <div className="w-12 h-12 border-b-2 border-r-2 border-[#EC4899]/50"></div>
           </div>
         </div>
       </div>

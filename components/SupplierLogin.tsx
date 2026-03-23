@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { databaseService } from '../services/databaseService';
 import { Supplier } from '../types';
-import { Eye, EyeOff } from 'lucide-react';
 
 interface SupplierLoginProps {
   onSuccess: (supplierId: string) => void;
@@ -15,14 +14,9 @@ const SupplierLogin: React.FC<SupplierLoginProps> = ({ onSuccess, onCancel }) =>
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [status, setStatus] = useState<'IDLE' | 'AUTHENTICATING' | 'SUCCESS' | 'ERROR'>('IDLE');
   const [authProgress, setAuthProgress] = useState(0);
-  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
-    const fetchSuppliers = async () => {
-      const data = await databaseService.getSuppliers();
-      setSuppliers(data);
-    };
-    fetchSuppliers();
+    setSuppliers(databaseService.getSuppliers());
   }, []);
 
   useEffect(() => {
@@ -42,11 +36,11 @@ const SupplierLogin: React.FC<SupplierLoginProps> = ({ onSuccess, onCancel }) =>
     return () => clearInterval(interval);
   }, [status]);
 
-  const handleFinalAuth = async () => {
-    const result = await databaseService.verifyUser(credentials.username, credentials.password);
-    if (result.success && result.user?.role === 'supplier') {
+  const handleFinalAuth = () => {
+    // Supplier login: Standard check for this demo environment
+    if (credentials.username.toLowerCase() === 'supplier' && credentials.password === 'NODE_2025') {
       setStatus('SUCCESS');
-      setTimeout(() => onSuccess(result.user!.id), 800);
+      setTimeout(() => onSuccess(selectedSupplierId), 800);
     } else {
       setStatus('ERROR');
       setAuthProgress(0);
@@ -106,23 +100,12 @@ const SupplierLogin: React.FC<SupplierLoginProps> = ({ onSuccess, onCancel }) =>
                 </div>
                 <div className="space-y-2">
                   <label className="text-[9px] uppercase font-black text-zinc-600 tracking-widest px-1">Security Signature</label>
-                  <div className="relative">
-                    <input 
-                      type={showPassword ? "text" : "password"} 
-                      required 
-                      value={credentials.password}
-                      onChange={e => setCredentials({...credentials, password: e.target.value})}
-                      className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-xs font-mono text-white outline-none focus:border-white/20 transition-all placeholder:text-zinc-800 pr-14"
-                      placeholder="••••••••••••"
-                    />
-                    <button 
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  </div>
+                  <input 
+                    type="password" required value={credentials.password}
+                    onChange={e => setCredentials({...credentials, password: e.target.value})}
+                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-xs font-mono text-white outline-none focus:border-white/20 transition-all placeholder:text-zinc-800"
+                    placeholder="••••••••••••"
+                  />
                 </div>
               </div>
               
@@ -152,7 +135,7 @@ const SupplierLogin: React.FC<SupplierLoginProps> = ({ onSuccess, onCancel }) =>
           )}
 
           <div className="text-center opacity-10 hover:opacity-100 transition-opacity duration-700">
-            <p className="text-[8px] uppercase tracking-widest">HINT: supplier@closetkraze.com / password123</p>
+            <p className="text-[8px] uppercase tracking-widest">HINT: supplier / NODE_2025</p>
           </div>
         </div>
       </div>

@@ -9,24 +9,14 @@ const AdminDatabaseView: React.FC = () => {
   const [search, setSearch] = useState('');
 
   useEffect(() => {
-    refreshData();
+    setUsers(databaseService.getUsers());
+    setProducts(databaseService.getProducts());
   }, []);
 
-  const refreshData = async () => {
-    const allUsers = await databaseService.getAdminUsers();
-    const allProducts = await databaseService.getAdminProducts();
-    setUsers(allUsers);
-    setProducts(allProducts);
-  };
-
-  const handleToggleStatus = async (userId: string, currentStatus: User['status']) => {
+  const handleToggleStatus = (userId: string, currentStatus: User['status']) => {
     const nextStatus = currentStatus === 'ACTIVE' ? 'BANNED' : 'ACTIVE';
-    const result = await databaseService.updateUserStatusOnBackend(userId, nextStatus);
-    if (result.success) {
-      refreshData();
-    } else {
-      alert('Failed to update user status.');
-    }
+    const updated = databaseService.updateUserStatus(userId, nextStatus);
+    setUsers(updated);
   };
 
   const filteredUsers = users.filter(u => 
@@ -124,7 +114,7 @@ const AdminDatabaseView: React.FC = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder={activeSubTab === 'USERS' ? "Search by handle or email..." : "Search by product name or SKU..."}
-          className="w-full bg-zinc-950 border border-white/5 rounded-2xl px-14 py-5 text-sm font-mono text-white focus:outline-none focus:border-[#1a73e8] transition-all"
+          className="w-full bg-zinc-950 border border-white/5 rounded-2xl px-14 py-5 text-sm font-mono text-white focus:outline-none focus:border-[#EC4899] transition-all"
         />
       </div>
 
@@ -153,9 +143,9 @@ const AdminDatabaseView: React.FC = () => {
                     </td>
                     <td className="px-8 py-6">
                       <span className={`px-2 py-0.5 rounded border ${
-                        user.archetype === 'CYBER' ? 'text-[#1a73e8] border-[#1a73e8]/20' :
+                        user.archetype === 'CYBER' ? 'text-pink-500 border-pink-500/20' :
                         user.archetype === 'VOID' ? 'text-zinc-400 border-zinc-400/20' :
-                        'text-blue-400 border-blue-400/20'
+                        'text-[#EC4899] border-[#EC4899]/20'
                       }`}>
                         {user.archetype}
                       </span>
@@ -218,9 +208,9 @@ const AdminDatabaseView: React.FC = () => {
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex flex-col items-end">
-                        <span className="text-[#1a73e8] font-black">{product.velocityScore}%</span>
+                        <span className="text-[#EC4899] font-black">{product.velocityScore}%</span>
                         <div className="w-16 h-1 bg-zinc-900 rounded-full mt-1">
-                          <div className="h-full bg-[#1a73e8]" style={{ width: `${product.velocityScore}%` }}></div>
+                          <div className="h-full bg-[#EC4899]" style={{ width: `${product.velocityScore}%` }}></div>
                         </div>
                       </div>
                     </td>
@@ -256,7 +246,7 @@ const AdminDatabaseView: React.FC = () => {
             </button>
             <button 
               onClick={downloadCSV}
-              className="px-6 py-2 bg-[#1a73e8] text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-white hover:text-[#1a73e8] transition-all shadow-[0_0_15px_rgba(26,115,232,0.3)]"
+              className="px-6 py-2 bg-[#EC4899] text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-white hover:text-[#EC4899] transition-all shadow-[0_0_15px_rgba(236,72,153,0.3)]"
             >
               CSV Ledger
             </button>

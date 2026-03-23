@@ -19,8 +19,8 @@ const ContactPanel: React.FC = () => {
   return (
     <div className="max-w-4xl mx-auto px-6 py-12 space-y-16 pb-40 animate-in fade-in duration-700">
       <header className="space-y-4 text-center">
-        <div className="inline-flex items-center gap-3 glass px-4 py-2 rounded-full border-[#1a73e8]/20 mb-4">
-          <div className="w-2 h-2 rounded-full bg-[#1a73e8] animate-pulse"></div>
+        <div className="inline-flex items-center gap-3 glass px-4 py-2 rounded-full border-pink-500/20 mb-4">
+          <div className="w-2 h-2 rounded-full bg-[#EC4899] animate-pulse"></div>
           <span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Direct Uplink Channel</span>
         </div>
         <h1 className="text-6xl md:text-8xl font-serif italic text-white tracking-tighter leading-none">
@@ -83,7 +83,7 @@ const ContactPanel: React.FC = () => {
                   <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Operator Identity</label>
                   <input 
                     type="text" required
-                    className="w-full bg-zinc-950 border border-white/10 p-6 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none transition-all placeholder:text-zinc-800"
+                    className="w-full bg-zinc-950 border border-white/10 p-6 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none transition-all placeholder:text-zinc-800"
                     placeholder="IDENT_HANDLE"
                   />
                 </div>
@@ -91,7 +91,7 @@ const ContactPanel: React.FC = () => {
                   <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Comms Address</label>
                   <input 
                     type="email" required
-                    className="w-full bg-zinc-950 border border-white/10 p-6 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none transition-all placeholder:text-zinc-800"
+                    className="w-full bg-zinc-950 border border-white/10 p-6 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none transition-all placeholder:text-zinc-800"
                     placeholder="EMAIL@NET.CORE"
                   />
                 </div>
@@ -100,7 +100,7 @@ const ContactPanel: React.FC = () => {
               {activeTab === 'REQUEST' && (
                 <div className="space-y-2">
                   <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Aesthetic Archetype</label>
-                  <select className="w-full bg-zinc-950 border border-white/10 p-6 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none appearance-none cursor-pointer">
+                  <select className="w-full bg-zinc-950 border border-white/10 p-6 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none appearance-none cursor-pointer">
                     <option>CYBER_VANGUARD</option>
                     <option>VOID_MINIMALIST</option>
                     <option>ETHEREAL_HEIR</option>
@@ -115,7 +115,7 @@ const ContactPanel: React.FC = () => {
                 </label>
                 <textarea 
                   required rows={6}
-                  className="w-full bg-zinc-950 border border-white/10 p-8 rounded-[2.5rem] text-xs font-black text-white focus:border-[#1a73e8] outline-none transition-all resize-none placeholder:text-zinc-800"
+                  className="w-full bg-zinc-950 border border-white/10 p-8 rounded-[2.5rem] text-xs font-black text-white focus:border-[#EC4899] outline-none transition-all resize-none placeholder:text-zinc-800"
                   placeholder={activeTab === 'REQUEST' ? "Describe materials, utility requirements, and visual aura..." : "Enter your query for the architectural team..."}
                 />
               </div>
@@ -124,12 +124,12 @@ const ContactPanel: React.FC = () => {
                 type="submit"
                 disabled={isSubmitting}
                 className={`w-full py-8 rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-xs transition-all shadow-3xl active:scale-95 group relative overflow-hidden ${
-                  isSubmitting ? 'bg-zinc-900 text-zinc-600' : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
+                  isSubmitting ? 'bg-zinc-900 text-zinc-600' : 'bg-white text-black hover:bg-[#EC4899] hover:text-white'
                 }`}
               >
                 <span className="relative z-10">{isSubmitting ? 'ENCRYPTING_TRANSMISSION...' : 'Establish Uplink Connection'}</span>
                 {!isSubmitting && (
-                  <div className="absolute inset-0 bg-[#1a73e8] translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                  <div className="absolute inset-0 bg-[#EC4899] translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                 )}
               </button>
             </div>

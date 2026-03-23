@@ -24,12 +24,7 @@ export const MOCK_PRODUCTS: Product[] = [
     brand: 'NEO-TECH',
     velocityScore: 95,
     tags: ['CYBER', 'TECHWEAR', 'POWER'],
-    sizes: ['S', 'M', 'L', 'XL'],
-    images: [
-      'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&q=80&w=800'
-    ]
+    sizes: ['S', 'M', 'L', 'XL']
   },
   {
     id: '2',
@@ -52,12 +47,7 @@ export const MOCK_PRODUCTS: Product[] = [
     brand: 'GLITCH',
     velocityScore: 78,
     tags: ['CYBER', 'STREETWEAR'],
-    sizes: ['38', '40', '42', '44'],
-    images: [
-      'https://images.unsplash.com/photo-1576566588028-4147f3842f27?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1560769629-975ec94e6a86?auto=format&fit=crop&q=80&w=800'
-    ]
+    sizes: ['38', '40', '42', '44']
   },
   {
     id: '3',
@@ -81,12 +71,7 @@ export const MOCK_PRODUCTS: Product[] = [
     brand: 'NEO-TECH',
     velocityScore: 60,
     tags: ['CYBER', 'POWER', 'UTILITY'],
-    sizes: ['S', 'M', 'L'],
-    images: [
-      'https://images.unsplash.com/photo-1595777457583-95e059d581b8?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1556906781-9a412961c28c?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?auto=format&fit=crop&q=80&w=800'
-    ]
+    sizes: ['S', 'M', 'L']
   },
   {
     id: '4',
@@ -109,11 +94,7 @@ export const MOCK_PRODUCTS: Product[] = [
     brand: 'CHROME-LUXE',
     velocityScore: 92,
     tags: ['CLASSIC', 'LUXE', 'POWER'],
-    sizes: ['OS'],
-    images: [
-      'https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&q=80&w=800',
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&q=80&w=800'
-    ]
+    sizes: ['OS']
   },
   {
     id: '5',
@@ -168,7 +149,7 @@ export const PATHS = [
     id: 'CYBER',
     name: 'The Style Vanguard',
     icon: '⚡',
-    color: 'from-[#1a73e8] to-[#4285f4]',
+    color: 'from-pink-500 to-purple-600',
     description: 'Master of technical silhouettes and neon aesthetics.',
     perks: ['+15% XP on Cyber drops', 'Exclusive "Vanguard" Badge', 'Priority access to tech-wear']
   },
@@ -176,7 +157,7 @@ export const PATHS = [
     id: 'LUXE',
     name: 'The Ethereal Heir',
     icon: '💎',
-    color: 'from-blue-400 to-indigo-600',
+    color: 'from-[#EC4899] to-pink-600',
     description: 'Signals status through sculpted silk and quiet luxury.',
     perks: ['-10% Gem cost in Vault', 'VIP Lounge Access', 'Status multiplier']
   },

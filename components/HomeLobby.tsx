@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Product, UserStats, ViewState } from '../types';
 import ProductCard from './ProductCard';
-import MicroCompliancePanel from './MicroCompliancePanel';
 import { LIVE_SOCIAL_FEED } from '../data/socialProofData';
 import { databaseService } from '../services/databaseService';
 
@@ -16,8 +15,6 @@ interface HomeLobbyProps {
   onToggleWishlist: (product: Product) => void;
   onProductClick: (product: Product) => void;
   onCompleteQuest: (questId: string) => void;
-  onCompleteMicroCommitment: (id: string) => void;
-  onSoftLock: (productId: string) => void;
 }
 
 const HomeLobby: React.FC<HomeLobbyProps> = ({ 
@@ -29,45 +26,38 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
   onNavigate, 
   onAddToCart, 
   onToggleWishlist,
-  onProductClick,
-  onCompleteMicroCommitment,
-  onSoftLock
+  onProductClick
 }) => {
   const [flashWindow, setFlashWindow] = useState<{ startTime: number; endTime: number } | null>(null);
   const [timeLeft, setTimeLeft] = useState<string>('');
 
   useEffect(() => {
-    const fetchData = async () => {
-      let currentWindow = await databaseService.getFlashSaleWindow();
-      if (!currentWindow) {
-        currentWindow = await databaseService.initializeFlashSaleWindow();
+    let currentWindow = databaseService.getFlashSaleWindow();
+    if (!currentWindow) {
+      currentWindow = databaseService.initializeFlashSaleWindow();
+    }
+    setFlashWindow(currentWindow);
+
+    const timer = setInterval(() => {
+      if (currentWindow) {
+        const seconds = Math.max(0, Math.floor((currentWindow.endTime - Date.now()) / 1000));
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        setTimeLeft(`${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
       }
-      setFlashWindow(currentWindow);
+    }, 1000);
 
-      const timer = setInterval(() => {
-        if (currentWindow) {
-          const seconds = Math.max(0, Math.floor((currentWindow.endTime - Date.now()) / 1000));
-          const h = Math.floor(seconds / 3600);
-          const m = Math.floor((seconds % 3600) / 60);
-          const s = seconds % 60;
-          setTimeLeft(`${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
-        }
-      }, 1000);
-
-      return () => clearInterval(timer);
-    };
-
-    fetchData();
+    return () => clearInterval(timer);
   }, []);
 
   const newArrivals = products.slice(0, 4);
   const featured = products.find(p => p && p.hypeScore > 95) || products[0];
 
   if (!featured) {
-    console.log('HomeLobby: No featured product found, products length:', products.length);
     return (
       <div className="min-h-screen bg-[#050505] flex items-center justify-center">
-        <div className="w-12 h-12 border-2 border-[#1a73e8] border-t-transparent rounded-full animate-spin"></div>
+        <div className="w-12 h-12 border-2 border-[#EC4899] border-t-transparent rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -111,15 +101,15 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
           
           {/* Animated Scan Lines */}
           <div className="absolute inset-0 pointer-events-none overflow-hidden">
-            <div className="absolute w-full h-px bg-[#1a73e8]/20 top-0 animate-[scan_8s_linear_infinite]"></div>
-            <div className="absolute w-full h-px bg-[#1a73e8]/10 top-0 animate-[scan_12s_linear_infinite_2s]"></div>
+            <div className="absolute w-full h-px bg-[#EC4899]/20 top-0 animate-[scan_8s_linear_infinite]"></div>
+            <div className="absolute w-full h-px bg-[#EC4899]/10 top-0 animate-[scan_12s_linear_infinite_2s]"></div>
           </div>
         </div>
 
         <div className="relative z-10 space-y-4 sm:space-y-6 md:space-y-8 max-w-5xl">
           <div className="flex items-center gap-3 md:gap-4">
-            <div className="h-px w-8 md:w-12 bg-[#1a73e8]"></div>
-            <div className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] text-[#1a73e8]">
+            <div className="h-px w-8 md:w-12 bg-[#EC4899]"></div>
+            <div className="text-[8px] md:text-[10px] font-black uppercase tracking-[0.4em] md:tracking-[0.6em] text-[#EC4899]">
               Welcome back, {userHandle} // Season 01
             </div>
           </div>
@@ -135,7 +125,7 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 pt-4">
             <button 
               onClick={() => onNavigate(ViewState.FAMOUS)}
-              className="h-12 sm:h-14 md:h-16 px-8 md:px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95"
+              className="h-12 sm:h-14 md:h-16 px-8 md:px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95"
             >
               Shop the Drop
             </button>
@@ -156,17 +146,12 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
         </div>
       </section>
 
-      {/* Micro-Compliance Panel */}
-      <section className="max-w-screen-2xl mx-auto px-4 sm:px-12 md:px-20 py-12">
-        <MicroCompliancePanel stats={stats} onComplete={onCompleteMicroCommitment} />
-      </section>
-
       {/* Pulse of the Circuit: Live Social Feed */}
       <div className="bg-zinc-950 border-y border-white/5 py-4 sm:py-6 overflow-hidden relative">
         <div className="flex gap-8 sm:gap-12 animate-[marquee_50s_linear_infinite] whitespace-nowrap px-6 items-center">
           {LIVE_SOCIAL_FEED.map((event, idx) => (
             <div key={idx} className="flex items-center gap-3 sm:gap-4 group cursor-default">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] animate-pulse"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></div>
               <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-widest">@{event.user}</span>
               <span className="text-[9px] sm:text-[10px] text-zinc-600 uppercase tracking-widest">
                 {event.type === 'PURCHASE' ? 'Secured' : 'Reserved'} <span className="text-zinc-400">{event.productName || 'Archive Silhouette'}</span>
@@ -177,7 +162,7 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
           {/* Duplicate for seamless loop */}
           {LIVE_SOCIAL_FEED.map((event, idx) => (
             <div key={`dup-${idx}`} className="flex items-center gap-3 sm:gap-4 group cursor-default">
-              <div className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] animate-pulse"></div>
+              <div className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></div>
               <span className="text-[9px] sm:text-[10px] font-black text-white uppercase tracking-widest">@{event.user}</span>
               <span className="text-[9px] sm:text-[10px] text-zinc-600 uppercase tracking-widest">
                 {event.type === 'PURCHASE' ? 'Secured' : 'Reserved'} <span className="text-zinc-400">{event.productName || 'Archive Silhouette'}</span>
@@ -193,8 +178,8 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
         <div className="flex flex-col md:flex-row justify-between items-baseline mb-10 sm:mb-12 md:mb-20 gap-4 sm:gap-6 md:gap-8">
           <div className="space-y-2">
             <div className="flex items-center gap-3">
-              <div className="w-2 h-2 bg-[#1a73e8] rounded-full"></div>
-              <span className="text-[9px] md:text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em] md:tracking-[0.5em]">Live Drop</span>
+              <div className="w-2 h-2 bg-[#EC4899] rounded-full"></div>
+              <span className="text-[9px] md:text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em] md:tracking-[0.5em]">Live Drop</span>
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-8xl font-serif italic text-white tracking-tighter">New Arrivals</h2>
           </div>
@@ -216,8 +201,6 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
               onAddToCart={() => onAddToCart(p.id)}
               onToggleWishlist={onToggleWishlist}
               onClick={() => onProductClick(p)} 
-              onSoftLock={onSoftLock}
-              isSoftLocked={!!stats.softLockedItems[p.id]}
             />
           ))}
         </div>
@@ -226,20 +209,20 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
       {/* The Flash Drop: Spotlight Section */}
       <section className="py-16 sm:py-20 md:py-40 border-y border-white/5 bg-[#080808] relative overflow-hidden">
         <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#1a73e8_0%,transparent_70%)]"></div>
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,#EC4899_0%,transparent_70%)]"></div>
         </div>
         
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center gap-10 sm:gap-12 md:gap-20">
           <div className="w-full md:w-1/2 aspect-[3/4] overflow-hidden bg-black border border-white/10 relative group rounded-2xl sm:rounded-3xl">
             <img src={featured?.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-1000" alt="Featured" />
-            <div className="absolute top-4 md:top-8 left-4 md:left-8 bg-[#1a73e8] text-white px-4 md:px-6 py-1 md:py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-2xl">
+            <div className="absolute top-4 md:top-8 left-4 md:left-8 bg-[#EC4899] text-white px-4 md:px-6 py-1 md:py-2 text-[8px] md:text-[10px] font-black uppercase tracking-widest shadow-2xl">
               High Heat // {featured?.hypeScore}%
             </div>
           </div>
           
           <div className="w-full md:w-1/2 space-y-6 md:space-y-10">
             <div className="space-y-3 md:space-y-4 text-center md:text-left">
-              <span className="text-[9px] md:text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em] md:tracking-[0.5em]">Spotlight Archive</span>
+              <span className="text-[9px] md:text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em] md:tracking-[0.5em]">Spotlight Archive</span>
               <h2 className="text-4xl sm:text-5xl md:text-8xl font-serif italic text-white tracking-tighter leading-none">{featured?.name}</h2>
               <p className="text-zinc-500 text-[10px] sm:text-xs md:text-sm font-medium leading-relaxed max-w-md mx-auto md:mx-0">
                 A masterpiece of structural engineering and aesthetic synergy. Limited to 50 units globally.
@@ -253,7 +236,7 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
               </div>
               <button 
                 onClick={() => onProductClick(featured)}
-                className="w-full md:w-auto h-12 sm:h-14 md:h-16 px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl active:scale-95"
+                className="w-full md:w-auto h-12 sm:h-14 md:h-16 px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl active:scale-95"
               >
                 Secure Now
               </button>
@@ -276,7 +259,7 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
             </div>
             <button 
               onClick={() => onNavigate(ViewState.FLASH)}
-              className="w-full sm:w-auto h-12 sm:h-16 px-8 sm:px-16 bg-white text-black font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[8px] sm:text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all active:scale-95"
+              className="w-full sm:w-auto h-12 sm:h-16 px-8 sm:px-16 bg-white text-black font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[8px] sm:text-[10px] hover:bg-[#EC4899] hover:text-white transition-all active:scale-95"
             >
               Access Vault
             </button>
@@ -289,8 +272,8 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
           <div className="flex flex-col md:flex-row justify-between items-baseline mb-10 sm:mb-12 md:mb-20 gap-4 sm:gap-6 md:gap-8">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <div className="w-2 h-2 bg-[#1a73e8] rounded-full"></div>
-                <span className="text-[9px] md:text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em] md:tracking-[0.5em]">Hall of Fame</span>
+                <div className="w-2 h-2 bg-amber-500 rounded-full"></div>
+                <span className="text-[9px] md:text-[10px] font-black text-amber-500 uppercase tracking-[0.4em] md:tracking-[0.5em]">Hall of Fame</span>
               </div>
               <h2 className="text-4xl sm:text-5xl md:text-8xl font-serif italic text-white tracking-tighter">Elite Archives</h2>
             </div>
@@ -307,13 +290,13 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
               <div 
                 key={product.id} 
                 onClick={() => onProductClick(product)}
-                className="group relative aspect-[4/5] rounded-[2rem] md:rounded-[3rem] overflow-hidden border border-white/5 hover:border-[#1a73e8]/30 transition-all cursor-pointer"
+                className="group relative aspect-[4/5] rounded-[2rem] md:rounded-[3rem] overflow-hidden border border-white/5 hover:border-amber-500/30 transition-all cursor-pointer"
               >
                 <img src={product.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" alt={product.name} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-transparent to-transparent opacity-60 group-hover:opacity-100 transition-opacity"></div>
                 <div className="absolute bottom-6 md:bottom-10 left-6 md:left-10 right-6 md:right-10 flex items-center justify-between">
                   <div className="space-y-1">
-                    <div className="text-[7px] md:text-[8px] font-black text-[#1a73e8] uppercase tracking-widest">{product.brand || 'Elite_Archive'}</div>
+                    <div className="text-[7px] md:text-[8px] font-black text-amber-500 uppercase tracking-widest">{product.brand || 'Elite_Archive'}</div>
                     <div className="text-base sm:text-lg md:text-xl font-black text-white uppercase tracking-tighter">{product.name}</div>
                   </div>
                   <div className="flex items-center gap-1.5 md:gap-2 bg-white/10 backdrop-blur-md px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/10">

@@ -24,8 +24,8 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
         <h2 className="text-3xl font-serif italic text-white">Logistics_Command</h2>
         <div className="flex gap-4">
           <div className="glass px-6 py-2 rounded-xl border-white/5 flex items-center gap-3">
-             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-             <span className="text-[10px] font-black uppercase tracking-widest text-blue-400">System Link Active</span>
+             <div className="w-1.5 h-1.5 rounded-full bg-[#EC4899] animate-pulse"></div>
+             <span className="text-[10px] font-black uppercase tracking-widest text-[#EC4899]">System Link Active</span>
           </div>
         </div>
       </div>
@@ -34,7 +34,7 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
         {orders.map(order => (
           <div 
             key={order.id} 
-            className={`glass p-8 rounded-[2.5rem] border transition-all duration-500 ${selectedOrder?.id === order.id ? 'border-[#1a73e8]/50 bg-zinc-900/40' : 'border-white/5 hover:border-white/20'}`}
+            className={`glass p-8 rounded-[2.5rem] border transition-all duration-500 ${selectedOrder?.id === order.id ? 'border-[#EC4899]/50 bg-zinc-900/40' : 'border-white/5 hover:border-white/20'}`}
           >
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div className="space-y-4">
@@ -43,7 +43,7 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
                   <span className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${
                     order.status === OrderStatus.DELIVERED ? 'bg-green-500/10 text-green-500' :
                     order.status === OrderStatus.CANCELLED ? 'bg-red-500/10 text-red-500' :
-                    order.status === OrderStatus.SHIPPED ? 'bg-blue-500/10 text-blue-500' :
+                    order.status === OrderStatus.SHIPPED ? 'bg-[#EC4899]/10 text-[#EC4899]' :
                     'bg-yellow-500/10 text-yellow-500'
                   }`}>
                     {order.status}
@@ -92,7 +92,7 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
                     setSelectedOrder(order);
                     setTrackingInput(order.trackingNumber || '');
                   }}
-                  className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center text-xl hover:bg-[#1a73e8] hover:text-white transition-all"
+                  className="w-12 h-12 rounded-2xl border border-white/10 flex items-center justify-center text-xl hover:bg-white hover:text-black transition-all"
                 >
                   ⚙️
                 </button>
@@ -116,7 +116,7 @@ const AdminOrderManager: React.FC<AdminOrderManagerProps> = ({ orders, onUpdateS
                       value={trackingInput}
                       onChange={(e) => setTrackingInput(e.target.value)}
                       placeholder="Enter Tracking Identifier..."
-                      className="w-full bg-black/40 border border-white/5 px-6 py-4 rounded-2xl text-xs font-mono text-white focus:border-[#1a73e8] transition-all outline-none"
+                      className="w-full bg-black/40 border border-white/5 px-6 py-4 rounded-2xl text-xs font-mono text-white focus:border-[#EC4899] transition-all outline-none"
                     />
                   </div>
 

@@ -1,819 +1,498 @@
-import { Product, User, Supplier, Notification, PromoCode, Order, OrderStatus, Bundle, SocialPost, UserCredit } from '../types';
+import { Product, User, Supplier, Notification, PromoCode, Order, OrderStatus, Bundle, PayForMeRequest, PayForMeStatus, UserStats } from '../types';
+import { EXTENDED_PRODUCTS, MOCK_ORDERS } from '../mockData';
+import { USER_ACHIEVEMENTS } from '../data/extendedMock';
 
-const API_BASE = '/api';
+const USER_DB_KEY = 'cc_admin_user_db';
+const PRODUCT_DB_KEY = 'cc_admin_product_db';
+const SUPPLIER_DB_KEY = 'cc_admin_supplier_db';
+const ADMIN_AUTH_KEY = 'cc_admin_auth_creds';
+const NOTIFICATIONS_KEY = 'cc_global_notifications';
+const PROMO_CODES_KEY = 'cc_promo_codes';
+const SOCIAL_POSTS_KEY = 'cc_social_posts';
+const ORDERS_DB_KEY = 'cc_orders_db';
+const USER_STATS_KEY = 'cc_user_stats';
+const FLASH_SALES_KEY = 'cc_flash_sales';
+const BUNDLES_DB_KEY = 'cc_bundles_db';
+const PAY_FOR_ME_KEY = 'cc_pay_for_me_db';
+const FLASH_SALE_WINDOW_KEY = 'cc_flash_sale_window';
+const FLASH_SALE_DURATION_KEY = 'cc_flash_sale_duration';
+
+const MOCK_FLASH_SALES: any[] = [
+  {
+    ...EXTENDED_PRODUCTS[0],
+    id: 'flash_1',
+    saleEndTime: Date.now() + 1000 * 60 * 60 * 2, // 2 hours
+    discountPercent: 40,
+    price: Math.floor(EXTENDED_PRODUCTS[0].price * 0.6)
+  },
+  {
+    ...EXTENDED_PRODUCTS[1],
+    id: 'flash_2',
+    saleEndTime: Date.now() + 1000 * 60 * 60 * 5, // 5 hours
+    discountPercent: 25,
+    price: Math.floor(EXTENDED_PRODUCTS[1].price * 0.75)
+  }
+];
+
+const MOCK_POSTS = [
+  {
+    id: 'post_1',
+    userId: 'u1',
+    userHandle: 'Viper_X',
+    image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80',
+    likes: 124,
+    loves: 45,
+    timestamp: new Date().toISOString(),
+    weekId: '' // Will be set in getSocialPosts
+  },
+  {
+    id: 'post_2',
+    userId: 'u2',
+    userHandle: 'Ghost_Shell',
+    image: 'https://images.unsplash.com/photo-1539109132314-34a77bd6819f?auto=format&fit=crop&w=800&q=80',
+    likes: 89,
+    loves: 12,
+    timestamp: new Date().toISOString(),
+    weekId: ''
+  },
+  {
+    id: 'post_3',
+    userId: 'u3',
+    userHandle: 'Luxe_Lord',
+    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
+    likes: 256,
+    loves: 120,
+    timestamp: new Date().toISOString(),
+    weekId: ''
+  }
+];
+
+const MOCK_USERS: User[] = [
+  { id: 'u1', handle: 'Viper_X', email: 'viper@archivers.net', archetype: 'CYBER', rep: 4500, level: 7, coins: 1200, gems: 45, status: 'ACTIVE', lastLogin: '2h ago', totalSpent: 850 },
+  { id: 'u2', handle: 'Ghost_Shell', email: 'ghost@void.com', archetype: 'VOID', rep: 8900, level: 10, coins: 5400, gems: 120, status: 'ACTIVE', lastLogin: '15m ago', totalSpent: 2400 },
+  { id: 'u3', handle: 'Luxe_Lord', email: 'lord@heirloom.io', archetype: 'LUXE', rep: 12000, level: 12, coins: 8900, gems: 300, status: 'ACTIVE', lastLogin: '5d ago', totalSpent: 12500 },
+  { id: 'u4', handle: 'Glitch_Boi', email: 'glitch@chaos.org', archetype: 'CYBER', rep: 1200, level: 4, coins: 400, gems: 5, status: 'BANNED', lastLogin: '1y ago', totalSpent: 0 },
+];
+
+const MOCK_SUPPLIERS: Supplier[] = [
+  { id: 'sup1', name: 'CyberKnit Industries', contactEmail: 'ops@cyberknit.nt', region: 'Neo Tokyo Central', status: 'ACTIVE', performanceScore: 94, totalRevenueYield: 450000, joinedDate: '2024-01-12' },
+  { id: 'sup2', name: 'Void Loom Textiles', contactEmail: 'archive@voidloom.de', region: 'Neo Berlin', status: 'ACTIVE', performanceScore: 82, totalRevenueYield: 280000, joinedDate: '2024-03-05' },
+  { id: 'sup3', name: 'Ethereal Silks', contactEmail: 'luxury@ethereal.sh', region: 'Emerald Heights', status: 'RESTRICTED', performanceScore: 45, totalRevenueYield: 120000, joinedDate: '2024-06-20' },
+];
+
+const WELCOME_NOTIFICATION: Notification = {
+  id: 'welcome_01',
+  title: 'Protocol Initialized: Welcome Archiver',
+  message: 'Greetings from the Closet Kraze core. Access the Velocity Heat for real-time demand insights, use the Synergy Kits to maximize status, and consult the AI Stylist in your studio for neural outfit building.',
+  type: 'WELCOME',
+  timestamp: 'Just now',
+  read: false
+};
+
+const DEFAULT_ADMIN = {
+  identifier: 'leno',
+  password: '1q2w3!'
+};
 
 export const databaseService = {
-  // --- Auth ---
-  registerUser: async (email: string, password: string, username: string, phone: string, archetype?: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, username, phone, archetype })
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to archive identity.' }));
-        return { success: false, error: errorData.error };
-      }
-      const result = await response.json();
-      if (result.success) {
-        localStorage.setItem('user', JSON.stringify(result.user));
-        return { success: true, user: result.user };
-      }
-      return { success: false, error: result.error };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+  getAdminCredentials: () => {
+    const saved = localStorage.getItem(ADMIN_AUTH_KEY);
+    if (!saved) {
+      localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(DEFAULT_ADMIN));
+      return DEFAULT_ADMIN;
     }
+    return JSON.parse(saved);
   },
 
-  verifyUser: async (email: string, password: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password })
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Identity not found or security phrase rejection.' }));
-        return { success: false, error: errorData.error };
-      }
-      const result = await response.json();
-      if (result.success) {
-        localStorage.setItem('user', JSON.stringify(result.user));
-        return { success: true, user: result.user };
-      }
-      return { success: false, error: result.error };
-    } catch (error: any) {
-      return { success: false, error: error.message };
+  updateAdminCredentials: (creds: typeof DEFAULT_ADMIN) => {
+    localStorage.setItem(ADMIN_AUTH_KEY, JSON.stringify(creds));
+    return creds;
+  },
+
+  getUsers: (): User[] => {
+    const saved = localStorage.getItem(USER_DB_KEY);
+    if (!saved) {
+      localStorage.setItem(USER_DB_KEY, JSON.stringify(MOCK_USERS));
+      return MOCK_USERS;
     }
+    return JSON.parse(saved);
   },
 
-  logout: async () => {
-    localStorage.removeItem('user');
+  saveUsers: (users: User[]) => {
+    localStorage.setItem(USER_DB_KEY, JSON.stringify(users));
   },
 
-  saveUser: async (user: User) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/users/${user.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(user)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error saving user:', error);
-      return { success: false };
-    }
-  },
-
-  getUserByEmail: async (email: string): Promise<User | null> => {
-    try {
-      const response = await fetch(`${API_BASE}/users/email/${email}`);
-      if (!response.ok) return null;
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-      return null;
-    } catch (error) {
-      console.error('Error fetching user by email:', error);
-      return null;
-    }
-  },
-
-  // --- Products ---
-  getProducts: async (): Promise<Product[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/products`);
-      if (!response.ok) {
-        console.error(`Failed to fetch products: ${response.status} ${response.statusText}`);
-        return [];
-      }
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-      const text = await response.text();
-      console.error('Expected JSON response for products but got:', text.substring(0, 100));
-      return [];
-    } catch (error) {
-      console.error('Error fetching products:', error);
-      return [];
-    }
-  },
-
-  subscribeToProducts: (callback: (products: Product[]) => void) => {
-    const fetchProducts = async () => {
-      const products = await databaseService.getProducts();
-      callback(products);
-    };
-    fetchProducts();
-    const interval = setInterval(fetchProducts, 5000);
-    return () => clearInterval(interval);
-  },
-
-  saveProduct: async (product: Product) => {
-    try {
-      const response = await fetch(`${API_BASE}/products`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(product)
-      });
-      if (!response.ok) return { success: false };
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-      return { success: false };
-    } catch (error) {
-      console.error('Error saving product:', error);
-      return { success: false };
-    }
-  },
-
-  // --- Users ---
-  getUser: async (userId: string): Promise<User | null> => {
-    try {
-      const response = await fetch(`${API_BASE}/users/${userId}`);
-      if (!response.ok) {
-        console.error(`Failed to fetch user ${userId}: ${response.status} ${response.statusText}`);
-        return null;
-      }
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-      const text = await response.text();
-      console.error(`Expected JSON response for user ${userId} but got:`, text.substring(0, 100));
-      return null;
-    } catch (error) {
-      console.error('Error fetching user:', error);
-      return null;
-    }
-  },
-
-  subscribeToUser: (userId: string, callback: (user: User | null) => void) => {
-    const fetchUser = async () => {
-      const user = await databaseService.getUser(userId);
-      callback(user);
-    };
-    fetchUser();
-    const interval = setInterval(fetchUser, 5000);
-    return () => clearInterval(interval);
-  },
-
-  updateUser: async (userId: string, data: Partial<User>) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/users/${userId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating user:', error);
-      return { success: false };
-    }
-  },
-
-  // --- Suppliers ---
-  getSuppliers: async (): Promise<Supplier[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/suppliers`);
-      if (!response.ok) throw new Error('Failed to fetch suppliers');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching suppliers:', error);
-      return [];
-    }
-  },
-
-  // --- Orders ---
-  getOrders: async (): Promise<Order[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/orders`);
-      if (!response.ok) throw new Error('Failed to fetch orders');
-      const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
-      }
-      return [];
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      return [];
-    }
-  },
-
-  createOrder: async (order: Order) => {
-    try {
-      const response = await fetch(`${API_BASE}/orders`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(order)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error creating order:', error);
-      return { success: false };
-    }
-  },
-
-  // --- Notifications ---
-  getAdminNotifications: async (): Promise<Notification[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/notifications`);
-      if (!response.ok) throw new Error('Failed to fetch admin notifications');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching admin notifications:', error);
-      return [];
-    }
-  },
-
-  getNotifications: async (userId?: string): Promise<Notification[]> => {
-    try {
-      const url = userId ? `${API_BASE}/users/${userId}/notifications` : `${API_BASE}/admin/notifications`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch notifications');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-      return [];
-    }
-  },
-
-  subscribeToNotifications: (userId: string | undefined, callback: (notifs: Notification[]) => void) => {
-    const fetchNotifs = async () => {
-      const notifs = await databaseService.getNotifications(userId);
-      callback(notifs);
-    };
-    fetchNotifs();
-    const interval = setInterval(fetchNotifs, 5000);
-    return () => clearInterval(interval);
-  },
-
-  // --- Promo Codes ---
-  getPromoCodes: async (): Promise<PromoCode[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/promos`);
-      if (!response.ok) throw new Error('Failed to fetch promos');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching promos:', error);
-      return [];
-    }
-  },
-
-  // --- Admin Settings ---
-  getAdminSettings: async (): Promise<any> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/settings`);
-      if (!response.ok) throw new Error('Failed to fetch settings');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching settings:', error);
-      return {};
-    }
-  },
-
-  updateAdminSetting: async (key: string, value: any) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/settings/${key}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ value })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating setting:', error);
-      return { success: false };
-    }
-  },
-
-  // --- User Stats & Rep ---
-  getUserStats: async (userId: string): Promise<any> => {
-    const user = await databaseService.getUser(userId);
-    return user?.stats || {
-      dailyGameAttempts: 0,
-      lastGameReset: new Date().toISOString(),
-      quests: [],
-      microCommitments: [],
-      commitmentStreak: 0,
-      softLockedItems: {},
-      selectedPath: null,
-      aiTryOnsUsedToday: 0,
-      tickets: 5,
-      brandSubscriptions: [],
-      tagSubscriptions: [],
-      achievements: []
-    };
-  },
-
-  addRep: async (userId: string, amount: number) => {
-    const user = await databaseService.getUser(userId);
-    if (!user) return null;
-    const newRep = (user.rep || 0) + amount;
-    await databaseService.updateUser(userId, { rep: newRep });
-    return { ...user, rep: newRep };
-  },
-
-  updateAchievementProgress: async (userId: string, achievementId: string, progress: number) => {
-    const user = await databaseService.getUser(userId);
-    if (!user) return;
-    const achievements = [...(user.stats?.achievements || [])];
-    const index = achievements.findIndex(a => a.id === achievementId);
-    if (index >= 0) {
-      achievements[index].progress += progress;
+  getProducts: (): Product[] => {
+    const saved = localStorage.getItem(PRODUCT_DB_KEY);
+    let products: Product[];
+    if (!saved) {
+      const seeded = EXTENDED_PRODUCTS.map((p, i) => ({
+        ...p,
+        supplierId: i % 2 === 0 ? 'sup1' : 'sup2',
+        shippingFee: 25 // Default shipping fee
+      }));
+      localStorage.setItem(PRODUCT_DB_KEY, JSON.stringify(seeded));
+      products = seeded;
     } else {
-      achievements.push({ id: achievementId, title: 'Achievement', description: '', icon: '', progress, goal: 100, rewardREP: 100, unlocked: false });
+      products = JSON.parse(saved);
     }
-    await databaseService.updateUser(userId, { stats: { ...user.stats, achievements } } as any);
+
+    // Auto-update metrics (Heat and New)
+    const now = Date.now();
+    const updated = products.map(p => {
+      // Logic: 10% chance to become "New" if not already, or based on ID
+      const isNew = p.isNew || (parseInt(p.id) > 10); 
+      // Logic: Randomly fluctuate velocity score (Heat)
+      const velocityScore = Math.min(100, Math.max(10, p.velocityScore + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 5)));
+      return { ...p, isNew, velocityScore };
+    });
+
+    return updated;
   },
 
-  completeMicroCommitment: async (userId: string, commitmentId: string) => {
-    const user = await databaseService.getUser(userId);
-    if (!user) return null;
-    const commitments = (user.stats?.microCommitments || []).map(c => 
-      c.id === commitmentId ? { ...c, completed: true } : c
-    );
-    const newRep = (user.rep || 0) + 50;
-    await databaseService.updateUser(userId, { 
-      stats: { ...user.stats, microCommitments: commitments },
-      rep: newRep
-    } as any);
-    return { ...user.stats, microCommitments: commitments };
+  saveProducts: (products: Product[]) => {
+    localStorage.setItem(PRODUCT_DB_KEY, JSON.stringify(products));
   },
 
-  softLockProduct: async (userId: string, productId: string) => {
-    const user = await databaseService.getUser(userId);
-    if (!user) return null;
-    const softLockedItems = { ...(user.stats?.softLockedItems || {}) };
-    softLockedItems[productId] = Date.now() + 300000;
-    await databaseService.updateUser(userId, { stats: { ...user.stats, softLockedItems } } as any);
-    return { ...user.stats, softLockedItems };
-  },
-
-  // --- Global Helpers ---
-  calculateLevel: (rep: number) => Math.floor(rep / 1000) + 1,
-
-  getSocialPosts: async (): Promise<SocialPost[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/social/posts`);
-      if (!response.ok) throw new Error('Failed to fetch social posts');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching social posts:', error);
-      return [];
+  getSuppliers: (): Supplier[] => {
+    const saved = localStorage.getItem(SUPPLIER_DB_KEY);
+    if (!saved) {
+      localStorage.setItem(SUPPLIER_DB_KEY, JSON.stringify(MOCK_SUPPLIERS));
+      return MOCK_SUPPLIERS;
     }
+    return JSON.parse(saved);
   },
 
-  sendNotification: async (title: string, message: string, type: string, recipientId: string | null = null) => {
-    try {
-      await fetch(`${API_BASE}/admin/notifications`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, message, type, recipientId })
-      });
-    } catch (error) {
-      console.error('Error sending notification:', error);
+  saveSuppliers: (suppliers: Supplier[]) => {
+    localStorage.setItem(SUPPLIER_DB_KEY, JSON.stringify(suppliers));
+  },
+
+  getGlobalNotifications: (): Notification[] => {
+    const saved = localStorage.getItem(NOTIFICATIONS_KEY);
+    if (!saved) {
+      localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify([WELCOME_NOTIFICATION]));
+      return [WELCOME_NOTIFICATION];
     }
+    return JSON.parse(saved);
   },
 
-  sendSupplierNotification: async (supplierId: string, title: string, message: string) => {
-    await databaseService.sendNotification(title, message, 'INFO', supplierId);
+  saveGlobalNotification: (notif: Notification) => {
+    const current = databaseService.getGlobalNotifications();
+    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify([notif, ...current]));
   },
 
-  getGlobalNotifications: async (): Promise<Notification[]> => {
-    return databaseService.getNotifications();
+  updateNotifications: (notifs: Notification[]) => {
+    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify(notifs));
   },
 
-  getAdminUsers: async (): Promise<User[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/users`);
-      if (!response.ok) throw new Error('Failed to fetch admin users');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching admin users:', error);
-      return [];
+  getPromoCodes: (): PromoCode[] => {
+    const saved = localStorage.getItem(PROMO_CODES_KEY);
+    if (!saved) {
+      const initial: PromoCode[] = [{ id: 'p1', code: 'NEO10', type: 'PERCENT', value: 10, description: '10% Sector Entry Discount' }];
+      localStorage.setItem(PROMO_CODES_KEY, JSON.stringify(initial));
+      return initial;
     }
+    return JSON.parse(saved);
   },
 
-  getAdminProducts: async (): Promise<Product[]> => {
-    return databaseService.getProducts();
+  savePromoCodes: (codes: PromoCode[]) => {
+    localStorage.setItem(PROMO_CODES_KEY, JSON.stringify(codes));
   },
 
-  updateUserStatusOnBackend: async (userId: string, status: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/users/${userId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating user status on backend:', error);
-      return { success: false };
-    }
+  updateUserStatus: (userId: string, status: User['status']) => {
+    const users = databaseService.getUsers();
+    const updated = users.map(u => u.id === userId ? { ...u, status } : u);
+    databaseService.saveUsers(updated);
+    return updated;
   },
 
-  getAdminFlashSales: async (): Promise<any[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/flash-sales`);
-      if (!response.ok) throw new Error('Failed to fetch admin flash sales');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching admin flash sales:', error);
-      return [];
-    }
+  deleteUser: (userId: string) => {
+    const users = databaseService.getUsers();
+    const updated = users.filter(u => u.id !== userId);
+    databaseService.saveUsers(updated);
+    return updated;
   },
 
-  addAdminFlashSale: async (sale: any) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/flash-sales`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(sale)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error adding admin flash sale:', error);
-      return { success: false };
-    }
-  },
-
-  getAdminKits: async (): Promise<Bundle[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/kits`);
-      if (!response.ok) throw new Error('Failed to fetch admin kits');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching admin kits:', error);
-      return [];
-    }
-  },
-
-  getAdminSuppliers: async (): Promise<Supplier[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/suppliers`);
-      if (!response.ok) throw new Error('Failed to fetch admin suppliers');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching admin suppliers:', error);
-      return [];
-    }
-  },
-
-  addAdminKit: async (kit: Bundle) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/kits`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(kit)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error adding admin kit:', error);
-      return { success: false };
-    }
-  },
-
-  getAdminOrders: async (): Promise<Order[]> => {
-    return databaseService.getOrders();
-  },
-
-  getAdminMetrics: async (): Promise<any> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/metrics`);
-      if (!response.ok) throw new Error('Failed to fetch admin metrics');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching admin metrics:', error);
-      return {
-        totalUsers: 0,
-        totalProducts: 0,
-        totalOrders: 0,
-        totalRevenue: 0,
-        totalSuppliers: 0,
-        activeSessions: 0,
-        systemHealth: 'UNKNOWN'
-      };
-    }
-  },
-
-  getAdminPayForMeRequests: async (): Promise<any[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/pay-for-me`);
-      if (!response.ok) throw new Error('Failed to fetch admin pay-for-me requests');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching admin pay-for-me requests:', error);
-      return [];
-    }
-  },
-
-  updateAdminPayForMeStatus: async (requestId: string, status: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/pay-for-me/${requestId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating pay-for-me status:', error);
-      return { success: false };
-    }
-  },
-
-  addAdminNotification: async (notif: any) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/notifications`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(notif)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error adding admin notification:', error);
-      return { success: false };
-    }
-  },
-
-  getAdminPromos: async (): Promise<PromoCode[]> => {
-    return databaseService.getPromoCodes();
-  },
-
-  addAdminPromo: async (promo: PromoCode) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/promos`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(promo)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error adding admin promo:', error);
-      return { success: false };
-    }
-  },
-
-  registerSupplier: async (supplier: Supplier) => {
-    try {
-      const response = await fetch(`${API_BASE}/admin/suppliers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(supplier)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error registering supplier:', error);
-      return { success: false };
-    }
-  },
-
-  // --- Credits ---
-  getUserCredits: async (userId: string): Promise<UserCredit[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/users/${userId}/credits`);
-      if (!response.ok) throw new Error('Failed to fetch credits');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching credits:', error);
-      return [];
-    }
-  },
-
-  useUserCredit: async (userId: string, creditId: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/users/user-credits/use`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, creditId })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error using credit:', error);
-      return { success: false };
-    }
-  },
-
-  // --- Flash Sales ---
-  getFlashSales: async (): Promise<any[]> => {
-    return databaseService.getAdminFlashSales();
-  },
-
-  getFlashSaleWindow: async (): Promise<any> => {
-    const settings = await databaseService.getAdminSettings();
-    return settings.flash_sale_window || null;
-  },
-
-  initializeFlashSaleWindow: async () => {
-    const window = {
-      start: Date.now(),
-      end: Date.now() + 3600000
+  registerSupplier: (supplier: Partial<Supplier>) => {
+    const suppliers = databaseService.getSuppliers();
+    const newSupplier: Supplier = {
+      ...supplier as Supplier,
+      id: `sup${Date.now()}`,
+      status: 'ACTIVE',
+      performanceScore: 50,
+      totalRevenueYield: 0,
+      joinedDate: new Date().toISOString().split('T')[0]
     };
-    await databaseService.updateAdminSetting('flash_sale_window', window);
-    return window;
-  },
-
-  // --- Hall of Fame ---
-  getUsersRankedByLoves: async (): Promise<User[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/users/ranked`);
-      if (!response.ok) throw new Error('Failed to fetch ranked users');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching ranked users:', error);
-      return [];
-    }
-  },
-
-  // --- Pay For Me ---
-  getPayForMeRequests: async (userId?: string): Promise<any[]> => {
-    try {
-      const url = userId ? `${API_BASE}/users/${userId}/pay-for-me` : `${API_BASE}/admin/pay-for-me`;
-      const response = await fetch(url);
-      if (!response.ok) throw new Error('Failed to fetch pay-for-me requests');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching pay-for-me requests:', error);
-      return [];
-    }
-  },
-
-  createPayForMeRequest: async (request: any) => {
-    try {
-      const response = await fetch(`${API_BASE}/pay-for-me`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(request)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error creating pay-for-me request:', error);
-      return { success: false };
-    }
-  },
-
-  updatePayForMeStatus: async (requestId: string, status: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/pay-for-me/${requestId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating pay-for-me status:', error);
-      return { success: false };
-    }
-  },
-
-  // --- Social ---
-  likePost: async (postId: string, userId: string): Promise<SocialPost | null> => {
-    try {
-      const response = await fetch(`${API_BASE}/social/posts/${postId}/like`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-      if (!response.ok) throw new Error('Failed to like post');
-      return await response.json();
-    } catch (error) {
-      console.error('Error liking post:', error);
-      return null;
-    }
-  },
-
-  lovePost: async (postId: string, userId: string): Promise<SocialPost | null> => {
-    try {
-      const response = await fetch(`${API_BASE}/social/posts/${postId}/love`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId })
-      });
-      if (!response.ok) throw new Error('Failed to love post');
-      return await response.json();
-    } catch (error) {
-      console.error('Error loving post:', error);
-      return null;
-    }
+    const updated = [...suppliers, newSupplier];
+    databaseService.saveSuppliers(updated);
+    return updated;
   },
 
   getWeekId: () => {
     const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 1);
-    const diff = now.getTime() - start.getTime();
-    const oneDay = 1000 * 60 * 60 * 24;
-    const day = Math.floor(diff / oneDay);
-    return `week_${Math.ceil(day / 7)}`;
+    const onejan = new Date(now.getFullYear(), 0, 1);
+    const week = Math.ceil((((now.getTime() - onejan.getTime()) / 86400000) + onejan.getDay() + 1) / 7);
+    return `${now.getFullYear()}-W${week}`;
   },
 
-  saveSocialPosts: async (posts: SocialPost[]) => {
-    try {
-      const response = await fetch(`${API_BASE}/social/posts/bulk`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ posts })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error saving social posts:', error);
-      return { success: false };
+  getSocialPosts: (): any[] => {
+    const saved = localStorage.getItem(SOCIAL_POSTS_KEY);
+    const currentWeek = databaseService.getWeekId();
+    
+    let posts;
+    if (!saved) {
+      posts = MOCK_POSTS.map(p => ({ ...p, weekId: currentWeek }));
+      localStorage.setItem(SOCIAL_POSTS_KEY, JSON.stringify(posts));
+    } else {
+      posts = JSON.parse(saved);
     }
+    
+    // Filter out old posts (weekly reset)
+    const filtered = posts.filter((p: any) => p.weekId === currentWeek);
+    if (filtered.length !== posts.length) {
+      localStorage.setItem(SOCIAL_POSTS_KEY, JSON.stringify(filtered));
+    }
+    return filtered;
   },
 
-  // --- Supplier ---
-  getSupplierProfile: async (supplierId: string): Promise<Supplier | null> => {
-    try {
-      const response = await fetch(`${API_BASE}/suppliers/${supplierId}`);
-      if (!response.ok) throw new Error('Failed to fetch supplier profile');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching supplier profile:', error);
+  saveSocialPosts: (posts: any[]) => {
+    localStorage.setItem(SOCIAL_POSTS_KEY, JSON.stringify(posts));
+  },
+
+  getOrders: (): Order[] => {
+    const saved = localStorage.getItem(ORDERS_DB_KEY);
+    if (!saved) {
+      localStorage.setItem(ORDERS_DB_KEY, JSON.stringify(MOCK_ORDERS));
+      return MOCK_ORDERS;
+    }
+    return JSON.parse(saved);
+  },
+
+  saveOrders: (orders: Order[]) => {
+    localStorage.setItem(ORDERS_DB_KEY, JSON.stringify(orders));
+  },
+
+  updateOrderStatus: (orderId: string, status: OrderStatus) => {
+    const orders = databaseService.getOrders();
+    const updated = orders.map(o => o.id === orderId ? { ...o, status } : o);
+    databaseService.saveOrders(updated);
+    return updated;
+  },
+
+  getFlashSales: (): any[] => {
+    const saved = localStorage.getItem(FLASH_SALES_KEY);
+    if (!saved) {
+      localStorage.setItem(FLASH_SALES_KEY, JSON.stringify(MOCK_FLASH_SALES));
+      return MOCK_FLASH_SALES;
+    }
+    return JSON.parse(saved);
+  },
+
+  saveFlashSales: (sales: any[]) => {
+    localStorage.setItem(FLASH_SALES_KEY, JSON.stringify(sales));
+  },
+
+  getFlashSaleDuration: (): number => {
+    const saved = localStorage.getItem(FLASH_SALE_DURATION_KEY);
+    return saved ? parseInt(saved) : 2; // Default 2 hours
+  },
+
+  saveFlashSaleDuration: (hours: number) => {
+    localStorage.setItem(FLASH_SALE_DURATION_KEY, hours.toString());
+  },
+
+  getFlashSaleWindow: (): { startTime: number; endTime: number } | null => {
+    const saved = localStorage.getItem(FLASH_SALE_WINDOW_KEY);
+    if (!saved) return null;
+    const window = JSON.parse(saved);
+    
+    // Check if it's from today
+    const now = new Date();
+    const windowDate = new Date(window.startTime);
+    if (now.toDateString() !== windowDate.toDateString()) {
       return null;
     }
+    
+    return window;
   },
 
-  getSupplierProducts: async (supplierId: string): Promise<Product[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/suppliers/${supplierId}/products`);
-      if (!response.ok) throw new Error('Failed to fetch supplier products');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching supplier products:', error);
-      return [];
+  initializeFlashSaleWindow: () => {
+    const duration = databaseService.getFlashSaleDuration();
+    const startTime = Date.now();
+    const endTime = startTime + (duration * 60 * 60 * 1000);
+    const window = { startTime, endTime };
+    localStorage.setItem(FLASH_SALE_WINDOW_KEY, JSON.stringify(window));
+    return window;
+  },
+
+  getUsersRanked: (): User[] => {
+    const users = databaseService.getUsers();
+    return [...users].sort((a, b) => b.rep - a.rep);
+  },
+
+  getBundles: (): Bundle[] => {
+    const saved = localStorage.getItem(BUNDLES_DB_KEY);
+    if (!saved) return [];
+    return JSON.parse(saved);
+  },
+
+  saveBundles: (bundles: Bundle[]) => {
+    localStorage.setItem(BUNDLES_DB_KEY, JSON.stringify(bundles));
+  },
+
+  updateProductHype: (productId: string, hypeScore: number) => {
+    const products = databaseService.getProducts();
+    const updated = products.map(p => p.id === productId ? { ...p, hypeScore } : p);
+    databaseService.saveProducts(updated);
+    return updated;
+  },
+
+  updateProductHallOfFame: (productId: string, isHallOfFame: boolean) => {
+    const products = databaseService.getProducts();
+    const updated = products.map(p => p.id === productId ? { ...p, isHallOfFame } : p);
+    databaseService.saveProducts(updated);
+    return updated;
+  },
+
+  getVelocityHeatProducts: (): Product[] => {
+    const products = databaseService.getProducts();
+    return [...products].sort((a, b) => {
+      const scoreA = (a.hypeScore || 0) + (a.velocityScore || 0) + (a.isHallOfFame ? 100 : 0);
+      const scoreB = (b.hypeScore || 0) + (b.velocityScore || 0) + (b.isHallOfFame ? 100 : 0);
+      return scoreB - scoreA;
+    });
+  },
+
+  getHallOfFameProducts: (): Product[] => {
+    const products = databaseService.getProducts();
+    return products.filter(p => p.isHallOfFame);
+  },
+
+  sendSupplierNotification: (supplierId: string, title: string, message: string) => {
+    databaseService.sendNotification(title, message, 'INFO', supplierId);
+  },
+
+  sendNotification: (title: string, message: string, type: Notification['type'] = 'INFO', recipientId?: string) => {
+    const notif: Notification = {
+      id: `notif_${Date.now()}`,
+      title,
+      message,
+      type,
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      read: false,
+      recipientId
+    };
+    const current = databaseService.getGlobalNotifications();
+    localStorage.setItem(NOTIFICATIONS_KEY, JSON.stringify([notif, ...current]));
+    return notif;
+  },
+
+  getPayForMeRequests: (): PayForMeRequest[] => {
+    const saved = localStorage.getItem(PAY_FOR_ME_KEY);
+    if (!saved) return [];
+    return JSON.parse(saved);
+  },
+
+  savePayForMeRequests: (requests: PayForMeRequest[]) => {
+    localStorage.setItem(PAY_FOR_ME_KEY, JSON.stringify(requests));
+  },
+
+  createPayForMeRequest: (request: Omit<PayForMeRequest, 'id' | 'timestamp' | 'status'>) => {
+    const requests = databaseService.getPayForMeRequests();
+    const newRequest: PayForMeRequest = {
+      ...request,
+      id: `pfm_${Date.now()}`,
+      timestamp: new Date().toISOString(),
+      status: PayForMeStatus.PENDING
+    };
+    const updated = [newRequest, ...requests];
+    databaseService.savePayForMeRequests(updated);
+    return newRequest;
+  },
+
+  updatePayForMeStatus: (requestId: string, status: PayForMeStatus) => {
+    const requests = databaseService.getPayForMeRequests();
+    const updated = requests.map(r => r.id === requestId ? { ...r, status } : r);
+    databaseService.savePayForMeRequests(updated);
+    return updated;
+  },
+
+  getUserStats: (userId: string): UserStats => {
+    const saved = localStorage.getItem(`${USER_STATS_KEY}_${userId}`);
+    if (!saved) {
+      const initial: UserStats = {
+        dailyGameAttempts: 3,
+        lastGameReset: new Date().toISOString(),
+        quests: [],
+        selectedPath: null,
+        aiTryOnsUsedToday: 0,
+        tickets: 0,
+        brandSubscriptions: [],
+        tagSubscriptions: [],
+        achievements: USER_ACHIEVEMENTS
+      };
+      localStorage.setItem(`${USER_STATS_KEY}_${userId}`, JSON.stringify(initial));
+      return initial;
     }
+    return JSON.parse(saved);
   },
 
-  getSupplierOrders: async (supplierId: string): Promise<Order[]> => {
-    try {
-      const response = await fetch(`${API_BASE}/suppliers/${supplierId}/orders`);
-      if (!response.ok) throw new Error('Failed to fetch supplier orders');
-      return await response.json();
-    } catch (error) {
-      console.error('Error fetching supplier orders:', error);
-      return [];
+  saveUserStats: (userId: string, stats: UserStats) => {
+    localStorage.setItem(`${USER_STATS_KEY}_${userId}`, JSON.stringify(stats));
+  },
+
+  calculateLevel: (rep: number) => {
+    return Math.floor(Math.sqrt(rep / 100)) + 1;
+  },
+
+  addRep: (userId: string, amount: number) => {
+    const users = databaseService.getUsers();
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
+
+    const oldLevel = databaseService.calculateLevel(user.rep);
+    const newRep = user.rep + amount;
+    const newLevel = databaseService.calculateLevel(newRep);
+
+    const updatedUser = { ...user, rep: newRep, level: newLevel };
+    const updatedUsers = users.map(u => u.id === userId ? updatedUser : u);
+    databaseService.saveUsers(updatedUsers);
+
+    if (newLevel > oldLevel) {
+      databaseService.sendNotification(
+        'Level Up Protocol Initialized',
+        `Reputation magnitude increased. You have reached Level ${newLevel}. Access to higher-tier fragments unlocked.`,
+        'REWARD',
+        userId
+      );
     }
+
+    return updatedUser;
   },
 
-  updateSupplierProfile: async (supplierId: string, data: Partial<Supplier>) => {
-    try {
-      const response = await fetch(`${API_BASE}/suppliers/${supplierId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating supplier profile:', error);
-      return { success: false };
-    }
-  },
-
-  saveProductToBackend: async (product: any) => {
-    return databaseService.saveProduct(product as Product);
-  },
-
-  updateProductOnBackend: async (productId: string, data: Partial<Product>) => {
-    try {
-      const response = await fetch(`${API_BASE}/products/${productId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating product on backend:', error);
-      return { success: false };
-    }
-  },
-
-  updateOrderStatusOnBackend: async (orderId: string, status: OrderStatus) => {
-    try {
-      const response = await fetch(`${API_BASE}/orders/${orderId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error updating order status on backend:', error);
-      return { success: false };
-    }
-  },
-
-  changePassword: async (userId: string, current: string, newPass: string) => {
-    try {
-      const response = await fetch(`${API_BASE}/auth/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, current, newPass })
-      });
-      return await response.json();
-    } catch (error) {
-      console.error('Error changing password:', error);
-      return { success: false };
+  updateAchievementProgress: (userId: string, achievementId: string, progress: number) => {
+    const stats = databaseService.getUserStats(userId);
+    const achievement = stats.achievements.find(a => a.id === achievementId);
+    
+    if (achievement && !achievement.unlocked) {
+      const newProgress = Math.min(achievement.goal, achievement.progress + progress);
+      const isUnlocked = newProgress >= achievement.goal;
+      
+      const updatedAchievements = stats.achievements.map(a => 
+        a.id === achievementId ? { ...a, progress: newProgress, unlocked: isUnlocked } : a
+      );
+      
+      databaseService.saveUserStats(userId, { ...stats, achievements: updatedAchievements });
+      
+      if (isUnlocked) {
+        databaseService.addRep(userId, achievement.rewardREP);
+        databaseService.sendNotification(
+          'Milestone Achieved',
+          `Protocol "${achievement.title}" completed. +${achievement.rewardREP} REP awarded.`,
+          'REWARD',
+          userId
+        );
+      }
     }
   }
 };

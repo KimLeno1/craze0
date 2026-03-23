@@ -47,8 +47,8 @@ export const PSYCHOLOGICAL_TRIGGERS = {
 };
 
 export const TREND_FORECASTS = [
-  { id: 'tf1', category: 'Cyber-wear', growth: '+240%', status: 'EXPLODING', color: 'text-[#1a73e8]' },
+  { id: 'tf1', category: 'Cyber-wear', growth: '+240%', status: 'EXPLODING', color: 'text-pink-500' },
   { id: 'tf2', category: 'Void Minimalism', growth: '+85%', status: 'STEADY', color: 'text-zinc-400' },
-  { id: 'tf3', category: 'Ethereal Luxe', growth: '-12%', status: 'COOLING', color: 'text-blue-400' },
+  { id: 'tf3', category: 'Ethereal Luxe', growth: '-12%', status: 'COOLING', color: 'text-[#EC4899]' },
   { id: 'tf4', category: 'Tactical Beauty', growth: '+156%', status: 'SURGING', color: 'text-purple-500' },
 ];

@@ -14,35 +14,37 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
   const [activeRequests, setActiveRequests] = useState<PayForMeRequest[]>([]);
   const [isSelecting, setIsSelecting] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY' | 'GLOBAL'>('ACTIVE');
 
   useEffect(() => {
-    const fetchRequests = async () => {
-      const allRequests = await databaseService.getPayForMeRequests(userHandle);
-      setActiveRequests(allRequests);
-    };
-    fetchRequests();
+    const allRequests = databaseService.getPayForMeRequests();
+    if (activeTab === 'GLOBAL') {
+      // Show all pending/approved requests from other users
+      setActiveRequests(allRequests.filter(r => r.userName !== userHandle && (r.status === PayForMeStatus.PENDING || r.status === PayForMeStatus.APPROVED)));
+    } else {
+      setActiveRequests(allRequests.filter(r => r.userName === userHandle));
+    }
   }, [userHandle, activeTab]);
 
   const canAddMore = activeRequests.filter(r => r.status === PayForMeStatus.PENDING || r.status === PayForMeStatus.APPROVED).length < rank.payForMeSlots;
 
-  const handleInitializeSponsorship = async (product: Product) => {
+  const handleInitializeSponsorship = (product: Product) => {
     if (!canAddMore) return;
     
     setGeneratingId(product.id);
-    const result = await databaseService.createPayForMeRequest({
-      requesterId: userHandle, // Using handle as ID for this mock
-      productId: product.id,
-      total: product.price,
-      message: `I'd love to have this ${product.name}! Can someone help me out?`
-    });
-    
-    if (result.success) {
-      const allRequests = await databaseService.getPayForMeRequests(userHandle);
-      setActiveRequests(allRequests);
+    setTimeout(() => {
+      const newRequest = databaseService.createPayForMeRequest({
+        userId: userHandle, // Using handle as ID for this mock
+        userName: userHandle,
+        items: [{ ...product, quantity: 1 }],
+        total: product.price,
+        message: `I'd love to have this ${product.name}! Can someone help me out?`
+      });
+      
+      setActiveRequests(prev => [newRequest, ...prev]);
+      setGeneratingId(null);
       setIsSelecting(false);
-    }
-    setGeneratingId(null);
+    }, 1500);
   };
 
   const handlePayRemaining = (request: PayForMeRequest) => {
@@ -56,91 +58,97 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
   const getStatusIcon = (status: PayForMeStatus) => {
     switch (status) {
       case PayForMeStatus.PENDING: return <Clock className="w-4 h-4 text-amber-500" />;
-      case PayForMeStatus.APPROVED: return <CheckCircle2 className="w-4 h-4 text-blue-500" />;
+      case PayForMeStatus.APPROVED: return <CheckCircle2 className="w-4 h-4 text-[#EC4899]" />;
       case PayForMeStatus.PAID: return <CheckCircle2 className="w-4 h-4 text-emerald-500" />;
       case PayForMeStatus.REJECTED: return <XCircle className="w-4 h-4 text-red-500" />;
-      case PayForMeStatus.EXPIRED: return <Clock className="w-4 h-4 text-zinc-500" />;
       default: return <AlertCircle className="w-4 h-4 text-zinc-500" />;
     }
   };
 
-  const getExpirationText = (timestamp: string) => {
-    const created = new Date(timestamp).getTime();
-    const expires = created + 14 * 24 * 60 * 60 * 1000;
-    const now = Date.now();
-    const diff = expires - now;
-    
-    if (diff <= 0) return 'EXPIRED';
-    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-    return `Expires in ${days} days`;
-  };
-
   const filteredRequests = useMemo(() => {
-    // Show all active and paid requests in the Achieve panel
-    return activeRequests.filter(r => r.status !== PayForMeStatus.REJECTED);
-  }, [activeRequests]);
+    if (activeTab === 'GLOBAL') return activeRequests;
+    if (activeTab === 'ACTIVE') {
+      return activeRequests.filter(r => r.status !== PayForMeStatus.PAID && r.status !== PayForMeStatus.REJECTED);
+    }
+    return activeRequests.filter(r => r.status === PayForMeStatus.PAID || r.status === PayForMeStatus.REJECTED);
+  }, [activeRequests, activeTab]);
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12 space-y-8 md:space-y-12 pb-40 animate-in fade-in duration-700">
+    <div className="max-w-6xl mx-auto px-6 py-12 space-y-12 pb-40 animate-in fade-in duration-700">
       <header className="space-y-4 text-center">
-        <div className="inline-flex items-center gap-3 glass px-4 py-2 rounded-full border-green-500/20 mb-2 md:mb-4">
+        <div className="inline-flex items-center gap-3 glass px-4 py-2 rounded-full border-green-500/20 mb-4">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span className="text-[8px] md:text-[10px] font-black text-white uppercase tracking-[0.3em] md:tracking-[0.4em]">Sponsorship Protocol v3.0</span>
+          <span className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Sponsorship Protocol v3.0</span>
         </div>
-        <h1 className="text-5xl sm:text-6xl md:text-8xl font-serif italic text-white tracking-tighter leading-none">
-          Achieve <span className="text-white not-italic font-sans font-black uppercase glow-text">Archive</span>
+        <h1 className="text-6xl md:text-8xl font-serif italic text-white tracking-tighter leading-none">
+          Pay For <span className="text-white not-italic font-sans font-black uppercase glow-text">Me</span>
         </h1>
-        <div className="flex flex-col items-center gap-4 mt-4 md:mt-6">
-          <p className="text-zinc-500 text-[8px] md:text-[10px] font-black uppercase tracking-[0.3em] md:tracking-[0.4em]">
+        <div className="flex flex-col items-center gap-4 mt-6">
+          <p className="text-zinc-500 text-[10px] font-black uppercase tracking-[0.4em]">
             {rank.tier} Authorization // {activeRequests.filter(r => r.status === PayForMeStatus.PENDING || r.status === PayForMeStatus.APPROVED).length}/{rank.payForMeSlots} Active Channels
           </p>
+          
+          <div className="flex bg-zinc-900/50 p-1 rounded-2xl border border-white/5">
+            <button 
+              onClick={() => setActiveTab('ACTIVE')}
+              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'ACTIVE' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
+            >
+              Active_Requests
+            </button>
+            <button 
+              onClick={() => setActiveTab('HISTORY')}
+              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'HISTORY' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
+            >
+              Archive_Log
+            </button>
+            <button 
+              onClick={() => setActiveTab('GLOBAL')}
+              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'GLOBAL' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
+            >
+              Global_Feed
+            </button>
+          </div>
         </div>
       </header>
 
       {/* Active Sponsorships Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {filteredRequests.map((request) => {
           const product = request.items[0];
           const isPaid = request.status === PayForMeStatus.PAID;
           
           return (
-            <div key={request.id} className="glass p-5 md:p-8 rounded-[2rem] md:rounded-[3rem] border-white/5 relative overflow-hidden group shadow-2xl animate-in zoom-in-95 hover:border-[#1a73e8]/30 transition-all">
-              <div className="absolute top-0 right-0 p-4 md:p-8 opacity-[0.03] text-4xl md:text-6xl font-black text-white pointer-events-none uppercase">
+            <div key={request.id} className="glass p-8 rounded-[3rem] border-white/5 relative overflow-hidden group shadow-2xl animate-in zoom-in-95">
+              <div className="absolute top-0 right-0 p-8 opacity-[0.03] text-6xl font-black text-white pointer-events-none uppercase">
                 {request.status}
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4 md:gap-6 items-start relative z-10">
-                <div className="w-20 h-28 md:w-24 md:h-32 rounded-xl md:rounded-2xl overflow-hidden border border-white/10 shrink-0 mx-auto sm:mx-0">
+              <div className="flex gap-6 items-start relative z-10">
+                <div className="w-24 h-32 rounded-2xl overflow-hidden border border-white/10 shrink-0">
                   <img src={product.image} className="w-full h-full object-cover" alt={product.name} />
                 </div>
-                <div className="flex-1 space-y-4 w-full">
-                  <div className="flex justify-between items-start gap-2">
-                    <div className="min-w-0">
-                      <h3 className="text-lg md:text-xl font-serif italic text-white truncate">{product.name}</h3>
-                      <p className="text-[8px] md:text-[9px] font-black text-zinc-500 uppercase tracking-widest">ID: {request.id}</p>
+                <div className="flex-1 space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-serif italic text-white">{product.name}</h3>
+                      <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">UPLINK_ID: {request.id}</p>
                     </div>
-                    <div className="flex items-center gap-1.5 md:gap-2 bg-black/40 px-2 md:px-3 py-1 md:py-1.5 rounded-full border border-white/5 shrink-0">
+                    <div className="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-white/5">
                       {getStatusIcon(request.status)}
-                      <span className="text-[7px] md:text-[8px] font-black text-white uppercase tracking-widest">{request.status}</span>
+                      <span className="text-[8px] font-black text-white uppercase tracking-widest">{request.status}</span>
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex justify-between text-[8px] md:text-[9px] font-black uppercase tracking-widest text-zinc-400">
-                      <span>Target</span>
-                      <span className="text-[#1a73e8]">GH₵{request.total}</span>
+                    <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-zinc-400">
+                      <span>Acquisition_Target</span>
+                      <span className="text-[#EC4899]">GH₵{request.total}</span>
                     </div>
-                    {request.status === PayForMeStatus.PENDING && (
-                      <div className="text-[7px] md:text-[8px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1">
-                        <Clock className="w-2 h-2" />
-                        {getExpirationText(request.timestamp)}
-                      </div>
-                    )}
-                    <div className="h-1 md:h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
+                    <div className="h-1.5 w-full bg-zinc-900 rounded-full overflow-hidden">
                       <div 
                         className={`h-full transition-all duration-1000 ${
                           request.status === PayForMeStatus.PAID ? 'bg-emerald-500' :
-                          request.status === PayForMeStatus.APPROVED ? 'bg-blue-500' :
+                          request.status === PayForMeStatus.APPROVED ? 'bg-[#EC4899]' :
                           'bg-amber-500'
                         }`} 
                         style={{ width: request.status === PayForMeStatus.PAID ? '100%' : '15%' }}
@@ -149,22 +157,41 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
                   </div>
 
                   {!isPaid && (
-                    <div className="flex flex-col sm:flex-row gap-2 md:gap-3 pt-2">
-                      <button 
-                        onClick={() => alert(`Strategic link copied: https://closetkraze.app/pay/${request.id}`)}
-                        className="flex-1 py-3 bg-zinc-900 text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
-                      >
-                        <Share2 className="w-3 h-3" />
-                        Copy Link
-                      </button>
-                      {request.status === PayForMeStatus.APPROVED && (
+                    <div className="flex gap-3 pt-2">
+                      {activeTab === 'GLOBAL' ? (
                         <button 
-                          onClick={() => handlePayRemaining(request)}
-                          className="flex-1 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
+                          onClick={() => {
+                            if (confirm(`Authorize sponsorship of GH₵${request.total} for @${request.userName}?`)) {
+                              databaseService.updatePayForMeStatus(request.id, PayForMeStatus.PAID);
+                              // In a real app, we'd notify the user. Here we just update local state.
+                              setActiveRequests(prev => prev.filter(r => r.id !== request.id));
+                              alert('Sponsorship authorized. Acquisition protocol initiated.');
+                            }
+                          }}
+                          className="flex-1 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
                         >
                           <Wallet className="w-3 h-3" />
-                          Complete
+                          Authorize_Sponsorship
                         </button>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => alert(`Strategic link copied: https://closetkraze.app/pay/${request.id}`)}
+                            className="flex-1 py-3 bg-zinc-900 text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
+                          >
+                            <Share2 className="w-3 h-3" />
+                            Copy Link
+                          </button>
+                          {request.status === PayForMeStatus.APPROVED && (
+                            <button 
+                              onClick={() => handlePayRemaining(request)}
+                              className="flex-1 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
+                            >
+                              <Wallet className="w-3 h-3" />
+                              Complete_Acquisition
+                            </button>
+                          )}
+                        </>
                       )}
                     </div>
                   )}
@@ -172,10 +199,10 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
               </div>
 
               {request.payerName && (
-                <div className="mt-4 md:mt-6 pt-4 md:pt-6 border-t border-white/5 space-y-2 md:space-y-3">
-                  <p className="text-[7px] md:text-[8px] font-black text-blue-400 uppercase tracking-widest">Oracle Sponsor Log</p>
+                <div className="mt-6 pt-6 border-t border-white/5 space-y-3">
+                  <p className="text-[8px] font-black text-[#EC4899] uppercase tracking-widest">Oracle Sponsor Log</p>
                   <div className="flex items-center gap-2">
-                    <span className="px-3 py-1 bg-blue-500/5 border border-blue-500/20 rounded-full text-[7px] text-blue-200 font-bold uppercase">
+                    <span className="px-3 py-1 bg-[#EC4899]/5 border border-[#EC4899]/20 rounded-full text-[7px] text-[#EC4899] font-bold uppercase">
                       @{request.payerName} has authorized this acquisition.
                     </span>
                   </div>
@@ -189,12 +216,12 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
         {activeTab === 'ACTIVE' && canAddMore && !isSelecting && (
           <button 
             onClick={() => setIsSelecting(true)}
-            className="h-[180px] md:h-[240px] rounded-[2rem] md:rounded-[3rem] border-2 border-dashed border-white/5 bg-white/5 flex flex-col items-center justify-center gap-3 md:gap-4 hover:border-[#1a73e8]/40 hover:bg-white/10 transition-all group"
+            className="h-[240px] rounded-[3rem] border-2 border-dashed border-white/5 bg-white/5 flex flex-col items-center justify-center gap-4 hover:border-[#EC4899]/40 hover:bg-white/10 transition-all group"
           >
-            <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-zinc-900 flex items-center justify-center text-xl md:text-2xl group-hover:scale-110 transition-transform">➕</div>
-            <div className="text-center px-4">
-              <p className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest">New Request</p>
-              <p className="text-[7px] md:text-[8px] text-zinc-500 uppercase tracking-widest mt-1">Select from Wishlist</p>
+            <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">➕</div>
+            <div className="text-center">
+              <p className="text-xs font-black text-white uppercase tracking-widest">Initialize New Uplink</p>
+              <p className="text-[8px] text-zinc-500 uppercase tracking-widest mt-1">Select from your Wishlist</p>
             </div>
           </button>
         )}
@@ -206,32 +233,32 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
 
       {/* Wishlist Selection Modal */}
       {isSelecting && (
-        <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 sm:p-6 animate-in fade-in">
-          <div className="bg-zinc-950 border border-white/10 w-full max-w-2xl rounded-[2.5rem] md:rounded-[3rem] p-6 md:p-10 flex flex-col max-h-[85vh] shadow-3xl">
-            <header className="flex justify-between items-center mb-6 md:mb-8 shrink-0">
-              <h2 className="text-2xl md:text-3xl font-serif italic text-white tracking-tight">Select Asset</h2>
-              <button onClick={() => setIsSelecting(false)} className="w-8 h-8 flex items-center justify-center bg-white/5 rounded-full text-zinc-500 hover:text-white transition-colors">✕</button>
+        <div className="fixed inset-0 z-[300] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in">
+          <div className="bg-zinc-950 border border-white/10 w-full max-w-2xl rounded-[3rem] p-10 flex flex-col max-h-[80vh] shadow-3xl">
+            <header className="flex justify-between items-center mb-8 shrink-0">
+              <h2 className="text-3xl font-serif italic text-white">Select Asset</h2>
+              <button onClick={() => setIsSelecting(false)} className="text-zinc-500 hover:text-white">✕</button>
             </header>
             
-            <div className="flex-1 overflow-y-auto pr-2 space-y-3 md:space-y-4 scrollbar-hide">
+            <div className="flex-1 overflow-y-auto pr-4 space-y-4 scrollbar-hide">
               {wishlistProducts.length === 0 ? (
                 <div className="text-center py-20 opacity-30 italic uppercase text-[10px] tracking-widest">Wishlist is empty. Add items to request sponsorship.</div>
               ) : (
                 wishlistProducts.map(product => (
-                  <div key={product.id} className="flex items-center gap-4 md:gap-6 p-3 md:p-4 bg-white/5 border border-white/5 rounded-2xl group hover:border-[#1a73e8]/30 transition-all">
-                    <div className="w-12 h-16 md:w-16 md:h-20 rounded-xl overflow-hidden grayscale group-hover:grayscale-0 transition-all shrink-0">
+                  <div key={product.id} className="flex items-center gap-6 p-4 bg-white/5 border border-white/5 rounded-2xl group hover:border-[#EC4899]/30 transition-all">
+                    <div className="w-16 h-20 rounded-xl overflow-hidden grayscale group-hover:grayscale-0 transition-all">
                       <img src={product.image} className="w-full h-full object-cover" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="text-[10px] md:text-sm font-black text-white uppercase truncate">{product.name}</h4>
-                      <p className="text-[10px] md:text-xs font-mono text-[#1a73e8]">GH₵{product.price}</p>
+                    <div className="flex-1">
+                      <h4 className="text-sm font-black text-white uppercase">{product.name}</h4>
+                      <p className="text-xs font-mono text-[#EC4899]">GH₵{product.price}</p>
                     </div>
                     <button 
                       disabled={generatingId === product.id}
                       onClick={() => handleInitializeSponsorship(product)}
-                      className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-xl text-[7px] md:text-[8px] font-black uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all disabled:opacity-50 shrink-0"
+                      className="px-6 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all disabled:opacity-50"
                     >
-                      {generatingId === product.id ? '...' : 'Select'}
+                      {generatingId === product.id ? 'Materializing...' : 'Select'}
                     </button>
                   </div>
                 ))
@@ -242,14 +269,14 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
       )}
 
       {/* Perks Summary */}
-      <footer className="bg-zinc-950/50 border border-white/5 p-6 md:p-10 rounded-[2.5rem] md:rounded-[3.5rem] flex flex-col md:flex-row items-center justify-between gap-6 md:gap-8">
-         <div className="flex items-center gap-4 md:gap-6">
-            <div className="text-3xl md:text-4xl grayscale opacity-30">🛡️</div>
+      <footer className="bg-zinc-950/50 border border-white/5 p-10 rounded-[3.5rem] flex flex-col md:flex-row items-center justify-between gap-8">
+         <div className="flex items-center gap-6">
+            <div className="text-4xl grayscale opacity-30">🛡️</div>
             <div className="space-y-1">
-               <h4 className="text-base md:text-lg font-serif italic text-white">Safe Protocol</h4>
-               <p className="text-[8px] md:text-[9px] font-black text-zinc-600 uppercase tracking-widest leading-relaxed">
-                  Reserved items stay in the buffer for {typeof rank.wishlistRetentionDays === 'number' ? `${rank.wishlistRetentionDays} days` : 'Permanently'}.
-                  <br/>All sponsors are verified by the system.
+               <h4 className="text-lg font-serif italic text-white">Protocol Transparency</h4>
+               <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest leading-relaxed">
+                  Items reserved via sponsorship remain in the global buffer for {typeof rank.wishlistRetentionDays === 'number' ? `${rank.wishlistRetentionDays} days` : 'Permanently'}.
+                  <br/>Contributors are verified via the CC Handshake.
                </p>
             </div>
          </div>

@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { databaseService } from '../services/databaseService';
 import { CartItem, ViewState, OrderStatus, PromoCode } from '../types';
 
 interface CheckoutViewProps {
@@ -9,7 +8,6 @@ interface CheckoutViewProps {
   onCancel: () => void;
   balances: { coins: number; gems: number; rep: number };
   activePromo?: PromoCode | null;
-  userId: string;
 }
 
 const REGIONS = [
@@ -31,10 +29,8 @@ const REGIONS = [
   { id: 'western-north', name: 'Western North', icon: '🌲', cities: ['Sefwi Wiawso', 'Enchi', 'Bibiani'] }
 ];
 
-const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel, balances, activePromo, userId }) => {
+const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel, balances, activePromo }) => {
   const [step, setStep] = useState<'GEO_ZONING' | 'LOGISTICS' | 'PAYMENT' | 'PROCESSING' | 'SUCCESS'>('GEO_ZONING');
-  const [availableCredits, setAvailableCredits] = useState<any[]>([]);
-  const [selectedCreditId, setSelectedCreditId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     phone: '',
@@ -43,14 +39,6 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
     city: '',
     verificationPhrase: ''
   });
-
-  useEffect(() => {
-    const fetchCredits = async () => {
-      const credits = await databaseService.getUserCredits(userId);
-      setAvailableCredits(credits);
-    };
-    fetchCredits();
-  }, [userId]);
 
   const rawSubtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const totalShipping = items.reduce((acc, item) => acc + ((item.shippingFee || 0) * item.quantity), 0);
@@ -65,10 +53,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
     }
   }
   
-  const selectedCredit = availableCredits.find(c => c.id === selectedCreditId);
-  const creditAmount = selectedCredit ? selectedCredit.amount : 0;
-  
-  const finalTotal = Math.max(0, Math.floor(rawSubtotal - promoDiscount - creditAmount + totalShipping));
+  const finalTotal = Math.floor(rawSubtotal - promoDiscount + totalShipping);
   const availableCities = REGIONS.find(r => r.name === formData.region)?.cities || [];
 
   const handleNextStep = (e: React.FormEvent) => {
@@ -77,16 +62,11 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
     else if (step === 'LOGISTICS') setStep('PAYMENT');
   };
 
-  const handleFinalize = async () => {
+  const handleFinalize = () => {
     if (!formData.verificationPhrase) {
       alert("Terminal Lock: Verification phrase required.");
       return;
     }
-    
-    if (selectedCreditId) {
-      await databaseService.useUserCredit(userId, selectedCreditId);
-    }
-
     setStep('PROCESSING');
     setTimeout(() => setStep('SUCCESS'), 3000);
   };
@@ -95,7 +75,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
     return (
       <div className="fixed inset-0 z-[250] bg-black flex flex-col items-center justify-center p-6 sm:p-10">
         <div className="relative">
-          <div className="w-16 h-16 sm:w-24 sm:h-24 border-4 border-[#1a73e8]/20 border-t-[#1a73e8] rounded-full animate-spin"></div>
+          <div className="w-16 h-16 sm:w-24 sm:h-24 border-4 border-[#EC4899]/20 border-t-[#EC4899] rounded-full animate-spin"></div>
           <div className="absolute inset-0 flex items-center justify-center text-xl sm:text-2xl">⚡</div>
         </div>
         <h2 className="text-2xl sm:text-3xl font-serif italic text-white mt-8 sm:mt-12 tracking-tighter uppercase">Encrypting Haul...</h2>
@@ -117,7 +97,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
             customizationDetails: item.customizationData // Map to customizationDetails for order consistency
           })), 
           total: finalTotal 
-        })} className="w-full sm:w-auto px-10 sm:px-20 py-6 sm:py-8 bg-white text-black rounded-full font-black uppercase tracking-[0.3em] text-[9px] sm:text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-3xl active:scale-95">Return to Circuit</button>
+        })} className="w-full sm:w-auto px-10 sm:px-20 py-6 sm:py-8 bg-white text-black rounded-full font-black uppercase tracking-[0.3em] text-[9px] sm:text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-3xl active:scale-95">Return to Circuit</button>
       </div>
     );
   }
@@ -128,7 +108,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
       <div className="w-full lg:w-[400px] bg-zinc-950 p-6 sm:p-8 flex flex-col gap-6 sm:gap-10 border-l border-white/5 order-2 lg:order-2 shrink-0">
          <div className="space-y-2">
             <h2 className="text-xl sm:text-2xl font-serif italic text-white">Haul Analysis</h2>
-            <div className="h-px w-10 bg-[#1a73e8]"></div>
+            <div className="h-px w-10 bg-[#EC4899]"></div>
          </div>
 
          <div className="space-y-4 flex-1 overflow-y-auto pr-2 scrollbar-hide">
@@ -154,7 +134,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                   <span>Gross Valuation</span>
                   <span className="text-zinc-400">GH₵{rawSubtotal}</span>
                </div>
-               <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-blue-500">
+               <div className="flex justify-between items-center text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-[#EC4899]">
                   <span>Logistics Protocol</span>
                   <span>+ GH₵{totalShipping}</span>
                </div>
@@ -167,7 +147,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
             </div>
 
             <div className="flex flex-col items-end">
-               <span className="text-[8px] sm:text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.5em] mb-1">Final Settlement</span>
+               <span className="text-[8px] sm:text-[10px] font-black text-[#EC4899] uppercase tracking-[0.5em] mb-1">Final Settlement</span>
                <div className="text-3xl sm:text-5xl font-mono font-black text-white tracking-tighter">GH₵{finalTotal}</div>
             </div>
          </div>
@@ -226,7 +206,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                               <button
                                 key={city}
                                 onClick={() => setFormData({...formData, city})}
-                                className={`py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl border transition-all duration-300 text-[8px] sm:text-[10px] font-black uppercase tracking-widest ${isSelected ? 'bg-[#1a73e8] border-[#1a73e8] text-white shadow-[0_0_20px_rgba(26,115,232,0.3)]' : 'bg-black border-white/10 text-zinc-500 hover:border-white/30'}`}
+                                className={`py-3 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl border transition-all duration-300 text-[8px] sm:text-[10px] font-black uppercase tracking-widest ${isSelected ? 'bg-[#EC4899] border-[#EC4899] text-white shadow-[0_0_20px_rgba(236,72,153,0.3)]' : 'bg-black border-white/10 text-zinc-500 hover:border-white/30'}`}
                               >
                                 {city}
                               </button>
@@ -240,10 +220,10 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                <button 
                 onClick={() => setStep('LOGISTICS')} 
                 disabled={!formData.region || !formData.city} 
-                className="w-full py-6 sm:py-8 bg-white text-black rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[10px] sm:text-[12px] tracking-[0.4em] hover:bg-[#1a73e8] hover:text-white transition-all disabled:opacity-20 active:scale-95 shadow-2xl relative overflow-hidden group"
+                className="w-full py-6 sm:py-8 bg-white text-black rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[10px] sm:text-[12px] tracking-[0.4em] hover:bg-[#EC4899] hover:text-white transition-all disabled:opacity-20 active:scale-95 shadow-2xl relative overflow-hidden group"
                >
                  <span className="relative z-10">Authorize Zone Link</span>
-                 <div className="absolute inset-0 bg-[#1a73e8] translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                 <div className="absolute inset-0 bg-[#EC4899] translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
                </button>
             </div>
           )}
@@ -259,22 +239,22 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                   <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Archiver Name</label>
-                      <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#1a73e8] outline-none placeholder:text-zinc-800" placeholder="LEGAL_IDENTIFIER" />
+                      <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#EC4899] outline-none placeholder:text-zinc-800" placeholder="LEGAL_IDENTIFIER" />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Uplink (Phone)</label>
-                      <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#1a73e8] outline-none placeholder:text-zinc-800" placeholder="+233 XX XXX XXXX" />
+                      <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#EC4899] outline-none placeholder:text-zinc-800" placeholder="+233 XX XXX XXXX" />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Spatial Coordinates</label>
-                    <textarea required rows={3} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#1a73e8] outline-none resize-none placeholder:text-zinc-800" placeholder="STREET / APARTMENT / LANDMARK" />
+                    <textarea required rows={3} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#EC4899] outline-none resize-none placeholder:text-zinc-800" placeholder="STREET / APARTMENT / LANDMARK" />
                   </div>
                </div>
 
                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                  <button type="button" onClick={() => setStep('GEO_ZONING')} className="w-full sm:flex-1 py-4 sm:py-6 bg-zinc-900 text-zinc-500 rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[9px] sm:text-[10px] tracking-widest hover:text-white transition-all">Back</button>
-                 <button type="submit" className="w-full sm:flex-[2] py-6 sm:py-8 bg-white text-black rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[10px] sm:text-[12px] tracking-[0.4em] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl active:scale-95">Validate Protocol</button>
+                 <button type="submit" className="w-full sm:flex-[2] py-6 sm:py-8 bg-white text-black rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[10px] sm:text-[12px] tracking-[0.4em] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl active:scale-95">Validate Protocol</button>
                </div>
             </form>
           )}
@@ -287,65 +267,22 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                </div>
 
                <div className="bg-zinc-950 border border-white/5 p-6 sm:p-10 rounded-[2rem] sm:rounded-[4rem] space-y-6 sm:space-y-8">
-                  {/* Credits Section */}
-                  {availableCredits.length > 0 && (
-                    <div className="space-y-4 pb-6 border-b border-white/5">
-                      <div className="text-[8px] sm:text-[10px] font-black text-blue-400 uppercase tracking-widest px-2">Available Sponsorship Credits</div>
-                      <div className="grid grid-cols-1 gap-3">
-                        {availableCredits.map(credit => (
-                          <button
-                            key={credit.id}
-                            type="button"
-                            onClick={() => setSelectedCreditId(selectedCreditId === credit.id ? null : credit.id)}
-                            className={`p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border transition-all text-left flex justify-between items-center ${
-                              selectedCreditId === credit.id 
-                                ? 'bg-blue-500/10 border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]' 
-                                : 'bg-black border-white/10 hover:border-white/20'
-                            }`}
-                          >
-                            <div className="min-w-0">
-                              <div className={`text-[9px] sm:text-[11px] font-black uppercase tracking-widest truncate ${selectedCreditId === credit.id ? 'text-white' : 'text-zinc-400'}`}>Sponsorship Credit</div>
-                              <div className="text-[7px] sm:text-[8px] text-zinc-600 uppercase font-bold mt-1">Issued: {new Date(credit.createdAt).toLocaleDateString()}</div>
-                            </div>
-                            <div className={`text-sm sm:text-base font-mono font-black ${selectedCreditId === credit.id ? 'text-blue-400' : 'text-zinc-600'}`}>GH₵{credit.amount}</div>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
                   <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
-                    <span>Subtotal</span>
-                    <span className="text-white">GH₵{rawSubtotal}</span>
-                  </div>
-                  {promoDiscount > 0 && (
-                    <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-emerald-400">
-                      <span>Promo Discount</span>
-                      <span>-GH₵{promoDiscount}</span>
-                    </div>
-                  )}
-                  {creditAmount > 0 && (
-                    <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-blue-400">
-                      <span>Sponsorship Credit</span>
-                      <span>-GH₵{creditAmount}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
-                    <span>Logistics</span>
-                    <span className="text-white">GH₵{totalShipping}</span>
+                    <span>Dest Node</span>
+                    <span className="text-white">{formData.city}, {formData.region}</span>
                   </div>
                   <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600 border-t border-white/5 pt-4 sm:pt-6">
                     <span>Authorized Value</span>
-                    <span className="text-[#1a73e8] font-mono text-lg sm:text-xl">GH₵{finalTotal}</span>
+                    <span className="text-[#EC4899] font-mono text-lg sm:text-xl">GH₵{finalTotal}</span>
                   </div>
                   <div className="pt-4 border-t border-white/5 space-y-3 sm:space-y-4">
                     <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest block px-2 text-center">Verify Secret Phrase</label>
-                    <input type="password" required value={formData.verificationPhrase} onChange={e => setFormData({...formData, verificationPhrase: e.target.value})} className="w-full bg-black border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-xs sm:text-sm text-center font-black text-white focus:border-[#1a73e8] outline-none" placeholder="••••••••••••" />
+                    <input type="password" required value={formData.verificationPhrase} onChange={e => setFormData({...formData, verificationPhrase: e.target.value})} className="w-full bg-black border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-xs sm:text-sm text-center font-black text-white focus:border-[#EC4899] outline-none" placeholder="••••••••••••" />
                   </div>
                </div>
 
                <div className="flex flex-col gap-4 sm:gap-6">
-                 <button onClick={handleFinalize} className="w-full py-6 sm:py-10 bg-[#1a73e8] text-white rounded-[2rem] sm:rounded-[3rem] font-black uppercase text-xs sm:text-sm tracking-[0.5em] hover:bg-white hover:text-[#1a73e8] transition-all shadow-[0_0_80px_rgba(26,115,232,0.3)] active:scale-95">
+                 <button onClick={handleFinalize} className="w-full py-6 sm:py-10 bg-[#EC4899] text-white rounded-[2rem] sm:rounded-[3rem] font-black uppercase text-xs sm:text-sm tracking-[0.5em] hover:bg-white hover:text-[#EC4899] transition-all shadow-[0_0_80px_rgba(236,72,153,0.3)] active:scale-95">
                    Finalize Acquisition Handshake
                  </button>
                  <button onClick={() => setStep('LOGISTICS')} className="text-[8px] sm:text-[10px] font-black text-zinc-700 hover:text-white uppercase tracking-[0.5em] transition-colors mx-auto underline decoration-zinc-800 underline-offset-8">Review Protocol Steps</button>

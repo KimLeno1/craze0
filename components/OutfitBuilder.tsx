@@ -40,13 +40,13 @@ const OutfitBuilder: React.FC<OutfitBuilderProps> = ({ products, onLockLook }) =
                 key={product.id}
                 onClick={() => handleToggleItem(product)}
                 className={`group relative aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer border-2 transition-all ${
-                  isSelected ? 'border-[#1a73e8] scale-95' : 'border-transparent hover:border-white/20'
+                  isSelected ? 'border-pink-500 scale-95' : 'border-transparent hover:border-white/20'
                 }`}
               >
                 <img src={product.image} className="w-full h-full object-cover opacity-80" alt={product.name} />
                 <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent"></div>
                 <div className="absolute bottom-3 left-3 right-3">
-                   <div className="text-[8px] font-black text-[#1a73e8] uppercase mb-0.5">{product.category}</div>
+                   <div className="text-[8px] font-black text-pink-500 uppercase mb-0.5">{product.category}</div>
                    <div className="text-[10px] font-bold text-white uppercase truncate">{product.name}</div>
                 </div>
               </div>
@@ -91,7 +91,7 @@ const OutfitBuilder: React.FC<OutfitBuilderProps> = ({ products, onLockLook }) =
             <button 
               disabled={selectedItems.length === 0}
               onClick={() => onLockLook(selectedItems)}
-              className="w-full py-5 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-[#1a73e8] hover:text-white transition-all disabled:opacity-20"
+              className="w-full py-5 bg-white text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-2xl hover:bg-[#EC4899] hover:text-white transition-all disabled:opacity-20"
             >
               Lock This Look
             </button>

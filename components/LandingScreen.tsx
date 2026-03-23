@@ -1,11 +1,8 @@
 
 import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
-import { databaseService } from '../services/databaseService';
-import { User } from '../types';
 
 interface LandingScreenProps {
-  onComplete: (user: User, isNewUser: boolean) => void;
+  onComplete: (archetype: string, isNewUser: boolean) => void;
   onAdminAccess?: () => void;
   onClose?: () => void;
 }
@@ -15,10 +12,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [adminClicks, setAdminClicks] = useState(0);
   const [isGlitching, setIsGlitching] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
     password: '',
     confirmPassword: '',
@@ -37,42 +31,17 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
     }
   };
 
-  const handleAuthSubmit = async (e: React.FormEvent) => {
+  const handleAuthSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (authMode === 'SIGNUP') {
-      if (formData.password !== formData.confirmPassword) {
-        alert("Neural Mismatch: Security Phrases do not sync.");
-        return;
-      }
-      
-      setIsAuthenticating(true);
-      const result = await databaseService.registerUser(formData.email, formData.password, formData.username, formData.phone);
-      setIsAuthenticating(false);
-      
-      if (!result.success) {
-        alert(result.error);
-        return;
-      }
-      
-      if (result.user) {
-        onComplete(result.user, true);
-      }
-    } else {
-      // LOGIN
-      setIsAuthenticating(true);
-      const result = await databaseService.verifyUser(formData.email, formData.password);
-      setIsAuthenticating(false);
-      
-      if (!result.success) {
-        alert(result.error);
-        return;
-      }
-      
-      if (result.user) {
-        onComplete(result.user, false);
-      }
+    if (authMode === 'SIGNUP' && formData.password !== formData.confirmPassword) {
+      alert("Neural Mismatch: Security Phrases do not sync.");
+      return;
     }
+    setIsAuthenticating(true);
+    setTimeout(() => {
+      setIsAuthenticating(false);
+      onComplete('CYBER', authMode === 'SIGNUP');
+    }, 1200);
   };
 
   return (
@@ -93,61 +62,22 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
           </div>
 
           <form onSubmit={handleAuthSubmit} className="space-y-4">
-            {authMode === 'SIGNUP' && (
-              <input type="text" required value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} placeholder="USER_NAME" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none" />
-            )}
-            
-            <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="IDENTITY_EMAIL" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none" />
+            <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} placeholder="IDENTITY_EMAIL" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
             
             {authMode === 'SIGNUP' && (
-              <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="CONTACT_PHONE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none" />
+              <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="CONTACT_PHONE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
             )}
 
-            <div className="relative">
-              <input 
-                type={showPassword ? "text" : "password"} 
-                required 
-                value={formData.password} 
-                onChange={e => setFormData({...formData, password: e.target.value})} 
-                placeholder="SECURITY_PHRASE" 
-                className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none pr-14" 
-              />
-              <button 
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </div>
+            <input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="SECURITY_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
             
             {authMode === 'SIGNUP' && (
-              <div className="relative">
-                <input 
-                  type={showConfirmPassword ? "text" : "password"} 
-                  required 
-                  value={formData.confirmPassword} 
-                  onChange={e => setFormData({...formData, confirmPassword: e.target.value})} 
-                  placeholder="CONFIRM_PHRASE" 
-                  className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#1a73e8] outline-none pr-14" 
-                />
-                <button 
-                  type="button"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                  className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
-                >
-                  {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
+              <input type="password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} placeholder="CONFIRM_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
             )}
 
-            <button type="submit" disabled={isAuthenticating} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] bg-white text-black hover:bg-[#1a73e8] hover:text-white transition-all active:scale-95 disabled:opacity-50">
+            <button type="submit" disabled={isAuthenticating} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] bg-white text-black hover:bg-[#EC4899] hover:text-white transition-all active:scale-95 disabled:opacity-50">
               {isAuthenticating ? 'Decrypting...' : authMode === 'LOGIN' ? 'Initialize Uplink' : 'Register Profile'}
             </button>
           </form>
-          <div className="text-center mt-6 opacity-10 hover:opacity-100 transition-opacity duration-700">
-            <p className="text-[8px] uppercase tracking-widest">HINT: customer@closetkraze.com / password123</p>
-          </div>
         </div>
       </div>
     </div>

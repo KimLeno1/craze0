@@ -32,8 +32,8 @@ const Payout: React.FC<PayoutProps> = ({ onNavigate, balances = { coins: 4250, g
       <header className="flex flex-col md:flex-row justify-between items-start gap-8 border-b border-white/5 pb-12">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-             <div className="w-2 h-2 rounded-full bg-[#1a73e8] glow-text animate-pulse"></div>
-             <span className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">Exchange Protocol</span>
+             <div className="w-2 h-2 rounded-full bg-[#EC4899] glow-text animate-pulse"></div>
+             <span className="text-[10px] font-black text-[#EC4899] uppercase tracking-[0.4em]">Exchange Protocol</span>
           </div>
           <h1 className="text-5xl md:text-8xl font-serif italic text-white tracking-tighter leading-none">
             Payout <span className="text-white not-italic font-sans font-black uppercase glow-text">Terminal</span>
@@ -53,8 +53,8 @@ const Payout: React.FC<PayoutProps> = ({ onNavigate, balances = { coins: 4250, g
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           { label: 'Craze Coins', value: balances.coins.toLocaleString(), icon: '🪙', color: 'text-yellow-500' },
-          { label: 'Neural Gems', value: balances.gems.toLocaleString(), icon: '✨', color: 'text-[#1a73e8]' },
-          { label: 'Accumulated XP', value: balances.xp.toLocaleString(), icon: '🧬', color: 'text-blue-500' }
+          { label: 'Neural Gems', value: balances.gems.toLocaleString(), icon: '✨', color: 'text-[#EC4899]' },
+          { label: 'Accumulated XP', value: balances.xp.toLocaleString(), icon: '🧬', color: 'text-[#EC4899]' }
         ].map((stat, i) => (
           <div key={i} className="glass p-8 rounded-[2.5rem] border-white/5 flex flex-col items-center justify-center space-y-3 group hover:border-white/20 transition-all">
             <span className="text-4xl group-hover:scale-110 transition-transform">{stat.icon}</span>
@@ -71,13 +71,13 @@ const Payout: React.FC<PayoutProps> = ({ onNavigate, balances = { coins: 4250, g
         <div className="flex items-center gap-8">
           <button 
             onClick={() => setActiveTab('REDEEM')}
-            className={`text-sm font-black uppercase tracking-[0.3em] pb-2 transition-all border-b-2 ${activeTab === 'REDEEM' ? 'text-white border-[#1a73e8]' : 'text-zinc-600 border-transparent hover:text-zinc-400'}`}
+            className={`text-sm font-black uppercase tracking-[0.3em] pb-2 transition-all border-b-2 ${activeTab === 'REDEEM' ? 'text-white border-[#EC4899]' : 'text-zinc-600 border-transparent hover:text-zinc-400'}`}
           >
             Redeem Assets
           </button>
           <button 
             onClick={() => setActiveTab('HISTORY')}
-            className={`text-sm font-black uppercase tracking-[0.3em] pb-2 transition-all border-b-2 ${activeTab === 'HISTORY' ? 'text-white border-[#1a73e8]' : 'text-zinc-600 border-transparent hover:text-zinc-400'}`}
+            className={`text-sm font-black uppercase tracking-[0.3em] pb-2 transition-all border-b-2 ${activeTab === 'HISTORY' ? 'text-white border-[#EC4899]' : 'text-zinc-600 border-transparent hover:text-zinc-400'}`}
           >
             Transaction Log
           </button>
@@ -90,12 +90,12 @@ const Payout: React.FC<PayoutProps> = ({ onNavigate, balances = { coins: 4250, g
               return (
                 <div 
                   key={reward.id} 
-                  className={`group glass p-8 rounded-[3rem] border transition-all flex flex-col justify-between h-80 ${canAfford ? 'border-white/5 hover:border-[#1a73e8]/30' : 'opacity-40 border-transparent'}`}
+                  className={`group glass p-8 rounded-[3rem] border transition-all flex flex-col justify-between h-80 ${canAfford ? 'border-white/5 hover:border-[#EC4899]/30' : 'opacity-40 border-transparent'}`}
                 >
                   <div className="space-y-4">
                     <div className="flex justify-between items-start">
                       <div className="text-4xl">{reward.icon}</div>
-                      <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${reward.currency === 'COINS' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-[#1a73e8]/10 text-[#1a73e8]'}`}>
+                      <div className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full ${reward.currency === 'COINS' ? 'bg-yellow-500/10 text-yellow-500' : 'bg-[#EC4899]/10 text-[#EC4899]'}`}>
                         {reward.cost} {reward.currency}
                       </div>
                     </div>
@@ -111,7 +111,7 @@ const Payout: React.FC<PayoutProps> = ({ onNavigate, balances = { coins: 4250, g
                     disabled={!canAfford}
                     className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-[9px] transition-all ${
                       canAfford 
-                      ? 'bg-white text-black hover:bg-[#1a73e8] hover:text-white' 
+                      ? 'bg-white text-black hover:bg-[#EC4899] hover:text-white' 
                       : 'bg-zinc-900 text-zinc-700 cursor-not-allowed'
                     }`}
                   >

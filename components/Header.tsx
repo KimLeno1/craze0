@@ -42,13 +42,13 @@ const Header: React.FC<HeaderProps> = ({
             theme === 'dark' ? 'glass border-white/10 hover:bg-white/5' : 'bg-zinc-100 border-zinc-200 hover:bg-zinc-200'
           }`}
         >
-          <div className={`w-4 md:w-5 h-0.5 transition-colors ${theme === 'dark' ? 'bg-white group-hover:bg-[#1a73e8]' : 'bg-black group-hover:bg-[#1a73e8]'}`}></div>
-          <div className={`w-2.5 md:w-3 h-0.5 self-start ml-2 md:ml-2.5 transition-colors ${theme === 'dark' ? 'bg-white group-hover:bg-[#1a73e8]' : 'bg-black group-hover:bg-[#1a73e8]'}`}></div>
+          <div className={`w-4 md:w-5 h-0.5 transition-colors ${theme === 'dark' ? 'bg-white group-hover:bg-[#EC4899]' : 'bg-black group-hover:bg-[#EC4899]'}`}></div>
+          <div className={`w-2.5 md:w-3 h-0.5 self-start ml-2 md:ml-2.5 transition-colors ${theme === 'dark' ? 'bg-white group-hover:bg-[#EC4899]' : 'bg-black group-hover:bg-[#EC4899]'}`}></div>
         </button>
 
         <div onClick={() => onNavigateView(ViewState.LOBBY)} className="flex flex-col cursor-pointer group">
           <div className={`text-lg md:text-xl font-serif italic tracking-tighter leading-none group-hover:glow-text transition-all ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-            CLOSET<span className="text-[#1a73e8] font-sans font-black not-italic ml-0.5">KRAZE</span>
+            CLOSET<span className="text-[#EC4899] font-sans font-black not-italic ml-0.5">KRAZE</span>
           </div>
           <div className="text-[7px] md:text-[8px] font-black uppercase tracking-[0.4em] text-zinc-500 mt-1">New Tokyo // v2.5</div>
         </div>
@@ -63,7 +63,7 @@ const Header: React.FC<HeaderProps> = ({
         >
           <span className="text-sm md:text-base">🔔</span>
           {notificationCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 md:w-4 md:h-4 bg-[#1a73e8] rounded-full text-[7px] md:text-[8px] font-black flex items-center justify-center text-white border border-black animate-pulse">{notificationCount}</span>
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 md:w-4 md:h-4 bg-[#EC4899] rounded-full text-[7px] md:text-[8px] font-black flex items-center justify-center text-white border border-black animate-pulse">{notificationCount}</span>
           )}
         </button>
 
@@ -86,7 +86,7 @@ const Header: React.FC<HeaderProps> = ({
         >
           <span className="text-base md:text-lg">🛍️</span>
           {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 md:w-4 md:h-4 bg-[#1a73e8] rounded-full text-[7px] md:text-[8px] font-black flex items-center justify-center text-white border border-black animate-pulse">{cartCount}</span>
+            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 md:w-4 md:h-4 bg-[#EC4899] rounded-full text-[7px] md:text-[8px] font-black flex items-center justify-center text-white border border-black animate-pulse">{cartCount}</span>
           )}
         </button>
       </div>

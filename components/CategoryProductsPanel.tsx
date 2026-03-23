@@ -47,7 +47,7 @@ const CategoryProductsPanel: React.FC<CategoryProductsPanelProps> = ({
             <div className="space-y-6 sm:space-y-8">
               <div className="flex justify-between items-center">
                 <div className="text-[9px] sm:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Available Silhouettes</div>
-                <div className="text-[9px] sm:text-[10px] font-mono text-[#1a73e8]">{filteredProducts.length} Items</div>
+                <div className="text-[9px] sm:text-[10px] font-mono text-[#EC4899]">{filteredProducts.length} Items</div>
               </div>
               
               <div className="grid grid-cols-2 gap-4 sm:gap-6">
@@ -63,7 +63,7 @@ const CategoryProductsPanel: React.FC<CategoryProductsPanelProps> = ({
                     <div className="aspect-[3/4] overflow-hidden bg-zinc-900 border border-white/5 relative">
                       <img src={product.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
                       {product.isNew && (
-                        <div className="absolute top-2 left-2 px-2 py-0.5 bg-[#1a73e8] text-[8px] font-black text-white uppercase tracking-widest">
+                        <div className="absolute top-2 left-2 px-2 py-0.5 bg-[#EC4899] text-[8px] font-black text-white uppercase tracking-widest">
                           New
                         </div>
                       )}
