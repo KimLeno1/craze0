@@ -89,6 +89,26 @@ router.get('/suppliers', async (req, res) => {
   }
 });
 
+// Add/Register Supplier
+router.post('/suppliers', async (req, res) => {
+  const s = req.body;
+  const id = s.id || `sup_${Date.now()}`;
+  try {
+    db.prepare(`
+      INSERT OR REPLACE INTO suppliers (id, name, password, contactEmail, region, status, performanceScore, totalRevenueYield, joinedDate)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      id, s.name, s.password || 'NODE_2025', s.contactEmail, s.region, 
+      s.status || 'ACTIVE', s.performanceScore || 0, s.totalRevenueYield || 0, 
+      s.joinedDate || new Date().toISOString().split('T')[0]
+    );
+    res.json({ success: true, id });
+  } catch (error) {
+    console.error('Error registering supplier:', error);
+    res.status(500).json({ success: false, error: 'Failed to register supplier.' });
+  }
+});
+
 // Get All Promos
 router.get('/promos', async (req, res) => {
   try {
@@ -295,6 +315,27 @@ router.put('/users/:id/status', async (req, res) => {
   } catch (error) {
     console.error('Error updating user status:', error);
     res.status(500).json({ success: false, error: 'Failed to update user status.' });
+  }
+});
+
+// Update User (Admin)
+router.put('/users/:id', async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  try {
+    const fields = Object.keys(updates).filter(key => key !== 'id' && key !== 'stats');
+    const setClause = fields.map(key => `${key} = ?`).join(', ');
+    const values = fields.map(key => updates[key]);
+    
+    if (updates.stats) {
+      db.prepare(`UPDATE users SET ${setClause}, stats = ? WHERE id = ?`).run(...values, JSON.stringify(updates.stats), id);
+    } else {
+      db.prepare(`UPDATE users SET ${setClause} WHERE id = ?`).run(...values, id);
+    }
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error updating user:', error);
+    res.status(500).json({ success: false, error: 'Failed to update user.' });
   }
 });
 

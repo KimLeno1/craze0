@@ -3,8 +3,8 @@ import { db } from './db';
 
 const router = Router();
 
-// User Login (Note: Frontend uses Firebase Auth, this is for legacy/internal use)
-router.post('/user/login', async (req, res) => {
+// User Login
+router.post('/auth/login', async (req, res) => {
   const { email, password } = req.body;
   try {
     const user = db.prepare('SELECT * FROM users WHERE email = ? AND password = ?').get(email, password) as any;
@@ -25,7 +25,7 @@ router.post('/user/login', async (req, res) => {
 });
 
 // User Registration
-router.post('/user/register', async (req, res) => {
+router.post('/auth/register', async (req, res) => {
   const { email, password, username, phone, archetype } = req.body;
   
   try {
@@ -71,7 +71,7 @@ router.post('/user/register', async (req, res) => {
 });
 
 // Supplier Login
-router.post('/supplier/login', async (req, res) => {
+router.post('/auth/supplier/login', async (req, res) => {
   const { username, password } = req.body;
   try {
     // Check by ID or Name
@@ -95,12 +95,28 @@ router.post('/supplier/login', async (req, res) => {
 });
 
 // Admin Login
-router.post('/admin/login', (req, res) => {
+router.post('/auth/admin/login', (req, res) => {
   const { username, password } = req.body;
   if (username === 'admin' && password === 'admin') {
     res.json({ success: true, token: 'admin-token' });
   } else {
     res.status(401).json({ success: false, error: 'Invalid admin credentials.' });
+  }
+});
+
+// Change Password
+router.post('/auth/change-password', async (req, res) => {
+  const { userId, current, newPass } = req.body;
+  try {
+    const user = db.prepare('SELECT * FROM users WHERE id = ? AND password = ?').get(userId, current) as any;
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Current security phrase mismatch.' });
+    }
+    db.prepare('UPDATE users SET password = ? WHERE id = ?').run(newPass, userId);
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Change password error:', error);
+    res.status(500).json({ success: false, error: 'Failed to update security phrase.' });
   }
 });
 

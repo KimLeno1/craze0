@@ -4,7 +4,7 @@ import { db } from './db';
 const router = Router();
 
 // Get User by Email
-router.get('/users/email/:email', async (req, res) => {
+router.get('/email/:email', async (req, res) => {
   const { email } = req.params;
   try {
     const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
@@ -21,7 +21,7 @@ router.get('/users/email/:email', async (req, res) => {
 });
 
 // Get Users Ranked by Rep/Loves
-router.get('/users/ranked', async (req, res) => {
+router.get('/ranked', async (req, res) => {
   try {
     const users = db.prepare('SELECT * FROM users ORDER BY rep DESC LIMIT 10').all();
     const parsedUsers = users.map((u: any) => ({
@@ -36,7 +36,7 @@ router.get('/users/ranked', async (req, res) => {
 });
 
 // Get User Pay For Me Requests
-router.get('/users/:userId/pay-for-me', async (req, res) => {
+router.get('/:userId/pay-for-me', async (req, res) => {
   const { userId } = req.params;
   try {
     const requests = db.prepare('SELECT * FROM pay_for_me WHERE requesterId = ? ORDER BY timestamp DESC').all(userId);
@@ -52,7 +52,7 @@ router.get('/users/:userId/pay-for-me', async (req, res) => {
 });
 
 // Get User Credits
-router.get('/users/:userId/credits', async (req, res) => {
+router.get('/:userId/credits', async (req, res) => {
   const { userId } = req.params;
   try {
     const credits = db.prepare('SELECT * FROM credits WHERE userId = ? AND status = ?').all(userId, 'AVAILABLE');
@@ -60,6 +60,18 @@ router.get('/users/:userId/credits', async (req, res) => {
   } catch (error) {
     console.error('Error fetching credits:', error);
     res.status(500).json({ error: 'Failed to fetch credits' });
+  }
+});
+
+// Get User Notifications
+router.get('/:userId/notifications', async (req, res) => {
+  const { userId } = req.params;
+  try {
+    const notifications = db.prepare('SELECT * FROM notifications WHERE recipientId = ? ORDER BY timestamp DESC').all(userId);
+    res.json(notifications);
+  } catch (error) {
+    console.error('Error fetching notifications:', error);
+    res.status(500).json({ error: 'Failed to fetch notifications' });
   }
 });
 

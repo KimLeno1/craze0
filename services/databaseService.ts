@@ -189,12 +189,10 @@ export const databaseService = {
 
   getNotifications: async (userId?: string): Promise<Notification[]> => {
     try {
-      const response = await fetch(`${API_BASE}/admin/notifications`);
-      const allNotifs: Notification[] = await response.json();
-      if (userId) {
-        return allNotifs.filter(n => n.recipientId === userId || n.recipientId === null);
-      }
-      return allNotifs.filter(n => n.recipientId === null);
+      const url = userId ? `${API_BASE}/users/${userId}/notifications` : `${API_BASE}/admin/notifications`;
+      const response = await fetch(url);
+      if (!response.ok) throw new Error('Failed to fetch notifications');
+      return await response.json();
     } catch (error) {
       console.error('Error fetching notifications:', error);
       return [];
@@ -542,7 +540,7 @@ export const databaseService = {
 
   useUserCredit: async (userId: string, creditId: string) => {
     try {
-      const response = await fetch(`${API_BASE}/user-credits/use`, {
+      const response = await fetch(`${API_BASE}/users/user-credits/use`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, creditId })

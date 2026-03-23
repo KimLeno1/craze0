@@ -11,6 +11,7 @@ import supplierRouter from './api/suppliers';
 import productRouter from './api/products';
 import orderRouter from './api/orders';
 import userRouter from './api/users';
+import socialRouter from './api/social';
 import payForMeRouter, { processExpiredRequests } from './api/pay-for-me';
 import adminRouter from './api/admin';
 
@@ -27,7 +28,8 @@ async function startServer() {
   // --- Modular API Routes ---
   app.use('/api', authRouter);
   app.use('/api', userRouter);
-  app.use('/api/supplier', supplierRouter);
+  app.use('/api/social', socialRouter);
+  app.use('/api/suppliers', supplierRouter);
   app.use('/api/products', productRouter);
   app.use('/api/orders', orderRouter);
   app.use('/api/pay-for-me', payForMeRouter);
