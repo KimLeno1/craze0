@@ -1,13 +1,12 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Product, UserStats, RankBenefits } from '../types';
+import { databaseService } from '../services/databaseService';
 import ProductCard from './ProductCard';
-import { motion } from 'framer-motion';
 
 interface ProductDetailProps {
   product: Product;
   stats: UserStats;
   allProducts: Product[];
-  wishlistIds: string[];
   onClose: () => void;
   onAddToCart: (product: Product, selectedSize?: string, customizationData?: Record<string, string>) => void;
   onUpdateSynergy: (synergy: string) => void;
@@ -15,30 +14,41 @@ interface ProductDetailProps {
   onProductClick: (product: Product) => void;
   isInWishlist: boolean;
   rank: RankBenefits;
+  limitedOfferEnd?: number | null;
 }
 
 const ProductDetail: React.FC<ProductDetailProps> = ({ 
   product, 
   stats,
   allProducts,
-  wishlistIds,
   onClose, 
   onAddToCart, 
   onToggleWishlist,
   onProductClick,
   isInWishlist,
-  rank
+  rank,
+  limitedOfferEnd
 }) => {
   const [selectedSize, setSelectedSize] = useState<string>(product.sizes?.[0] || '');
   const [isMaterializing, setIsMaterializing] = useState(false);
   const [tryOnResult, setTryOnResult] = useState<string | null>(null);
   const [scrollOpacity, setScrollOpacity] = useState(0);
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [customizationData, setCustomizationData] = useState<Record<string, string>>({});
   const [showCustomForm, setShowCustomForm] = useState(false);
+  const [timeLeft, setTimeLeft] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const detailContainerRef = useRef<HTMLDivElement>(null);
-  const imageScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!limitedOfferEnd) return;
+    const timer = setInterval(() => {
+      const seconds = Math.max(0, Math.floor((limitedOfferEnd - Date.now()) / 1000));
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      setTimeLeft(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [limitedOfferEnd]);
   
   const activeViewers = useMemo(() => Math.floor(product.viewers / 4) + 12 + Math.floor(Math.random() * 5), [product.viewers]);
 
@@ -48,15 +58,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
   const rankAdjustedPrice = Math.floor(product.originalPrice - realizedSaving);
   const rankSavingsAmount = product.originalPrice - rankAdjustedPrice;
 
-  const similarProducts = useMemo(() => {
-    return allProducts
-      .filter(p => p.id !== product.id && p.category === product.category)
-      .slice(0, 4);
-  }, [allProducts, product.id, product.category]);
-
-  const [isClicked, setIsClicked] = useState(false);
-
-  const handleAddToCartWithEffect = () => {
+  const handleAddToCart = () => {
     if (product.isCustom && !showCustomForm) {
       setShowCustomForm(true);
       return;
@@ -71,9 +73,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       }
     }
 
-    setIsClicked(true);
     onAddToCart({ ...product, price: rankAdjustedPrice }, selectedSize, product.isCustom ? customizationData : undefined);
-    setTimeout(() => setIsClicked(false), 1000);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,15 +95,6 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     }
   };
 
-  const handleImageScroll = () => {
-    if (imageScrollRef.current) {
-      const scrollPosition = imageScrollRef.current.scrollLeft;
-      const width = imageScrollRef.current.offsetWidth;
-      const index = Math.round(scrollPosition / width);
-      setCurrentImageIndex(index);
-    }
-  };
-
   useEffect(() => {
     const handleScroll = () => {
       if (detailContainerRef.current) {
@@ -113,24 +104,26 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
     };
     const container = detailContainerRef.current;
     container?.addEventListener('scroll', handleScroll);
+    
+    // Track view
+    if (stats.userId) {
+      databaseService.trackAction(stats.userId, product.id, 'view');
+    }
+
     return () => container?.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [product.id, stats.userId]);
+
+  const similarProducts = useMemo(() => {
+    return allProducts
+      .filter(p => p.id !== product.id && (p.category === product.category || p.gender === product.gender))
+      .slice(0, 4);
+  }, [allProducts, product]);
 
   return (
     <div 
       ref={detailContainerRef}
       className="fixed inset-0 z-[150] bg-[#050505] flex flex-col lg:flex-row animate-in fade-in duration-700 overflow-y-auto lg:overflow-hidden font-sans text-white scroll-smooth"
     >
-      <style>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-        .scrollbar-hide {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-      `}</style>
-      
       {/* Minimal Header */}
       <header 
         className="fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-6 py-6 md:px-8 md:py-8 transition-all duration-500"
@@ -138,15 +131,22 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
       >
         <button 
           onClick={onClose} 
-          className="group flex items-center justify-center w-12 h-12 md:w-16 md:h-16 bg-white text-black hover:bg-[#1a73e8] hover:text-white rounded-full border-2 border-white/20 hover:border-transparent transition-all shadow-[0_0_50px_rgba(255,255,255,0.1)] hover:shadow-[0_0_50px_rgba(26,115,232,0.4)]"
+          className="group flex items-center gap-3 md:gap-4 text-white/50 hover:text-white transition-colors"
         >
-          <span className="text-xl md:text-2xl font-black group-hover:-translate-x-1 transition-transform">←</span>
+          <div className="w-8 h-8 md:w-10 md:h-10 rounded-full border border-white/10 flex items-center justify-center group-hover:border-white/40 transition-colors">
+            <span className="text-lg md:text-xl">←</span>
+          </div>
+          <span className="text-[8px] md:text-[10px] font-bold uppercase tracking-[0.2em] md:tracking-[0.3em]">Back to Archive</span>
         </button>
         
         <div className="flex items-center gap-4 md:gap-6">
+          <div className="flex items-center gap-2">
+            <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></div>
+            <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-widest text-white/40">{activeViewers} Live</span>
+          </div>
           <button 
             onClick={() => onToggleWishlist(product)}
-            className={`text-xl md:text-2xl transition-transform active:scale-90 ${isInWishlist ? 'text-[#1a73e8]' : 'text-white/20 hover:text-white/50'}`}
+            className={`text-lg md:text-xl transition-transform active:scale-90 ${isInWishlist ? 'text-[#00D1FF]' : 'text-white/20 hover:text-white/50'}`}
           >
             {isInWishlist ? '✦' : '✧'}
           </button>
@@ -175,36 +175,23 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           </div>
         )}
 
-        <div 
-          ref={imageScrollRef}
-          onScroll={handleImageScroll}
-          className="w-full h-full flex overflow-x-auto snap-x snap-mandatory scrollbar-hide"
-        >
-          {(product.images && product.images.length > 0 ? product.images : [product.image]).map((img, idx) => (
-            <div key={idx} className="w-full h-full shrink-0 snap-center">
-              <img 
-                src={img} 
-                className={`w-full h-full object-cover transition-all duration-[2s] ${tryOnResult ? 'opacity-0 scale-110' : 'opacity-100'}`} 
-                alt={`${product.name} ${idx + 1}`} 
-              />
-            </div>
-          ))}
-        </div>
+        <img 
+          src={product.image} 
+          className={`w-full h-full object-cover transition-all duration-[2s] ${tryOnResult ? 'opacity-0 scale-110' : 'opacity-100'}`} 
+          alt={product.name} 
+        />
+        
+        {product.price < product.originalPrice && (
+          <div className="absolute top-24 left-8 md:top-32 md:left-12 bg-red-600 text-white px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] shadow-2xl z-10 animate-pulse flex items-center gap-3">
+            <span>Limited Time Offer</span>
+            {limitedOfferEnd && timeLeft && (
+              <span className="font-mono border-l border-white/20 pl-3">{timeLeft}</span>
+            )}
+          </div>
+        )}
         
         {/* Subtle Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-black/20 to-transparent pointer-events-none"></div>
-
-        {/* Image Indicators */}
-        {product.images && product.images.length > 1 && (
-          <div className="absolute top-1/2 right-6 -translate-y-1/2 flex flex-col gap-2 z-20">
-            {product.images.map((_, idx) => (
-              <div 
-                key={idx} 
-                className={`w-1.5 h-1.5 rounded-full transition-all duration-300 ${currentImageIndex === idx ? 'bg-[#1a73e8] scale-150 shadow-[0_0_8px_#1a73e8]' : 'bg-white/20'}`}
-              ></div>
-            ))}
-          </div>
-        )}
 
         {/* Try On Trigger */}
         <div className="absolute bottom-8 left-8 md:bottom-12 md:left-12">
@@ -236,7 +223,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                 {product.appeal && (
                   <>
                     <div className="w-1 h-1 bg-zinc-800 rounded-full"></div>
-                    <span className="text-[8px] md:text-[10px] font-bold text-purple-500 uppercase tracking-[0.4em] md:tracking-[0.5em]">{product.appeal}</span>
+                    <span className="text-[8px] md:text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em] md:tracking-[0.5em]">{product.appeal}</span>
                   </>
                 )}
               </div>
@@ -260,8 +247,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
                   : `GH₵${rankAdjustedPrice}`
                 }
               </span>
-              {!product.isCustom && <span className="text-base md:text-lg font-mono text-white/20 line-through">GH₵{product.originalPrice}</span>}
-              <div className="px-2 md:px-3 py-1 rounded-full border border-[#1a73e8]/30 text-[8px] md:text-[9px] font-bold text-[#1a73e8] uppercase tracking-widest">
+              {product.price < product.originalPrice && (
+                <span className="text-base md:text-lg font-mono text-white/20 line-through">GH₵{product.originalPrice}</span>
+              )}
+              <div className="px-2 md:px-3 py-1 rounded-full border border-[#00D1FF]/30 text-[8px] md:text-[9px] font-bold text-[#00D1FF] uppercase tracking-widest">
                 {product.isCustom ? 'Custom Order' : `-${Math.round((1 - rankAdjustedPrice/product.originalPrice) * 100)}% Rank Benefit`}
               </div>
             </div>
@@ -364,31 +353,28 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               <span className="text-[9px] font-bold text-white/30 uppercase tracking-widest">Availability</span>
               <p className="text-sm font-bold text-white">Only {product.stockCount} left in vault</p>
             </div>
-            <div className="p-6 rounded-2xl border border-[#1a73e8]/10 bg-[#1a73e8]/[0.02] space-y-2">
-              <span className="text-[9px] font-bold text-[#1a73e8] uppercase tracking-widest">Privilege</span>
+            <div className="p-6 rounded-2xl border border-[#00D1FF]/10 bg-[#00D1FF]/[0.02] space-y-2">
+              <span className="text-[9px] font-bold text-[#00D1FF] uppercase tracking-widest">Privilege</span>
               <p className="text-sm font-bold text-white">{rank.tier} Clearance</p>
             </div>
           </section>
 
-          {/* Similar Products */}
+          {/* Similar Items */}
           {similarProducts.length > 0 && (
             <section className="space-y-8 pt-12 border-t border-white/5">
-              <div className="flex justify-between items-end">
-                <div className="space-y-2">
-                  <span className="text-[10px] font-bold text-[#1a73e8] uppercase tracking-[0.4em]">Neural Match</span>
-                  <h2 className="text-3xl md:text-4xl font-serif italic text-white tracking-tight">Similar Silhouettes</h2>
-                </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold text-white/30 uppercase tracking-[0.4em]">Similar Silhouettes</span>
               </div>
-              
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+              <div className="grid grid-cols-2 gap-4">
                 {similarProducts.map(p => (
                   <ProductCard 
-                    key={p.id}
-                    product={p}
-                    onClick={() => onProductClick(p)}
+                    key={p.id} 
+                    product={p} 
+                    isWishlisted={false} // Would need wishlist state here for full accuracy
                     onAddToCart={() => onAddToCart(p)}
-                    onToggleWishlist={() => onToggleWishlist(p)}
-                    isWishlisted={wishlistIds.includes(p.id)}
+                    onToggleWishlist={onToggleWishlist}
+                    onClick={() => onProductClick(p)} 
+                    saleTimerEnd={p.price < p.originalPrice ? limitedOfferEnd : null}
                   />
                 ))}
               </div>
@@ -399,16 +385,14 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
           {/* Action Bar */}
           <div className="p-6 md:p-12 border-t border-white/5 bg-[#050505] sticky bottom-0 z-20">
             <button 
-              onClick={handleAddToCartWithEffect}
+              onClick={handleAddToCart}
               className={`w-full h-16 md:h-20 rounded-2xl font-bold uppercase tracking-[0.3em] md:tracking-[0.4em] text-[10px] md:text-xs transition-all active:scale-[0.98] shadow-2xl ${
-                isClicked 
-                ? 'bg-green-500 text-white' 
-                : showCustomForm 
-                  ? 'bg-amber-500 text-black hover:bg-white' 
-                  : 'bg-white text-black hover:bg-[#1a73e8] hover:text-white'
+                showCustomForm 
+                ? 'bg-amber-500 text-black hover:bg-white' 
+                : 'bg-white text-black hover:bg-[#00D1FF] hover:text-white'
               }`}
             >
-              {isClicked ? 'Initialized' : (showCustomForm ? 'Confirm Customization' : (product.isCustom ? 'Configure Silhouette' : 'Initialize Acquisition'))}
+              {showCustomForm ? 'Confirm Customization' : (product.isCustom ? 'Configure Silhouette' : 'Initialize Acquisition')}
             </button>
             <p className="text-center mt-4 md:mt-6 text-[8px] md:text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">
               Secure checkout via neural link • Global logistics GH₵{product.shippingFee}

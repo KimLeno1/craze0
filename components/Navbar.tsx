@@ -35,7 +35,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, logoUrl }) => 
           </div>
           <div className="flex flex-col">
             <div className="text-2xl font-serif italic tracking-tighter leading-none text-white">
-              CLOSET<span className="text-[#1a73e8] font-sans font-black not-italic ml-0.5">KRAZE</span>
+              CLOSET<span className="text-[#EC4899] font-sans font-black not-italic ml-0.5">KRAZE</span>
             </div>
             <div className="text-[8px] font-black uppercase tracking-[0.3em] text-zinc-500 mt-1">Est. 2025 • New Tokyo</div>
           </div>
@@ -52,7 +52,7 @@ const Navbar: React.FC<NavbarProps> = ({ currentView, onNavigate, logoUrl }) => 
               }`}
             >
               {item.label}
-              <span className={`absolute -bottom-2 left-0 w-full h-0.5 bg-[#1a73e8] transition-all duration-300 ${
+              <span className={`absolute -bottom-2 left-0 w-full h-0.5 bg-[#EC4899] transition-all duration-300 ${
                 currentView === item.view ? 'opacity-100' : 'opacity-0 scale-x-0 group-hover:opacity-50 group-hover:scale-x-100'
               }`}></span>
             </button>

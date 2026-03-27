@@ -19,8 +19,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onClose })
         <header className="p-8 md:p-12 border-b border-white/5 flex justify-between items-center bg-black/40">
            <div className="space-y-2">
               <div className="flex items-center gap-3">
-                 <div className="w-1.5 h-1.5 rounded-full bg-[#1a73e8] animate-pulse"></div>
-                 <span className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">Acquisition Summary</span>
+                 <div className="w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse"></div>
+                 <span className="text-[10px] font-black text-[#00D1FF] uppercase tracking-[0.4em]">Acquisition Summary</span>
               </div>
               <h2 className="text-3xl md:text-5xl font-serif italic text-white tracking-tighter">Order {order.id}</h2>
               <p className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">{new Date(order.timestamp).toLocaleString()}</p>
@@ -35,7 +35,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onClose })
            {/* Logistics Grid */}
            <div className="grid md:grid-cols-2 gap-8">
               <div className="space-y-6">
-                 <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-4">Logistics Protocol</div>
+                 <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest border-l-2 border-[#00D1FF] pl-4">Logistics Protocol</div>
                  <div className="bg-zinc-950 p-6 rounded-3xl border border-white/5 space-y-4">
                     <div className="space-y-1">
                        <span className="text-[8px] font-black text-zinc-700 uppercase tracking-widest">Operator Identity</span>
@@ -53,12 +53,12 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onClose })
               </div>
 
               <div className="space-y-6">
-                 <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest border-l-2 border-[#1a73e8] pl-4">Acquisition Status</div>
+                 <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest border-l-2 border-[#00D1FF] pl-4">Acquisition Status</div>
                  <div className="bg-zinc-950 p-6 rounded-3xl border border-white/5 flex flex-col justify-center items-center text-center space-y-4 min-h-[160px]">
                     <span className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest shadow-2xl ${
                       order.status === OrderStatus.DELIVERED ? 'bg-green-500/10 text-green-500 border border-green-500/30' :
                       order.status === OrderStatus.CANCELLED ? 'bg-red-500/10 text-red-500 border border-red-500/30' :
-                      'bg-blue-500/10 text-blue-500 border border-blue-500/30 animate-pulse'
+                      'bg-[#00D1FF]/10 text-[#00D1FF] border border-[#00D1FF]/30 animate-pulse'
                     }`}>
                       {order.status}
                     </span>
@@ -86,7 +86,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, onClose })
                           <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
                        </div>
                        <div className="flex-1 min-w-0">
-                          <div className="text-[9px] font-black text-[#1a73e8] uppercase tracking-widest mb-1">{item.isBundle ? 'Synergy Kit' : `Sector_${item.category}`}</div>
+                          <div className="text-[9px] font-black text-[#00D1FF] uppercase tracking-widest mb-1">{item.isBundle ? 'Synergy Kit' : `Sector_${item.category}`}</div>
                           <h4 className="text-lg font-black text-white uppercase truncate">{item.name}</h4>
                           {item.customizationData && Object.keys(item.customizationData).length > 0 && (
                             <div className="flex flex-wrap gap-4 mt-2">

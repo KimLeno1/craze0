@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { databaseService } from '../services/databaseService';
 
 interface SecurityEvent {
   id: string;
@@ -22,7 +21,6 @@ const AdminSecurityPanel: React.FC = () => {
   });
 
   useEffect(() => {
-    refreshData();
     // Generate some mock security events
     const mockEvents: SecurityEvent[] = [
       {
@@ -61,27 +59,6 @@ const AdminSecurityPanel: React.FC = () => {
     setEvents(mockEvents);
   }, []);
 
-  const refreshData = async () => {
-    const settings = await databaseService.getAdminSettings();
-    const metrics = await databaseService.getAdminMetrics();
-    
-    setSystemStatus(prev => ({
-      ...prev,
-      firewall: settings.firewall_status || 'ACTIVE',
-      activeSessions: metrics?.totalUsers || 0,
-      threatLevel: settings.threat_level || 'LOW'
-    }));
-  };
-
-  const handleAction = async (action: string) => {
-    if (action === 'SCAN') {
-      refreshData();
-    } else if (action === 'INITIATE') {
-      await databaseService.updateAdminSetting('firewall_status', 'LOCKDOWN');
-      refreshData();
-    }
-  };
-
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
       <header className="flex justify-between items-end">
@@ -100,8 +77,8 @@ const AdminSecurityPanel: React.FC = () => {
       {/* System Health Grid */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
         {[
-          { label: 'Neural Firewall', value: systemStatus.firewall, color: 'text-blue-500' },
-          { label: 'Encryption Protocol', value: systemStatus.encryption, color: 'text-purple-500' },
+          { label: 'Neural Firewall', value: systemStatus.firewall, color: 'text-[#00D1FF]' },
+          { label: 'Encryption Protocol', value: systemStatus.encryption, color: 'text-[#00D1FF]' },
           { label: 'Active Links', value: systemStatus.activeSessions, color: 'text-amber-500' },
           { label: 'Threat Level', value: systemStatus.threatLevel, color: 'text-green-500' },
         ].map((stat, i) => (
@@ -117,7 +94,7 @@ const AdminSecurityPanel: React.FC = () => {
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
             <h3 className="text-[10px] font-black text-zinc-400 uppercase tracking-[0.3em]">Integrity_Logs</h3>
-            <button className="text-[8px] font-black text-[#1a73e8] uppercase tracking-widest hover:underline">Export_Archive</button>
+            <button className="text-[8px] font-black text-[#00D1FF] uppercase tracking-widest hover:underline">Export_Archive</button>
           </div>
           
           <div className="bg-zinc-950 border border-white/5 rounded-[2.5rem] overflow-hidden">
@@ -143,7 +120,7 @@ const AdminSecurityPanel: React.FC = () => {
                           event.severity === 'CRITICAL' ? 'bg-red-500 text-white' :
                           event.severity === 'HIGH' ? 'bg-orange-500/20 text-orange-500' :
                           event.severity === 'MEDIUM' ? 'bg-amber-500/20 text-amber-500' :
-                          'bg-blue-500/20 text-blue-500'
+                          'bg-[#00D1FF]/20 text-[#00D1FF]'
                         }`}>
                           {event.severity}
                         </span>
@@ -169,17 +146,14 @@ const AdminSecurityPanel: React.FC = () => {
               { label: 'Lockdown Mode', desc: 'Terminate all active sessions', action: 'INITIATE', color: 'bg-red-500' },
               { label: 'Flush Cache', desc: 'Clear all temporary neural buffers', action: 'EXECUTE', color: 'bg-zinc-800' },
               { label: 'Rotate Keys', desc: 'Generate new security signatures', action: 'ROTATE', color: 'bg-zinc-800' },
-              { label: 'Audit System', desc: 'Run full integrity diagnostic', action: 'SCAN', color: 'bg-[#1a73e8]' },
+              { label: 'Audit System', desc: 'Run full integrity diagnostic', action: 'SCAN', color: 'bg-[#00D1FF]' },
             ].map((control, i) => (
               <div key={i} className="bg-zinc-950 border border-white/5 p-6 rounded-3xl flex items-center justify-between group hover:border-white/20 transition-all">
                 <div className="space-y-1">
                   <div className="text-[10px] font-black text-white uppercase tracking-widest">{control.label}</div>
                   <div className="text-[8px] text-zinc-600 uppercase">{control.desc}</div>
                 </div>
-                <button 
-                  onClick={() => handleAction(control.action)}
-                  className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${control.color} text-white active:scale-95`}
-                >
+                <button className={`px-4 py-2 rounded-xl text-[8px] font-black uppercase tracking-widest transition-all ${control.color} text-white active:scale-95`}>
                   {control.action}
                 </button>
               </div>
@@ -188,14 +162,14 @@ const AdminSecurityPanel: React.FC = () => {
 
           <div className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] space-y-6">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+              <span className="w-2 h-2 rounded-full bg-[#00D1FF]"></span>
               Network_Traffic
             </div>
             <div className="h-24 flex items-end gap-1">
               {[40, 65, 45, 80, 55, 90, 70, 40, 60, 85, 50, 75].map((h, i) => (
                 <div 
                   key={i} 
-                  className="flex-1 bg-blue-500/20 rounded-t-sm hover:bg-blue-500 transition-all cursor-help"
+                  className="flex-1 bg-[#00D1FF]/20 rounded-t-sm hover:bg-[#00D1FF] transition-all cursor-help"
                   style={{ height: `${h}%` }}
                   title={`Traffic: ${h}mb/s`}
                 />
@@ -210,7 +184,7 @@ const AdminSecurityPanel: React.FC = () => {
 
           <div className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] space-y-4">
             <div className="text-[10px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+              <span className="w-2 h-2 rounded-full bg-[#00D1FF]"></span>
               Neural_Load
             </div>
             <div className="space-y-3">
@@ -220,7 +194,7 @@ const AdminSecurityPanel: React.FC = () => {
                   <span className="text-white">42%</span>
                 </div>
                 <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-purple-500 w-[42%] shadow-[0_0_10px_#a855f7]"></div>
+                  <div className="h-full bg-[#00D1FF] w-[42%] shadow-[0_0_10px_#00D1FF]"></div>
                 </div>
               </div>
               <div className="space-y-1">
@@ -229,7 +203,7 @@ const AdminSecurityPanel: React.FC = () => {
                   <span className="text-white">68%</span>
                 </div>
                 <div className="h-1 bg-white/5 rounded-full overflow-hidden">
-                  <div className="h-full bg-purple-500 w-[68%] shadow-[0_0_10px_#a855f7]"></div>
+                  <div className="h-full bg-[#00D1FF] w-[68%] shadow-[0_0_10px_#00D1FF]"></div>
                 </div>
               </div>
             </div>

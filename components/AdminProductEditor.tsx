@@ -116,7 +116,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
 
   return (
     <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 md:p-10 overflow-y-auto">
-      <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-4xl rounded-[3rem] shadow-[0_0_100px_rgba(236,72,153,0.1)] flex flex-col max-h-[90vh]">
+      <div className="bg-[#0a0a0c] border border-white/10 w-full max-w-4xl rounded-[3rem] shadow-[0_0_100px_rgba(0,209,255,0.1)] flex flex-col max-h-[90vh]">
         <header className="p-8 border-b border-white/5 flex justify-between items-center shrink-0">
           <div>
             <h2 className="text-2xl font-serif italic text-white">
@@ -136,7 +136,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
           <div className="grid md:grid-cols-2 gap-10">
             {/* Basic Info */}
             <div className="space-y-6">
-              <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest border-l-2 border-[#1a73e8] pl-3">Primary Identity</div>
+              <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest border-l-2 border-[#00D1FF] pl-3">Primary Identity</div>
               
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Designation</label>
@@ -146,7 +146,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                   value={formData.name || ''}
                   onChange={e => setFormData({...formData, name: e.target.value})}
                   placeholder="e.g., Midnight Cyber Cloak"
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none"
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] transition-all outline-none"
                 />
               </div>
 
@@ -158,7 +158,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                     required
                     value={formData.price || 0}
                     onChange={e => setFormData({...formData, price: Number(e.target.value)})}
-                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none"
+                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] transition-all outline-none"
                   />
                 </div>
                 <div className="space-y-2">
@@ -168,7 +168,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                     required
                     value={formData.shippingFee || 0}
                     onChange={e => setFormData({...formData, shippingFee: Number(e.target.value)})}
-                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none"
+                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] transition-all outline-none"
                   />
                 </div>
               </div>
@@ -179,7 +179,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                   <select 
                     value={formData.category}
                     onChange={e => setFormData({...formData, category: e.target.value as Category})}
-                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none appearance-none"
+                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] transition-all outline-none appearance-none"
                   >
                     {CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                   </select>
@@ -189,7 +189,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                   <select 
                     value={formData.gender}
                     onChange={e => setFormData({...formData, gender: e.target.value as Gender})}
-                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none appearance-none"
+                    className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] transition-all outline-none appearance-none"
                   >
                     {GENDERS.map(g => <option key={g} value={g}>{g}</option>)}
                   </select>
@@ -198,7 +198,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
             </div>
 
             <div className="space-y-8">
-              <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-3">Technical Intel</div>
+              <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest border-l-2 border-[#00D1FF] pl-3">Technical Intel</div>
 
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Dossier Description</label>
@@ -206,7 +206,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                   rows={4}
                   value={formData.description || ''}
                   onChange={e => setFormData({...formData, description: e.target.value})}
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-blue-500 transition-all outline-none resize-none"
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] transition-all outline-none resize-none"
                 />
               </div>
 
@@ -227,7 +227,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                       min="0" max="100"
                       value={formData.hypeScore || 0}
                       onChange={e => setFormData({...formData, hypeScore: Number(e.target.value)})}
-                      className="w-full accent-[#1a73e8]"
+                      className="w-full accent-[#00D1FF]"
                     />
                     <div className="pt-2">
                       <label className="flex items-center gap-3 cursor-pointer group">
@@ -253,20 +253,20 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                   required
                   value={formData.image || ''}
                   onChange={e => setFormData({...formData, image: e.target.value})}
-                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none"
+                  className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] transition-all outline-none"
                 />
               </div>
 
               {/* Custom Product Configuration */}
               <div className="space-y-6 pt-6 border-t border-white/5">
                 <div className="flex items-center justify-between">
-                  <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest border-l-2 border-amber-500 pl-3">Customization Protocol</div>
+                  <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest border-l-2 border-[#00D1FF] pl-3">Customization Protocol</div>
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input 
                       type="checkbox"
                       checked={formData.isCustom || false}
                       onChange={e => setFormData({...formData, isCustom: e.target.checked})}
-                      className="w-5 h-5 rounded border-white/10 bg-zinc-900 text-amber-500 focus:ring-amber-500"
+                      className="w-5 h-5 rounded border-white/10 bg-zinc-900 text-[#00D1FF] focus:ring-[#00D1FF]"
                     />
                     <span className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Enable Customization</span>
                   </label>
@@ -331,7 +331,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
                         <button 
                           type="button"
                           onClick={addCustomField}
-                          className="w-full py-3 bg-amber-500/10 text-amber-500 border border-amber-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-amber-500 hover:text-black transition-all"
+                          className="w-full py-3 bg-[#00D1FF]/10 text-[#00D1FF] border border-[#00D1FF]/20 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#00D1FF] hover:text-white transition-all"
                         >
                           Add Field to Form
                         </button>
@@ -373,7 +373,7 @@ const AdminProductEditor: React.FC<AdminProductEditorProps> = ({ product, onSave
           <button 
             type="submit"
             onClick={handleSubmit}
-            className="flex-[2] py-5 bg-white text-black rounded-3xl font-black uppercase tracking-widest text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl"
+            className="flex-[2] py-5 bg-white text-black rounded-3xl font-black uppercase tracking-widest text-[10px] hover:bg-[#00D1FF] hover:text-white transition-all shadow-2xl"
           >
             Finalize_Entry
           </button>

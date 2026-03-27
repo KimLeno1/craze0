@@ -3,88 +3,144 @@ import React, { useState, useEffect } from 'react';
 import { Product, Supplier, Order, OrderStatus } from '../types';
 import { databaseService } from '../services/databaseService';
 import SupplierProductEditor from './SupplierProductEditor';
-import { Package, LayoutDashboard, ShoppingBag, User, LogOut, CheckCircle, Clock, Truck, XCircle, Settings } from 'lucide-react';
+import { Package, LayoutDashboard, ShoppingBag, User, LogOut, CheckCircle, Clock, Truck, XCircle, Settings, Zap } from 'lucide-react';
 
 interface SupplierDashboardProps {
   supplierId: string;
   onLogout: () => void;
 }
 
-type Tab = 'DASHBOARD' | 'PRODUCTS' | 'ORDERS';
+type Tab = 'DASHBOARD' | 'PRODUCTS' | 'ORDERS' | 'ANOMALIES';
 
 const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLogout }) => {
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
+  const [anomalies, setAnomalies] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<Tab>('DASHBOARD');
   
   // Editor State
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [profileForm, setProfileForm] = useState({ name: '', contactEmail: '', region: '' });
+
+  // Anomaly State
+  const [isAnomalyModalOpen, setIsAnomalyModalOpen] = useState(false);
+  const [newAnomaly, setNewAnomaly] = useState({
+    productId: '',
+    discountedPrice: 0,
+    duration: 2
+  });
 
   useEffect(() => {
     refreshData();
   }, [supplierId]);
 
-  useEffect(() => {
-    if (supplier) {
-      setProfileForm({
-        name: supplier.name,
-        contactEmail: supplier.contactEmail,
-        region: supplier.region
-      });
-    }
-  }, [supplier]);
-
   const refreshData = async () => {
-    const current = await databaseService.getSupplierProfile(supplierId);
-    if (current) {
-      setSupplier(current);
-      const myProducts = await databaseService.getSupplierProducts(current.id);
-      setProducts(myProducts);
-      const myOrders = await databaseService.getSupplierOrders(current.id);
-      setOrders(myOrders);
-    }
-  };
+    try {
+      // Check auth and get supplier info
+      const authResponse = await fetch('/api/auth/check', {
+        headers: { 'Authorization': localStorage.getItem('cc-auth-token') || '' }
+      });
+      const authData = await authResponse.json();
+      
+      if (!authData.authenticated) {
+        onLogout();
+        return;
+      }
+      
+      // Fetch supplier details
+      const suppliersResponse = await fetch('/api/suppliers');
+      const allSuppliers = await suppliersResponse.json();
+      const currentSupplier = allSuppliers.find((s: any) => s.id === supplierId);
+      setSupplier(currentSupplier);
 
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const result = await databaseService.updateSupplierProfile(supplierId, profileForm);
-    if (result.success) {
-      setIsEditingProfile(false);
-      refreshData();
-    } else {
-      alert('Failed to update profile');
+      // Fetch products via API
+      const productsResponse = await fetch(`/api/products?supplierId=${supplierId}`);
+      const myProducts = await productsResponse.json();
+      setProducts(myProducts);
+
+      // Fetch orders via API
+      const ordersResponse = await fetch(`/api/orders?supplierId=${supplierId}`);
+      const myOrders = await ordersResponse.json();
+      setOrders(myOrders);
+
+      // Fetch anomalies via API
+      const anomaliesResponse = await fetch(`/api/price-anomalies?supplierId=${supplierId}`);
+      const myAnomalies = await anomaliesResponse.json();
+      setAnomalies(myAnomalies);
+    } catch (error) {
+      console.error('Data refresh error:', error);
     }
   };
 
   const handleSaveProduct = async (formData: Partial<Product>) => {
-    if (editingProduct) {
-      const result = await databaseService.updateProductOnBackend(editingProduct.id, formData);
-      if (!result.success) {
-        alert('Failed to update silhouette in the core.');
-      }
-    } else {
-      const result = await databaseService.saveProductToBackend({
-        ...formData,
-        supplierId: supplier?.id
-      } as Product);
-      if (!result.success) {
-        alert('Failed to register silhouette in the core.');
-      }
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...formData, supplierId })
+      });
+      
+      if (!response.ok) throw new Error('Failed to save product');
+      
+      setIsEditorOpen(false);
+      await refreshData();
+    } catch (error) {
+      console.error('Save product error:', error);
     }
-    setIsEditorOpen(false);
-    refreshData();
   };
 
   const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
-    const result = await databaseService.updateOrderStatusOnBackend(orderId, status);
-    if (!result.success) {
-      alert('Failed to update logistics status.');
+    try {
+      const response = await fetch(`/api/orders/${orderId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
+      
+      if (!response.ok) throw new Error('Failed to update order');
+      
+      await refreshData();
+    } catch (error) {
+      console.error('Update order error:', error);
     }
-    refreshData();
+  };
+
+  const handleCreateAnomaly = async () => {
+    try {
+      const response = await fetch('/api/price-anomalies', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: `anomaly_${Date.now()}`,
+          productId: newAnomaly.productId,
+          price: newAnomaly.discountedPrice,
+          anomalyEndTime: Date.now() + newAnomaly.duration * 60 * 60 * 1000,
+          discountPercent: 0 // Could calculate this
+        })
+      });
+      
+      if (!response.ok) throw new Error('Failed to create anomaly');
+      
+      setIsAnomalyModalOpen(false);
+      await refreshData();
+    } catch (error) {
+      console.error('Create anomaly error:', error);
+    }
+  };
+
+  const handleDeleteAnomaly = async (id: string) => {
+    try {
+      const response = await fetch(`/api/price-anomalies/${id}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete anomaly');
+      
+      await refreshData();
+    } catch (error) {
+      console.error('Delete anomaly error:', error);
+    }
   };
 
   const handleEdit = (product: Product) => {
@@ -137,16 +193,10 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
       <section className="bg-zinc-950 border border-white/5 rounded-[3rem] p-10 space-y-8">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-[#f59e0b]/10 rounded-2xl flex items-center justify-center text-2xl">👤</div>
-          <div className="flex-1">
+          <div>
             <h3 className="text-xl font-serif italic text-white">Supplier Profile</h3>
             <p className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Node Identity & Logistics Config</p>
           </div>
-          <button 
-            onClick={() => setIsEditingProfile(true)}
-            className="px-6 py-2 bg-zinc-900 border border-white/10 rounded-xl text-[10px] font-black uppercase tracking-widest text-zinc-400 hover:text-white hover:border-white/20 transition-all"
-          >
-            Edit Profile
-          </button>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
@@ -233,6 +283,141 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
            </div>
         )}
       </div>
+    </div>
+  );
+
+  const renderAnomalies = () => (
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      <div className="flex justify-between items-center border-b border-white/5 pb-6">
+        <div className="space-y-1">
+          <h3 className="text-2xl font-serif italic text-white">Global Reduction Protocols</h3>
+          <p className="text-[8px] text-zinc-600 font-black tracking-widest uppercase">Initialize high-velocity liquidation events</p>
+        </div>
+        <button 
+          onClick={() => setIsAnomalyModalOpen(true)}
+          className="bg-[#00D1FF] text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all rounded-2xl shadow-lg shadow-[#00D1FF]/10"
+        >
+          Initialize New Anomaly
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {anomalies.map(a => {
+          const product = products.find(p => p.id === a.productId);
+          if (!product) return null;
+          return (
+            <div key={a.id} className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] flex items-center gap-8 hover:border-[#00D1FF]/20 transition-all group relative overflow-hidden">
+               <div className="w-24 h-32 rounded-3xl overflow-hidden bg-black grayscale group-hover:grayscale-0 transition-all shadow-2xl">
+                  <img src={product.image} className="w-full h-full object-cover" />
+               </div>
+               <div className="flex-1 space-y-4">
+                  <div>
+                    <div className="text-lg font-black text-white uppercase tracking-tight">{product.name}</div>
+                    <div className="text-[9px] text-[#00D1FF] font-black mt-1 uppercase tracking-widest">
+                      ANOMALY_ACTIVE // STATUS: {a.status}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-6">
+                     <div>
+                        <div className="text-[8px] text-zinc-700 uppercase tracking-widest mb-1">Anomaly Price</div>
+                        <div className="text-xl font-mono font-black text-white">GH₵{a.discountedPrice}</div>
+                     </div>
+                     <div className="h-8 w-px bg-zinc-900"></div>
+                     <div>
+                        <div className="text-[8px] text-zinc-700 uppercase tracking-widest mb-1">Time Remaining</div>
+                        <div className="text-xl font-mono font-black text-[#00D1FF]">
+                          {Math.max(0, Math.floor((a.endTime - Date.now()) / (1000 * 60)))}m
+                        </div>
+                     </div>
+                  </div>
+               </div>
+               <button 
+                 onClick={() => handleDeleteAnomaly(a.id)}
+                 className="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline"
+               >
+                 Terminate
+               </button>
+            </div>
+          );
+        })}
+        {anomalies.length === 0 && (
+           <div className="col-span-full py-32 text-center border border-dashed border-white/5 rounded-[3rem] space-y-6">
+              <div className="text-6xl opacity-10">⚡</div>
+              <p className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-700 italic">No global reductions detected in current cycle.</p>
+           </div>
+        )}
+      </div>
+
+      {isAnomalyModalOpen && (
+        <div className="fixed inset-0 z-[400] bg-black/90 backdrop-blur-xl flex items-center justify-center p-6">
+          <div className="bg-zinc-950 border border-[#00D1FF]/30 w-full max-w-xl rounded-[3rem] p-12 space-y-8 animate-in zoom-in-95 duration-300">
+            <div className="space-y-2">
+              <h3 className="text-3xl font-serif italic text-white">Anomaly_Config</h3>
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">Define Liquidation Parameters</p>
+            </div>
+
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <label className="text-[8px] font-black text-zinc-700 uppercase tracking-widest">Target Silhouette</label>
+                <select 
+                  value={newAnomaly.productId}
+                  onChange={e => {
+                    const p = products.find(prod => prod.id === e.target.value);
+                    setNewAnomaly({
+                      ...newAnomaly, 
+                      productId: e.target.value,
+                      discountedPrice: p ? Math.floor(p.price * 0.8) : 0
+                    });
+                  }}
+                  className="w-full bg-black border border-white/10 p-4 rounded-xl text-sm text-white outline-none focus:border-[#00D1FF]"
+                >
+                  <option value="">Select Product</option>
+                  {products.map(p => (
+                    <option key={p.id} value={p.id}>{p.name} (GH₵{p.price})</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-zinc-700 uppercase tracking-widest">Anomaly Price (GH₵)</label>
+                  <input 
+                    type="number"
+                    value={newAnomaly.discountedPrice}
+                    onChange={e => setNewAnomaly({...newAnomaly, discountedPrice: parseInt(e.target.value)})}
+                    className="w-full bg-black border border-white/10 p-4 rounded-xl text-sm text-white outline-none focus:border-[#00D1FF]"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-zinc-700 uppercase tracking-widest">Duration (Hours)</label>
+                  <input 
+                    type="number"
+                    value={newAnomaly.duration}
+                    onChange={e => setNewAnomaly({...newAnomaly, duration: parseInt(e.target.value)})}
+                    className="w-full bg-black border border-white/10 p-4 rounded-xl text-sm text-white outline-none focus:border-[#00D1FF]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4">
+              <button 
+                onClick={handleCreateAnomaly}
+                disabled={!newAnomaly.productId}
+                className="flex-1 bg-[#00D1FF] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all disabled:opacity-50"
+              >
+                Initialize Protocol
+              </button>
+              <button 
+                onClick={() => setIsAnomalyModalOpen(false)}
+                className="flex-1 bg-zinc-900 text-zinc-500 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:text-white transition-all"
+              >
+                Abort
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 
@@ -349,11 +534,22 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
             <ShoppingBag size={20} />
             <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">Logistics</span>
           </button>
+          <button 
+            onClick={() => setActiveTab('ANOMALIES')}
+            className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${activeTab === 'ANOMALIES' ? 'bg-[#f59e0b] text-black shadow-lg shadow-[#f59e0b]/20' : 'text-zinc-500 hover:bg-white/5 hover:text-white'}`}
+          >
+            <Zap size={20} />
+            <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">Global Reduction</span>
+          </button>
         </nav>
 
         <div className="p-4 border-t border-[#f59e0b]/10">
           <button 
-            onClick={onLogout}
+            onClick={async () => {
+              await fetch('/api/auth/logout', { method: 'POST' });
+              localStorage.removeItem('cc-auth-token');
+              onLogout();
+            }}
             className="w-full flex items-center gap-4 p-4 rounded-2xl text-red-500 hover:bg-red-500/10 transition-all"
           >
             <LogOut size={20} />
@@ -391,6 +587,7 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
           {activeTab === 'DASHBOARD' && renderDashboard()}
           {activeTab === 'PRODUCTS' && renderProducts()}
           {activeTab === 'ORDERS' && renderOrders()}
+          {activeTab === 'ANOMALIES' && renderAnomalies()}
         </main>
 
         {/* Footer Marquee */}
@@ -413,70 +610,6 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
           onSave={handleSaveProduct}
           onCancel={() => setIsEditorOpen(false)}
         />
-      )}
-
-      {isEditingProfile && (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-xl z-[100] flex items-center justify-center p-6 overflow-y-auto">
-          <div className="bg-zinc-950 border border-white/5 w-full max-w-2xl rounded-[3rem] p-12 space-y-12 animate-in zoom-in-95 duration-300">
-            <div className="flex justify-between items-center border-b border-white/5 pb-8">
-              <div className="space-y-2">
-                <h2 className="text-4xl font-serif italic text-white">Edit Profile</h2>
-                <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em]">Update your node identity</p>
-              </div>
-              <button 
-                onClick={() => setIsEditingProfile(false)}
-                className="w-12 h-12 bg-black border border-white/5 rounded-2xl flex items-center justify-center text-zinc-500 hover:text-white transition-all"
-              >
-                <XCircle size={24} />
-              </button>
-            </div>
-
-            <form onSubmit={handleUpdateProfile} className="space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Organization Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.name}
-                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                    className="w-full bg-black border border-white/5 p-5 rounded-2xl text-white font-bold focus:border-[#f59e0b] outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-4">
-                  <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Operational Region</label>
-                  <input
-                    type="text"
-                    required
-                    value={profileForm.region}
-                    onChange={(e) => setProfileForm({ ...profileForm, region: e.target.value })}
-                    className="w-full bg-black border border-white/5 p-5 rounded-2xl text-white font-bold focus:border-[#f59e0b] outline-none transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Contact Protocol (Email)</label>
-                <input
-                  type="email"
-                  required
-                  value={profileForm.contactEmail}
-                  onChange={(e) => setProfileForm({ ...profileForm, contactEmail: e.target.value })}
-                  className="w-full bg-black border border-white/5 p-5 rounded-2xl text-white font-bold focus:border-[#f59e0b] outline-none transition-all"
-                />
-              </div>
-
-              <div className="pt-8">
-                <button
-                  type="submit"
-                  className="w-full bg-white text-black py-6 rounded-3xl font-black uppercase tracking-[0.3em] text-xs hover:bg-[#f59e0b] transition-all shadow-2xl shadow-white/5"
-                >
-                  Confirm Synchronization
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
       )}
 
       <style>{`

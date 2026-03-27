@@ -9,31 +9,25 @@ const AdminPayForMeManager: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    refreshData();
+    const fetchData = async () => {
+      setRequests(await databaseService.getPayForMeRequests());
+    };
+    fetchData();
   }, []);
 
-  const refreshData = async () => {
-    const reqs = await databaseService.getAdminPayForMeRequests();
-    setRequests(reqs);
-  };
-
   const handleStatusUpdate = async (requestId: string, status: PayForMeStatus) => {
-    const result = await databaseService.updateAdminPayForMeStatus(requestId, status);
-    if (result.success) {
-      refreshData();
-      
-      // Notify the user
-      const request = requests.find(r => r.id === requestId);
-      if (request) {
-        await databaseService.addAdminNotification({
-          title: `Pay For Me Request ${status}`,
-          message: `Your request for "${request.items[0].name}" has been ${status.toLowerCase()}.`,
-          type: status === PayForMeStatus.APPROVED ? 'REWARD' : 'INFO',
-          recipientId: request.userId
-        });
-      }
-    } else {
-      alert('Failed to update status.');
+    const updated = await databaseService.updatePayForMeStatus(requestId, status);
+    setRequests(updated);
+    
+    // Notify the user
+    const request = updated.find(r => r.id === requestId);
+    if (request) {
+      await databaseService.sendNotification(
+        `Pay For Me Request ${status}`,
+        `Your request for "${request.items[0].name}" has been ${status.toLowerCase()}.`,
+        status === PayForMeStatus.APPROVED ? 'REWARD' : 'INFO',
+        request.userId
+      );
     }
   };
 
@@ -49,7 +43,7 @@ const AdminPayForMeManager: React.FC = () => {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-serif italic text-white flex items-center gap-3">
-            <Wallet className="w-6 h-6 text-[#1a73e8]" />
+            <Wallet className="w-6 h-6 text-[#00D1FF]" />
             Sponsorship_Review_Board
           </h2>
           <p className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.4em] mt-1">Financial Uplink Oversight v1.2</p>
@@ -65,7 +59,7 @@ const AdminPayForMeManager: React.FC = () => {
             placeholder="Search by User or Item..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm text-white focus:border-[#1a73e8] transition-all outline-none"
+            className="w-full bg-zinc-900/50 border border-white/5 rounded-2xl pl-14 pr-6 py-4 text-sm text-white focus:border-[#00D1FF] transition-all outline-none"
           />
         </div>
         <div className="flex bg-zinc-900/50 p-1 rounded-2xl border border-white/5">
@@ -101,7 +95,7 @@ const AdminPayForMeManager: React.FC = () => {
                   <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">ID: {request.id}</span>
                 </div>
                 <div className="text-sm font-serif italic text-zinc-400">{request.items[0].name}</div>
-                <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest">GH₵{request.total}</div>
+                <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest">GH₵{request.total}</div>
               </div>
             </div>
 
@@ -110,12 +104,12 @@ const AdminPayForMeManager: React.FC = () => {
                 <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Current_Status</span>
                 <div className="flex items-center gap-2">
                   {request.status === PayForMeStatus.PENDING && <Clock className="w-3 h-3 text-amber-500" />}
-                  {request.status === PayForMeStatus.APPROVED && <CheckCircle2 className="w-3 h-3 text-[#1a73e8]" />}
+                  {request.status === PayForMeStatus.APPROVED && <CheckCircle2 className="w-3 h-3 text-[#00D1FF]" />}
                   {request.status === PayForMeStatus.PAID && <CheckCircle2 className="w-3 h-3 text-emerald-500" />}
                   {request.status === PayForMeStatus.REJECTED && <XCircle className="w-3 h-3 text-red-500" />}
                   <span className={`text-[10px] font-black uppercase tracking-widest ${
                     request.status === PayForMeStatus.PENDING ? 'text-amber-500' :
-                    request.status === PayForMeStatus.APPROVED ? 'text-[#1a73e8]' :
+                    request.status === PayForMeStatus.APPROVED ? 'text-[#00D1FF]' :
                     request.status === PayForMeStatus.PAID ? 'text-emerald-500' :
                     'text-red-500'
                   }`}>
@@ -135,7 +129,7 @@ const AdminPayForMeManager: React.FC = () => {
                   </button>
                   <button 
                     onClick={() => handleStatusUpdate(request.id, PayForMeStatus.APPROVED)}
-                    className="p-3 bg-[#1a73e8]/10 text-[#1a73e8] rounded-xl hover:bg-[#1a73e8] hover:text-white transition-all border border-[#1a73e8]/20"
+                    className="p-3 bg-[#00D1FF]/10 text-[#00D1FF] rounded-xl hover:bg-[#00D1FF] hover:text-white transition-all border border-[#00D1FF]/20"
                     title="Approve Request"
                   >
                     <CheckCircle2 className="w-4 h-4" />

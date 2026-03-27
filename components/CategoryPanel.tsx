@@ -72,7 +72,7 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
                           onClose();
                         }}
                         className={`w-full group flex items-center justify-between p-3 sm:p-4 border transition-all ${
-                          isActive ? 'bg-[#1a73e8] border-[#1a73e8] text-white' : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:border-white/20 hover:text-white'
+                          isActive ? 'bg-[#00D1FF] border-[#00D1FF] text-white' : 'bg-white/[0.02] border-white/5 text-zinc-400 hover:border-white/20 hover:text-white'
                         }`}
                       >
                         <div className="flex items-center gap-4 sm:gap-6">
@@ -116,7 +116,7 @@ const CategoryPanel: React.FC<CategoryPanelProps> = ({
                 onNavigate(ViewState.PROFILE);
                 onClose();
               }}
-              className="w-full py-4 sm:py-5 bg-white text-black text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-[#1a73e8] hover:text-white transition-all flex items-center justify-center gap-3 sm:gap-4"
+              className="w-full py-4 sm:py-5 bg-white text-black text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-[#00D1FF] hover:text-white transition-all flex items-center justify-center gap-3 sm:gap-4"
             >
               <span>View My Dossier</span>
               <span className="text-base sm:text-lg">→</span>

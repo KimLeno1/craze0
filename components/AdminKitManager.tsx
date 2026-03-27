@@ -16,41 +16,38 @@ const AdminKitManager: React.FC = () => {
   const [expiresIn, setExpiresIn] = useState(3600); // Default 1 hour
 
   useEffect(() => {
-    refreshData();
+    const fetchData = async () => {
+      setProducts(await databaseService.getProducts());
+      setBundles(await databaseService.getBundles());
+      setSuppliers(await databaseService.getSuppliers());
+    };
+    fetchData();
   }, []);
-
-  const refreshData = async () => {
-    const prods = await databaseService.getAdminProducts();
-    const kits = await databaseService.getAdminKits();
-    const supps = await databaseService.getAdminSuppliers();
-    setProducts(prods);
-    setBundles(kits);
-    setSuppliers(supps);
-  };
 
   const handleCreateBundle = async () => {
     if (!bundleName || selectedProductIds.length === 0) return;
 
-    const kitData: Bundle = {
-      id: `kit-${Date.now()}`,
+    const selectedProducts = products.filter(p => selectedProductIds.includes(p.id));
+    
+    const newBundle: Bundle = {
+      id: `bundle_${Date.now()}`,
       name: bundleName,
       description: bundleDescription,
+      products: selectedProducts,
       bundlePrice: bundlePrice,
-      products: products.filter(p => selectedProductIds.includes(p.id)),
       expiresIn: expiresIn
     };
 
-    const result = await databaseService.addAdminKit(kitData);
-    if (result.success) {
-      setIsCreating(false);
-      setBundleName('');
-      setBundleDescription('');
-      setBundlePrice(0);
-      setSelectedProductIds([]);
-      refreshData();
-    } else {
-      alert('Failed to initialize synergy kit.');
-    }
+    const updatedBundles = [...bundles, newBundle];
+    setBundles(updatedBundles);
+    await databaseService.saveBundles(updatedBundles);
+    
+    // Reset form
+    setIsCreating(false);
+    setBundleName('');
+    setBundleDescription('');
+    setBundlePrice(0);
+    setSelectedProductIds([]);
   };
 
   const toggleProductSelection = (productId: string) => {
@@ -62,8 +59,9 @@ const AdminKitManager: React.FC = () => {
   };
 
   const deleteBundle = async (id: string) => {
-    // Backend doesn't have a delete kit endpoint yet, but we can add it or just refresh
-    refreshData();
+    const updated = bundles.filter(b => b.id !== id);
+    setBundles(updated);
+    await databaseService.saveBundles(updated);
   };
 
   return (
@@ -75,7 +73,7 @@ const AdminKitManager: React.FC = () => {
         </div>
         <button 
           onClick={() => setIsCreating(true)}
-          className="px-8 py-4 bg-[#1a73e8] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-white hover:text-black transition-all"
+          className="px-8 py-4 bg-[#00D1FF] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-white hover:text-black transition-all"
         >
           Initialize_New_Kit
         </button>
@@ -85,7 +83,7 @@ const AdminKitManager: React.FC = () => {
         <div className="bg-zinc-950 border border-white/10 p-10 rounded-[3rem] space-y-10 animate-in slide-in-from-top-8 duration-500">
           <div className="grid md:grid-cols-2 gap-10">
             <div className="space-y-6">
-              <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest border-l-2 border-[#1a73e8] pl-3">Kit Parameters</div>
+              <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest border-l-2 border-[#00D1FF] pl-3">Kit Parameters</div>
               
               <div className="space-y-2">
                 <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Kit Designation</label>
@@ -94,7 +92,7 @@ const AdminKitManager: React.FC = () => {
                   value={bundleName}
                   onChange={e => setBundleName(e.target.value)}
                   placeholder="e.g., Midnight Cyber Synergy"
-                  className="w-full bg-black border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] outline-none"
+                  className="w-full bg-black border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] outline-none"
                 />
               </div>
 
@@ -104,7 +102,7 @@ const AdminKitManager: React.FC = () => {
                   rows={3}
                   value={bundleDescription}
                   onChange={e => setBundleDescription(e.target.value)}
-                  className="w-full bg-black border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#1a73e8] outline-none resize-none"
+                  className="w-full bg-black border border-white/5 rounded-2xl px-6 py-4 text-sm text-white focus:border-[#00D1FF] outline-none resize-none"
                 />
               </div>
 
@@ -131,7 +129,7 @@ const AdminKitManager: React.FC = () => {
             </div>
 
             <div className="space-y-6">
-              <div className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-3">Asset Selection</div>
+              <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest border-l-2 border-[#00D1FF] pl-3">Asset Selection</div>
               <div className="max-h-[300px] overflow-y-auto pr-4 space-y-2 scrollbar-hide">
                 {products.map(p => (
                   <button 
@@ -139,7 +137,7 @@ const AdminKitManager: React.FC = () => {
                     onClick={() => toggleProductSelection(p.id)}
                     className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
                       selectedProductIds.includes(p.id) 
-                        ? 'border-[#1a73e8] bg-[#1a73e8]/5' 
+                        ? 'border-[#00D1FF] bg-[#00D1FF]/5' 
                         : 'border-white/5 hover:border-white/10 bg-black/40'
                     }`}
                   >
@@ -168,7 +166,7 @@ const AdminKitManager: React.FC = () => {
             </button>
             <button 
               onClick={handleCreateBundle}
-              className="flex-[2] py-5 bg-white text-black rounded-3xl font-black uppercase tracking-widest text-[10px] hover:bg-[#1a73e8] hover:text-white transition-all shadow-2xl"
+              className="flex-[2] py-5 bg-white text-black rounded-3xl font-black uppercase tracking-widest text-[10px] hover:bg-[#00D1FF] hover:text-white transition-all shadow-2xl"
             >
               Finalize_Synergy_Kit
             </button>
@@ -186,14 +184,14 @@ const AdminKitManager: React.FC = () => {
         ) : (
           <div className="grid md:grid-cols-2 gap-6">
             {bundles.map(bundle => (
-              <div key={bundle.id} className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] flex flex-col justify-between group hover:border-[#1a73e8]/30 transition-all">
+              <div key={bundle.id} className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] flex flex-col justify-between group hover:border-[#00D1FF]/30 transition-all">
                 <div className="space-y-6">
                   <div className="flex justify-between items-start">
                     <div>
                       <h3 className="text-xl font-serif italic text-white">{bundle.name}</h3>
                       <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1">{bundle.products.length} Assets Synchronized</p>
                     </div>
-                    <div className="text-xl font-mono font-black text-[#1a73e8]">GH₵{bundle.bundlePrice}</div>
+                    <div className="text-xl font-mono font-black text-[#00D1FF]">GH₵{bundle.bundlePrice}</div>
                   </div>
                   
                   <div className="flex -space-x-4">

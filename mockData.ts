@@ -1,5 +1,5 @@
 
-import { Product, Bundle, FlashSale, Order, OrderStatus } from './types';
+import { Product, Bundle, PriceAnomaly, Order, OrderStatus } from './types';
 import { MOCK_PRODUCTS } from './constants';
 
 export const EXTENDED_PRODUCTS: Product[] = MOCK_PRODUCTS.map(p => ({
@@ -26,11 +26,11 @@ export const MOCK_BUNDLES: Bundle[] = [
   }
 ];
 
-export const MOCK_FLASH_SALES: FlashSale[] = [
+export const MOCK_PRICE_ANOMALIES: PriceAnomaly[] = [
   {
     ...EXTENDED_PRODUCTS[2],
     productId: EXTENDED_PRODUCTS[2].id,
-    saleEndTime: Date.now() + 900000, // 15 mins
+    anomalyEndTime: Date.now() + 900000, // 15 mins
     discountPercent: 40
   }
 ];

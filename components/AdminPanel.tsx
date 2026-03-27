@@ -8,11 +8,13 @@ import AdminOrderManager from './AdminOrderManager';
 import AdminDatabaseView from './AdminDatabaseView';
 import AdminSupplierPanel from './AdminSupplierPanel';
 import AdminSecurityPanel from './AdminSecurityPanel';
-import AdminFlashSaleManager from './AdminFlashSaleManager';
+import AdminPriceAnomalyManager from './AdminPriceAnomalyManager';
 import AdminKitManager from './AdminKitManager';
 import AdminNotificationManager from './AdminNotificationManager';
 import AdminPayForMeManager from './AdminPayForMeManager';
 import AdminPromoManager from './AdminPromoManager';
+import AdminMetricsView from './AdminMetricsView';
+import AdminJackpotManager from './AdminJackpotManager';
 
 interface AdminPanelProps {
   onExit: () => void;
@@ -22,29 +24,19 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpot, currentJackpotId }) => {
-  const [activeTab, setActiveTab] = useState<'METRICS' | 'INVENTORY' | 'JACKPOT' | 'ORDERS' | 'DATABASE' | 'SUPPLIERS' | 'PROMOS' | 'SECURITY' | 'FLASH' | 'KITS' | 'NOTIFICATIONS' | 'SPONSORSHIPS'>('METRICS');
+  const [activeTab, setActiveTab] = useState<'METRICS' | 'INVENTORY' | 'JACKPOT' | 'ORDERS' | 'DATABASE' | 'SUPPLIERS' | 'PROMOS' | 'SECURITY' | 'PRICE_ANOMALY' | 'KITS' | 'NOTIFICATIONS' | 'SPONSORSHIPS'>('METRICS');
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
   const [localOrders, setLocalOrders] = useState<Order[]>([]);
-  const [metrics, setMetrics] = useState<any>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    refreshData();
-  }, [activeTab]);
-
-  const refreshData = async () => {
-    if (activeTab === 'INVENTORY' || activeTab === 'JACKPOT') {
-      const products = await databaseService.getAdminProducts();
-      setLocalProducts(products);
-    } else if (activeTab === 'ORDERS') {
-      const orders = await databaseService.getAdminOrders();
-      setLocalOrders(orders);
-    } else if (activeTab === 'METRICS') {
-      const data = await databaseService.getAdminMetrics();
-      setMetrics(data);
-    }
-  };
+    const fetchData = async () => {
+      setLocalProducts(await databaseService.getProducts());
+      setLocalOrders(await databaseService.getOrders());
+    };
+    fetchData();
+  }, []);
 
   const handleEditProduct = (product: Product) => {
     setEditingProduct(product);
@@ -53,13 +45,16 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
 
   const handleSaveProduct = async (formData: Partial<Product>) => {
     if (editingProduct) {
-      const result = await databaseService.updateProductOnBackend(editingProduct.id, formData);
-      if (!result.success) {
-        alert('Failed to update product.');
-      }
+      const updated = localProducts.map(p => p.id === editingProduct.id ? { ...p, ...formData } : p);
+      setLocalProducts(updated);
+      await databaseService.saveProducts(updated);
     }
     setIsEditorOpen(false);
-    refreshData();
+  };
+
+  const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus, tracking?: string) => {
+    await databaseService.updateOrderStatus(orderId, status, tracking);
+    setLocalOrders(await databaseService.getOrders());
   };
 
   return (
@@ -82,7 +77,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
             { id: 'SUPPLIERS', label: 'Suppliers', icon: '🏢' },
             { id: 'PROMOS', label: 'Promos', icon: '🎟️' },
             { id: 'KITS', label: 'Synergy Kits', icon: '📦' },
-            { id: 'FLASH', label: 'Flash Sales', icon: '⚡' },
+            { id: 'PRICE_ANOMALY', label: 'Global Reduction', icon: '⚡' },
             { id: 'NOTIFICATIONS', label: 'Broadcast', icon: '📢' },
             { id: 'SPONSORSHIPS', label: 'Pay For Me', icon: '🤝' },
             { id: 'SECURITY', label: 'Security', icon: '🛡️' },
@@ -101,73 +96,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
         </aside>
 
         <main className="flex-1 overflow-y-auto p-12">
+          {activeTab === 'METRICS' && <AdminMetricsView />}
           {activeTab === 'JACKPOT' && (
-            <div className="max-w-4xl space-y-12 animate-in fade-in duration-500">
-               <header>
-                  <h2 className="text-3xl font-serif italic text-white">Weekly_Jackpot_Asset</h2>
-                  <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em] mt-2">Designate the Apex Prize</p>
-               </header>
-
-               <div className="bg-zinc-950 border border-white/5 p-10 rounded-[3rem] space-y-8">
-                  <div className="text-[10px] font-black text-[#1a73e8] uppercase tracking-widest">Active Jackpot</div>
-                  {localProducts.find(p => p.id === currentJackpotId) && (
-                    <div className="flex gap-8 items-center bg-black/50 p-6 rounded-3xl border border-[#1a73e8]/30">
-                       <img src={localProducts.find(p => p.id === currentJackpotId)?.image} className="w-24 h-24 object-cover rounded-xl" />
-                       <div>
-                          <div className="text-xl font-black text-white">{localProducts.find(p => p.id === currentJackpotId)?.name}</div>
-                          <div className="text-[10px] text-zinc-500 uppercase">SKU: {currentJackpotId}</div>
-                       </div>
-                    </div>
-                  )}
-
-                  <div className="grid gap-3">
-                    <div className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Select New Protocol</div>
-                    {localProducts.slice(0, 8).map(p => (
-                      <button 
-                        key={p.id}
-                        onClick={() => onSetJackpot(p.id)}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all ${currentJackpotId === p.id ? 'border-[#1a73e8] bg-[#1a73e8]/5' : 'border-white/5 hover:border-white/20'}`}
-                      >
-                        <span className="text-xs font-black text-white">{p.name}</span>
-                        <span className="text-[8px] font-bold text-zinc-600 uppercase">GH₵{p.price}</span>
-                      </button>
-                    ))}
-                  </div>
-               </div>
-            </div>
+            <AdminJackpotManager 
+              currentJackpotId={currentJackpotId} 
+              onSetJackpot={onSetJackpot} 
+            />
           )}
-
-          {activeTab === 'METRICS' && metrics && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in duration-500">
-              <div className="bg-zinc-950 p-8 rounded-[2rem] border border-white/5 space-y-2">
-                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Total Users</div>
-                <div className="text-3xl font-mono font-black text-white">{metrics.totalUsers}</div>
-              </div>
-              <div className="bg-zinc-950 p-8 rounded-[2rem] border border-white/5 space-y-2">
-                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Total Revenue</div>
-                <div className="text-3xl font-mono font-black text-emerald-500">GH₵{metrics.totalRevenue.toLocaleString()}</div>
-              </div>
-              <div className="bg-zinc-950 p-8 rounded-[2rem] border border-white/5 space-y-2">
-                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">Active Orders</div>
-                <div className="text-3xl font-mono font-black text-blue-500">{metrics.totalOrders}</div>
-              </div>
-              <div className="bg-zinc-950 p-8 rounded-[2rem] border border-white/5 space-y-2">
-                <div className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">System Health</div>
-                <div className="text-3xl font-mono font-black text-amber-500">{metrics.systemHealth}</div>
-              </div>
-            </div>
-          )}
-          {activeTab === 'METRICS' && !metrics && <div className="text-zinc-500">Analytics Terminal Loading...</div>}
-          
           {activeTab === 'INVENTORY' && (
             <div className="grid gap-4">
               {localProducts.map(p => (
                 <div key={p.id} className="bg-zinc-950 p-6 border border-white/5 flex items-center justify-between group hover:border-white/20 transition-all">
                   <div className="flex items-center gap-6">
-                    <img src={p.image} className="w-16 h-20 object-cover rounded-xl grayscale group-hover:grayscale-0 transition-all" />
+                    <img src={p.image} className="w-16 h-20 object-cover rounded-xl grayscale-0 transition-all" />
                     <div className="space-y-1">
-                      <div className="text-xs uppercase font-black text-white">{p.name}</div>
-                      <div className="text-[8px] text-zinc-600 font-bold uppercase tracking-widest">SKU: {p.id} | Price: GH₵{p.price}</div>
+                      <div className="text-xs uppercase font-black text-[#00D1FF]">{p.name}</div>
+                      <div className="text-[8px] text-zinc-400 font-bold uppercase tracking-widest">SKU: {p.id} | Price: GH₵{p.price}</div>
                     </div>
                   </div>
                   
@@ -187,15 +131,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
                             const newHype = parseInt(e.target.value);
                             const updated = localProducts.map(prod => prod.id === p.id ? { ...prod, hypeScore: newHype } : prod);
                             setLocalProducts(updated);
-                            await databaseService.updateProductOnBackend(p.id, { hypeScore: newHype });
+                            await databaseService.updateProductHype(p.id, newHype);
                           }}
-                          className="w-32 accent-[#1a73e8] bg-zinc-900 h-1 rounded-full appearance-none cursor-pointer"
+                          className="w-32 accent-[#00D1FF] bg-zinc-900 h-1 rounded-full appearance-none cursor-pointer"
                         />
-                        <span className="text-[10px] font-mono font-black text-[#1a73e8] w-8 text-right">{p.hypeScore || 0}%</span>
+                        <span className="text-[10px] font-mono font-black text-[#00D1FF] w-8 text-right">{p.hypeScore || 0}%</span>
                       </div>
                     </div>
                     
-                    <button onClick={() => handleEditProduct(p)} className="px-6 py-3 bg-white/5 hover:bg-white hover:text-black text-[9px] uppercase font-black tracking-widest transition-all rounded-lg border border-white/5">
+                    <button onClick={() => handleEditProduct(p)} className="px-6 py-3 bg-white/10 text-white text-[9px] uppercase font-black tracking-widest transition-all rounded-lg border border-white/10">
                       Configure
                     </button>
                   </div>
@@ -203,15 +147,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
               ))}
             </div>
           )}
-          {activeTab === 'ORDERS' && <AdminOrderManager orders={localOrders} onUpdateStatus={async (id, status) => {
-            await databaseService.updateOrderStatusOnBackend(id, status);
-            refreshData();
-          }} />}
+          {activeTab === 'ORDERS' && <AdminOrderManager orders={localOrders} onUpdateStatus={handleUpdateOrderStatus} />}
           {activeTab === 'DATABASE' && <AdminDatabaseView />}
-          {activeTab === 'SUPPLIERS' && <AdminSupplierPanel />}
-          {activeTab === 'PROMOS' && <AdminPromoManager />}
-          {activeTab === 'FLASH' && <AdminFlashSaleManager />}
-          {activeTab === 'KITS' && <AdminKitManager />}
+          { activeTab === 'SUPPLIERS' && <AdminSupplierPanel /> }
+          { activeTab === 'PROMOS' && <AdminPromoManager /> }
+          { activeTab === 'PRICE_ANOMALY' && <AdminPriceAnomalyManager /> }
+          { activeTab === 'KITS' && <AdminKitManager /> }
           {activeTab === 'NOTIFICATIONS' && <AdminNotificationManager />}
           {activeTab === 'SPONSORSHIPS' && <AdminPayForMeManager />}
           {activeTab === 'SECURITY' && <AdminSecurityPanel />}

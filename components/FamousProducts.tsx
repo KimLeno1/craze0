@@ -1,5 +1,5 @@
 import React from 'react';
-import { Product, UserStats } from '../types';
+import { Product } from '../types';
 
 interface FamousProductsProps {
   products: Product[];
@@ -7,8 +7,7 @@ interface FamousProductsProps {
   onProductClick: (p: Product) => void;
   onAddToCart: (p: Product) => void;
   onToggleWishlist: (p: Product) => void;
-  onSoftLock?: (productId: string) => void;
-  stats?: UserStats;
+  limitedOfferEnd?: number | null;
 }
 
 const FamousProducts: React.FC<FamousProductsProps> = ({ 
@@ -17,14 +16,26 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
   onProductClick, 
   onAddToCart,
   onToggleWishlist,
-  onSoftLock,
-  stats
+  limitedOfferEnd
 }) => {
+  const [timeLeft, setTimeLeft] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (!limitedOfferEnd) return;
+    const timer = setInterval(() => {
+      const seconds = Math.max(0, Math.floor((limitedOfferEnd - Date.now()) / 1000));
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      setTimeLeft(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [limitedOfferEnd]);
+
   const sorted = [...products].sort((a, b) => {
     const scoreA = (a.hypeScore || 0) + (a.velocityScore || 0) + (a.isHallOfFame ? 100 : 0);
     const scoreB = (b.hypeScore || 0) + (b.velocityScore || 0) + (b.isHallOfFame ? 100 : 0);
     return scoreB - scoreA;
-  }).slice(0, 10);
+  });
 
   return (
     <div className="min-h-screen bg-[#050505] animate-in fade-in duration-1000 pb-40">
@@ -41,7 +52,7 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
 
         <div className="relative z-10 space-y-6 md:space-y-8 max-w-5xl">
           <div className="flex items-center gap-4">
-            <div className="px-3 py-1 bg-[#1a73e8] text-[8px] font-black text-white uppercase tracking-[0.5em] animate-pulse">
+            <div className="px-3 py-1 bg-[#00D1FF] text-[8px] font-black text-white uppercase tracking-[0.5em] animate-pulse">
               Live Matrix Active
             </div>
             <div className="h-px w-12 md:w-20 bg-white/20"></div>
@@ -49,7 +60,7 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
           </div>
           
           <h1 className="text-6xl md:text-[12rem] font-serif italic text-white tracking-tighter leading-[0.8] mix-blend-difference">
-            Velocity<span className="text-[#1a73e8] not-italic font-sans text-2xl md:text-4xl align-top ml-2 md:ml-4">Heat</span>
+            Velocity<span className="text-[#00D1FF] not-italic font-sans text-2xl md:text-4xl align-top ml-2 md:ml-4">Heat</span>
           </h1>
           
           <div className="flex flex-col md:flex-row md:items-center gap-8 md:gap-12 pt-4 md:pt-8">
@@ -80,30 +91,18 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
             >
               {/* Index & Heat Indicator */}
               <div className="lg:col-span-2 space-y-4 md:space-y-6 w-full lg:w-auto">
-                <div className="relative inline-block">
-                  <div className={`text-5xl md:text-8xl font-serif italic leading-none ${
-                    idx === 0 ? 'text-[#1a73e8]' : 
-                    idx === 1 ? 'text-zinc-300' :
-                    idx === 2 ? 'text-zinc-500' :
-                    'text-zinc-900 group-hover:text-white/10'
-                  } transition-colors`}>
-                    {String(idx + 1).padStart(2, '0')}
-                  </div>
-                  {idx < 3 && (
-                    <div className="absolute -top-2 -right-6 bg-[#1a73e8] text-white text-[7px] font-black px-2 py-0.5 uppercase tracking-tighter rotate-12 shadow-xl border border-white/10">
-                      {idx === 0 ? 'Apex_Heat' : idx === 1 ? 'High_Demand' : 'Rising_Trend'}
-                    </div>
-                  )}
+                <div className="text-5xl md:text-7xl font-serif italic text-zinc-900 group-hover:text-white/10 transition-colors leading-none">
+                  {String(idx + 1).padStart(2, '0')}
                 </div>
                 <div className="space-y-2">
                   <div className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Heat_Index</div>
                   <div className="h-1 w-full bg-zinc-900 overflow-hidden rounded-full">
                     <div 
-                      className="h-full bg-[#1a73e8] shadow-[0_0_10px_#1a73e8]" 
+                      className="h-full bg-[#00D1FF] shadow-[0_0_10px_#00D1FF]" 
                       style={{ width: `${p.velocityScore}%` }}
                     ></div>
                   </div>
-                  <div className="text-[10px] font-mono text-[#1a73e8]">{p.velocityScore}%</div>
+                  <div className="text-[10px] font-mono text-[#00D1FF]">{p.velocityScore}%</div>
                 </div>
               </div>
               
@@ -118,8 +117,16 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
                   alt={p.name}
                 />
                 {p.isHallOfFame && (
-                  <div className="absolute top-4 left-4 md:top-6 md:left-6 bg-[#1a73e8] text-white px-3 md:px-4 py-1 text-[7px] md:text-[8px] font-black uppercase tracking-widest shadow-2xl z-10">
+                  <div className="absolute top-4 left-4 md:top-6 md:left-6 bg-amber-500 text-black px-3 md:px-4 py-1 text-[7px] md:text-[8px] font-black uppercase tracking-widest shadow-2xl z-10">
                     Elite_Archive // Hall of Fame
+                  </div>
+                )}
+                {p.price < p.originalPrice && (
+                  <div className="absolute top-4 right-4 md:top-6 md:right-6 bg-red-600 text-white px-3 md:px-4 py-1 text-[7px] md:text-[8px] font-black uppercase tracking-widest shadow-2xl z-10 animate-pulse flex items-center gap-2">
+                    <span>Sale</span>
+                    {limitedOfferEnd && timeLeft && (
+                      <span className="font-mono border-l border-white/20 pl-2">{timeLeft}</span>
+                    )}
                   </div>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6 md:p-8">
@@ -135,7 +142,7 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
                     <div className="w-1 h-1 bg-zinc-800 rounded-full"></div>
                     {p.appeal && (
                       <>
-                        <span className="text-[9px] md:text-[10px] font-bold text-purple-500 uppercase tracking-[0.4em]">{p.appeal}</span>
+                        <span className="text-[9px] md:text-[10px] font-bold text-blue-500 uppercase tracking-[0.4em]">{p.appeal}</span>
                         <div className="w-1 h-1 bg-zinc-800 rounded-full"></div>
                       </>
                     )}
@@ -143,7 +150,7 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
                   </div>
                   
                   <h3 
-                    className="text-4xl md:text-7xl font-serif italic text-white group-hover:text-[#1a73e8] transition-colors cursor-pointer leading-tight tracking-tighter" 
+                    className="text-4xl md:text-7xl font-serif italic text-white group-hover:text-[#00D1FF] transition-colors cursor-pointer leading-tight tracking-tighter" 
                     onClick={() => onProductClick(p)}
                   >
                     {p.name}
@@ -165,26 +172,18 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-6 md:pt-8 border-t border-white/5 gap-6">
                   <div className="space-y-1">
                     <div className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Acquisition_Cost</div>
-                    <div className="text-2xl md:text-3xl font-mono text-white">GH₵{p.price}</div>
+                    <div className="flex items-baseline gap-3">
+                      <div className="text-2xl md:text-3xl font-mono text-white">GH₵{p.price}</div>
+                      {p.price < p.originalPrice && (
+                        <div className="text-sm md:text-base font-mono text-zinc-700 line-through">GH₵{p.originalPrice}</div>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="flex gap-4">
-                    {onSoftLock && stats && !stats.softLockedItems[p.id] && (
-                      <button 
-                        onClick={() => onSoftLock(p.id)}
-                        className="flex-1 sm:flex-none h-14 md:h-16 px-6 md:px-8 bg-black border border-white/10 text-white text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] hover:bg-orange-600 hover:border-orange-600 transition-all active:scale-95"
-                      >
-                        Soft Lock
-                      </button>
-                    )}
-                    {stats?.softLockedItems[p.id] && (
-                      <div className="flex-1 sm:flex-none h-14 md:h-16 px-6 md:px-8 bg-orange-600/20 border border-orange-600 text-orange-500 text-[8px] md:text-[9px] font-black uppercase tracking-[0.3em] flex items-center justify-center animate-pulse">
-                        Locked
-                      </div>
-                    )}
                     <button 
                       onClick={() => onAddToCart(p)}
-                      className="flex-1 sm:flex-none h-14 md:h-16 px-8 md:px-12 bg-white text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#1a73e8] hover:text-white transition-all active:scale-95"
+                      className="flex-1 sm:flex-none h-14 md:h-16 px-8 md:px-12 bg-white text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#00D1FF] hover:text-white transition-all active:scale-95"
                     >
                       Acquire
                     </button>
@@ -192,7 +191,7 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
                       onClick={() => onToggleWishlist(p)}
                       className={`w-14 h-14 md:w-16 md:h-16 border transition-all flex items-center justify-center ${
                         wishlist.includes(p.id) 
-                        ? 'bg-[#1a73e8] border-[#1a73e8] text-white' 
+                        ? 'bg-[#00D1FF] border-[#00D1FF] text-white' 
                         : 'border-white/10 text-zinc-500 hover:text-white hover:border-white/30'
                       }`}
                     >

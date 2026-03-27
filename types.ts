@@ -1,6 +1,6 @@
 
-export type Category = 'All' | 'Apparel' | 'Accessories' | 'Home' | 'Beauty';
-export type Gender = 'MALE' | 'FEMALE' | 'UNISEX';
+export type Category = 'All' | 'Apparel' | 'Accessories' | 'Home' | 'Beauty' | 'Footwear' | 'Kits' | 'Fragments';
+export type Gender = 'MALE' | 'FEMALE' | 'UNISEX' | 'MEN' | 'WOMEN';
 
 export type UserRankTier = 'Novice' | 'Tempest' | 'Icon' | 'Star' | 'Appeal God';
 
@@ -22,8 +22,10 @@ export interface PromoCode {
   type: 'PERCENT' | 'AMOUNT';
   value: number;
   description: string;
-  expiresAt: string;
-  usageLimit?: number;
+  discount: number; // Added to match AdminPromoManager usage
+  usageLimit: number; // Added to match AdminPromoManager usage
+  usedCount: number; // Added to match AdminPromoManager usage
+  expiryDate: string; // Added to match AdminPromoManager usage
 }
 
 export interface Notification {
@@ -71,7 +73,6 @@ export interface Product {
   isCustom?: boolean;
   priceRange?: { min: number; max: number };
   customizationFields?: CustomizationField[];
-  images?: string[];
 }
 
 export interface Supplier {
@@ -88,10 +89,7 @@ export interface Supplier {
 export interface User {
   id: string;
   handle: string;
-  username?: string; // Added for registration
   email: string;
-  phone?: string; // Added for registration
-  password?: string; // Added for authentication
   archetype: string;
   rep: number;
   level: number;
@@ -100,8 +98,6 @@ export interface User {
   status: 'ACTIVE' | 'BANNED' | 'RESTRICTED';
   lastLogin: string;
   totalSpent: number;
-  role: 'client' | 'admin' | 'supplier';
-  stats?: UserStats;
 }
 
 export interface Bundle {
@@ -113,9 +109,9 @@ export interface Bundle {
   expiresIn: number;
 }
 
-export interface FlashSale extends Product {
+export interface PriceAnomaly extends Product {
   productId: string;
-  saleEndTime: number;
+  anomalyEndTime: number;
   discountPercent: number;
 }
 
@@ -139,7 +135,7 @@ export enum ViewState {
   TRY_ON = 'TRY_ON',
   CATEGORIES = 'CATEGORIES',
   BUNDLES = 'BUNDLES',
-  FLASH = 'FLASH',
+  PRICE_ANOMALY = 'PRICE_ANOMALY',
   PROFILE = 'PROFILE',
   OUTFIT_BUILDER = 'OUTFIT_BUILDER',
   WISHLIST = 'WISHLIST',
@@ -170,36 +166,17 @@ export interface Quest {
   completed: boolean;
 }
 
-export interface MicroCommitment {
-  id: string;
-  type: 'VERIFY_TREND' | 'SYNC_LINK' | 'ENDORSE_STYLE' | 'RESERVE_SLOT' | 'SHARE_RANK';
-  label: string;
-  rewardXP: number;
-  completed: boolean;
-  expiresAt: number;
-}
-
 export interface UserStats {
+  userId: string;
   dailyGameAttempts: number;
   lastGameReset: string;
   quests: Quest[];
-  microCommitments: MicroCommitment[];
-  commitmentStreak: number;
-  softLockedItems: Record<string, number>; // productId -> expiry timestamp
   selectedPath: string | null;
   aiTryOnsUsedToday: number;
   tickets: number;
   brandSubscriptions: string[];
   tagSubscriptions: string[];
   achievements: Achievement[];
-}
-
-export interface UserCredit {
-  id: string;
-  userId: string;
-  amount: number;
-  createdAt: number;
-  status: 'AVAILABLE' | 'USED';
 }
 
 export interface Order {
@@ -281,8 +258,7 @@ export enum PayForMeStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
-  PAID = 'PAID',
-  EXPIRED = 'EXPIRED'
+  PAID = 'PAID'
 }
 
 export interface PayForMeRequest {
@@ -298,15 +274,45 @@ export interface PayForMeRequest {
   message?: string;
 }
 
-export interface SocialPost {
+export interface UserPost {
   id: string;
   userId: string;
   userHandle: string;
   image: string;
   likes: number;
-  loves: number;
+  dislikes: number;
+  reports: number;
   timestamp: string;
   weekId: string;
-  likedBy?: string[];
-  lovedBy?: string[];
+}
+
+export interface SocialComment {
+  id: string;
+  postId: string;
+  userId: string;
+  userHandle: string;
+  text: string;
+  timestamp: string;
+}
+
+export interface SocialInteraction {
+  userId: string;
+  postId: string;
+  type: 'LIKE' | 'DISLIKE';
+}
+
+export interface UserPreferences {
+  userId: string;
+  preferredCategories: Category[];
+  preferredGenders: Gender[];
+  styleArchetype?: string;
+  colorPreferences?: string[];
+  priceRange?: { min: number; max: number };
+}
+
+export interface UserHistory {
+  userId: string;
+  viewedProductIds: string[];
+  wishlistedProductIds: string[];
+  purchasedProductIds: string[];
 }

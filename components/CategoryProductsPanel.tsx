@@ -7,6 +7,7 @@ interface CategoryProductsPanelProps {
   category: Category | 'All';
   products: Product[];
   onProductSelect: (p: Product) => void;
+  limitedOfferEnd?: number | null;
 }
 
 const CategoryProductsPanel: React.FC<CategoryProductsPanelProps> = ({ 
@@ -14,8 +15,22 @@ const CategoryProductsPanel: React.FC<CategoryProductsPanelProps> = ({
   onClose, 
   category, 
   products, 
-  onProductSelect 
+  onProductSelect,
+  limitedOfferEnd
 }) => {
+  const [timeLeft, setTimeLeft] = React.useState<string>('');
+
+  React.useEffect(() => {
+    if (!limitedOfferEnd) return;
+    const timer = setInterval(() => {
+      const seconds = Math.max(0, Math.floor((limitedOfferEnd - Date.now()) / 1000));
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      setTimeLeft(`${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [limitedOfferEnd]);
+
   const filteredProducts = useMemo(() => {
     if (category === 'All') return products;
     return products.filter(p => p.category === category);
@@ -47,7 +62,7 @@ const CategoryProductsPanel: React.FC<CategoryProductsPanelProps> = ({
             <div className="space-y-6 sm:space-y-8">
               <div className="flex justify-between items-center">
                 <div className="text-[9px] sm:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Available Silhouettes</div>
-                <div className="text-[9px] sm:text-[10px] font-mono text-[#1a73e8]">{filteredProducts.length} Items</div>
+                <div className="text-[9px] sm:text-[10px] font-mono text-[#00D1FF]">{filteredProducts.length} Items</div>
               </div>
               
               <div className="grid grid-cols-2 gap-4 sm:gap-6">
@@ -63,8 +78,16 @@ const CategoryProductsPanel: React.FC<CategoryProductsPanelProps> = ({
                     <div className="aspect-[3/4] overflow-hidden bg-zinc-900 border border-white/5 relative">
                       <img src={product.image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition-all duration-700" />
                       {product.isNew && (
-                        <div className="absolute top-2 left-2 px-2 py-0.5 bg-[#1a73e8] text-[8px] font-black text-white uppercase tracking-widest">
+                        <div className="absolute top-2 left-2 px-2 py-0.5 bg-[#00D1FF] text-[8px] font-black text-white uppercase tracking-widest">
                           New
+                        </div>
+                      )}
+                      {product.price < product.originalPrice && (
+                        <div className="absolute top-2 right-2 px-2 py-0.5 bg-red-600 text-white text-[8px] font-black uppercase tracking-widest animate-pulse flex items-center gap-1">
+                          <span>Sale</span>
+                          {limitedOfferEnd && timeLeft && (
+                            <span className="font-mono border-l border-white/20 pl-1">{timeLeft}</span>
+                          )}
                         </div>
                       )}
                       <div className="absolute bottom-2 right-2 px-2 py-0.5 bg-black/80 backdrop-blur-md border border-white/10 text-[8px] font-black text-white uppercase tracking-widest">
@@ -73,7 +96,12 @@ const CategoryProductsPanel: React.FC<CategoryProductsPanelProps> = ({
                     </div>
                     <div className="space-y-1">
                       <div className="text-[10px] font-black text-white uppercase tracking-widest truncate">{product.name}</div>
-                      <div className="text-[9px] font-mono text-zinc-600">GH₵{product.price}</div>
+                      <div className="flex items-center gap-2">
+                        <div className="text-[9px] font-mono text-zinc-600">GH₵{product.price}</div>
+                        {product.price < product.originalPrice && (
+                          <div className="text-[8px] font-mono text-zinc-800 line-through">GH₵{product.originalPrice}</div>
+                        )}
+                      </div>
                     </div>
                   </button>
                 ))}

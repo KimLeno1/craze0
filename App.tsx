@@ -1,7 +1,5 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { seedDatabase } from './services/seedService';
-import { ErrorBoundary } from './components/ErrorBoundary';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import ProductDetail from './components/ProductDetail';
@@ -12,7 +10,7 @@ import FamousProducts from './components/FamousProducts';
 import TryOn from './components/TryOn';
 import Bundles from './components/Bundles';
 import Categories from './components/Categories';
-import FlashSales from './components/FlashSales';
+import PriceAnomalies from './components/PriceAnomalies';
 import Profile from './components/Profile';
 import WishlistView from './components/WishlistView';
 import CategoryPanel from './components/CategoryPanel';
@@ -32,27 +30,37 @@ import Tutorial from './components/Tutorial';
 import LandingScreen from './components/LandingScreen';
 import VaultEntrance from './components/VaultEntrance';
 import SocialGallery from './components/SocialGallery';
+import StyleQuiz from './components/StyleQuiz';
+import { EXTENDED_PRODUCTS, MOCK_BUNDLES } from './mockData';
 import { databaseService } from './services/databaseService';
 import { getCurrentRank } from './data/rankingSystem';
-import { MOCK_BUNDLES } from './mockData';
-import { Product, CartItem, Page, ViewState, UserStats, Notification, PromoCode, Bundle, User } from './types';
+import { Product, CartItem, Page, ViewState, UserStats, Notification, PromoCode, Bundle, UserPreferences } from './types';
 
 const App: React.FC = () => {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isAuthReady, setIsAuthReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => localStorage.getItem('cc-auth-token') === 'true');
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showTutorial, setShowTutorial] = useState<boolean>(false);
+  const [tutorialFinished, setTutorialFinished] = useState<boolean>(() => localStorage.getItem('cc-tutorial-finished') === 'true');
   const [currentView, setCurrentView] = useState<ViewState>(ViewState.LOBBY);
   const [activeSupplierId, setActiveSupplierId] = useState<string | null>(null);
-  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    const saved = localStorage.getItem('cc-theme');
-    if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-  });
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => (localStorage.getItem('cc-theme') as 'dark' | 'light') || 'dark');
   
-  const [cart, setCart] = useState<CartItem[]>(() => JSON.parse(localStorage.getItem('closet-kraze-cart') || '[]'));
-  const [wishlist, setWishlist] = useState<string[]>(() => JSON.parse(localStorage.getItem('closet-kraze-wishlist') || '[]'));
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('closet-kraze-cart') || '[]');
+    } catch (e) {
+      console.error('Error parsing cart:', e);
+      return [];
+    }
+  });
+  const [wishlist, setWishlist] = useState<string[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('closet-kraze-wishlist') || '[]');
+    } catch (e) {
+      console.error('Error parsing wishlist:', e);
+      return [];
+    }
+  });
   const [notifications, setNotifications] = useState<Notification[]>([]);
   
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -64,77 +72,79 @@ const App: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<any>('All');
   const [products, setProducts] = useState<Product[]>([]);
   
-  const [rep, setRep] = useState<number>(100);
-  const [handle, setHandle] = useState<string>('Archiver');
+  const [rep, setRep] = useState<number>(8500);
+  const [handle, setHandle] = useState<string>(() => localStorage.getItem('cc-user-handle') || 'Viper_X');
   const [activePromo, setActivePromo] = useState<PromoCode | null>(null);
   const [surgeTimerEnd, setSurgeTimerEnd] = useState<number | null>(() => Number(localStorage.getItem('cc-surge-timer') || '0') || null);
+  const [limitedOfferEnd, setLimitedOfferEnd] = useState<number | null>(() => Number(localStorage.getItem('cc-limited-offer-timer') || '0') || null);
+  const [userPrefs, setUserPrefs] = useState<UserPreferences | null>(null);
+  const [showStyleQuiz, setShowStyleQuiz] = useState<boolean>(false);
 
-  const [stats, setStats] = useState<UserStats>({
-    dailyGameAttempts: 0,
-    lastGameReset: new Date().toISOString(),
-    quests: [],
-    microCommitments: [],
-    commitmentStreak: 0,
-    softLockedItems: {},
-    selectedPath: null,
-    aiTryOnsUsedToday: 0,
-    tickets: 5,
-    brandSubscriptions: [],
-    tagSubscriptions: [],
-    achievements: []
+  const resetLimitedOffer = () => {
+    const newEnd = Date.now() + (3600 * 1000); // 1 hour from now
+    setLimitedOfferEnd(newEnd);
+    localStorage.setItem('cc-limited-offer-timer', newEnd.toString());
+  };
+
+  useEffect(() => {
+    if (!limitedOfferEnd) {
+      resetLimitedOffer();
+    }
+  }, [limitedOfferEnd]);
+
+  const [stats, setStats] = useState<UserStats>(() => {
+    // Initial mock stats, will be updated in useEffect
+    return {
+      userId: 'u1',
+      level: 1,
+      experience: 0,
+      nextLevelExp: 1000,
+      rank: 'NEOPHYTE',
+      totalSpent: 0,
+      itemsOwned: 0,
+      achievements: [],
+      dailyQuests: [],
+      tickets: 5,
+      aiTryOnsUsedToday: 0,
+      dailyGameAttempts: 3,
+      lastGameReset: new Date().toISOString(),
+      quests: [],
+      selectedPath: null,
+      brandSubscriptions: [],
+      tagSubscriptions: []
+    };
   });
+
+  useEffect(() => {
+    const initUser = async () => {
+      const users = await databaseService.getUsers();
+      const user = users.find(u => u.handle === (localStorage.getItem('cc-user-handle') || 'Viper_X'));
+      if (user) {
+        setRep(user.rep);
+        setHandle(user.handle);
+        const userStats = await databaseService.getUserStats(user.id);
+        setStats(userStats);
+        const prefs = await databaseService.getUserPreferences(user.id);
+        setUserPrefs(prefs);
+      } else {
+        setRep(Number(localStorage.getItem('cc-user-rep') || '8500'));
+        const userStats = await databaseService.getUserStats('u1');
+        setStats(userStats);
+        const prefs = await databaseService.getUserPreferences('u1');
+        setUserPrefs(prefs);
+      }
+    };
+    initUser();
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated && tutorialFinished && !userPrefs && !showStyleQuiz) {
+      setShowStyleQuiz(true);
+    }
+  }, [isAuthenticated, tutorialFinished, userPrefs]);
   const [socialPosts, setSocialPosts] = useState<any[]>([]);
 
-  const [jackpotProductId, setJackpotProductId] = useState<string>('1');
-
-  useEffect(() => {
-    const init = async () => {
-      await seedDatabase();
-      const settings = await databaseService.getAdminSettings();
-      if (settings.jackpot_product_id) {
-        setJackpotProductId(settings.jackpot_product_id);
-      }
-
-      // Check for saved user/token
-      const savedUser = localStorage.getItem('cc-current-user');
-      const savedToken = localStorage.getItem('cc-auth-token');
-      if (savedUser && savedToken) {
-        const user = JSON.parse(savedUser);
-        setCurrentUser(user);
-        setIsAuthenticated(true);
-        setRep(user.rep || 100);
-        setHandle(user.handle || 'Archiver');
-        if (user.stats) setStats(user.stats as any);
-      }
-      setIsAuthReady(true);
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
-    const fetchProducts = async () => {
-      const p = await databaseService.getProducts();
-      setProducts(p);
-    };
-    fetchProducts();
-    const interval = setInterval(fetchProducts, 30000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    if (currentUser) {
-      const unsubNotifs = databaseService.subscribeToNotifications(currentUser.id, setNotifications);
-      return () => unsubNotifs();
-    } else {
-      const unsubNotifs = databaseService.subscribeToNotifications(undefined, setNotifications);
-      return () => unsubNotifs();
-    }
-  }, [currentUser]);
-
-  const handleSetJackpot = async (id: string) => {
-    setJackpotProductId(id);
-    await databaseService.updateAdminSetting('jackpot_product_id', id);
-  };
+  const [jackpotProductId, setJackpotProductId] = useState<string>(() => localStorage.getItem('cc-weekly-jackpot') || '1');
 
   // Live Activity Simulator
   const [activeUsers, setActiveUsers] = useState(1024);
@@ -170,26 +180,20 @@ const App: React.FC = () => {
   }, [stats]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      if (!localStorage.getItem('cc-theme')) {
-        setTheme(e.matches ? 'dark' : 'light');
-      }
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem('cc-theme', theme);
   }, [theme]);
 
   useEffect(() => {
-    const fetchSocial = async () => {
-      const posts = await databaseService.getSocialPosts();
-      setSocialPosts(posts);
+    localStorage.setItem('cc-tutorial-finished', tutorialFinished.toString());
+  }, [tutorialFinished]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setNotifications(await databaseService.getGlobalNotifications());
+      setSocialPosts(await databaseService.getSocialPosts());
+      setProducts(await databaseService.getProducts());
     };
-    fetchSocial();
+    fetchData();
   }, []);
 
   const addToCart = (product: Product, selectedSize?: string, customizationData?: Record<string, string>) => {
@@ -219,14 +223,22 @@ const App: React.FC = () => {
     setIsCartOpen(true);
   };
 
-  const gainRep = (amount: number) => {
-    if (!currentUser) return;
-    databaseService.addRep(currentUser.id, amount);
+  const gainRep = async (amount: number) => {
+    const userId = 'u1'; 
+    const updatedUser = await databaseService.addRep(userId, amount);
+    if (updatedUser) {
+      setRep(updatedUser.rep);
+      setStats(await databaseService.getUserStats(userId));
+    }
   };
 
-  const trackAchievement = (achievementId: string, progress: number) => {
-    if (!currentUser) return;
-    databaseService.updateAchievementProgress(currentUser.id, achievementId, progress);
+  const trackAchievement = async (achievementId: string, progress: number) => {
+    const userId = 'u1';
+    await databaseService.updateAchievementProgress(userId, achievementId, progress);
+    setStats(await databaseService.getUserStats(userId));
+    const users = await databaseService.getUsers();
+    const user = users.find(u => u.id === userId);
+    if (user) setRep(user.rep);
   };
 
   const toggleWishlist = (product: Product) => {
@@ -243,6 +255,7 @@ const App: React.FC = () => {
       if (isAdding) {
         gainRep(5);
         trackAchievement('a5', 1); // Void Stalker progress
+        databaseService.trackAction(stats.userId, product.id, 'wishlist');
       }
       
       return updated;
@@ -260,7 +273,7 @@ const App: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleGameWin = (reward: string) => {
+  const handleGameWin = async (reward: string) => {
     if (reward.includes('JACKPOT')) {
       alert("UNBELIEVABLE! You've secured the Weekly Jackpot: " + jackpotProduct.name);
       addToCart(jackpotProduct, jackpotProduct.sizes[0]);
@@ -268,7 +281,7 @@ const App: React.FC = () => {
        alert("Reward Materialized: " + reward.replace(/_/g, ' '));
        // Logic would subtract from a future total or add credit
     } else if (reward.includes('PROMO')) {
-       const codes = databaseService.getPromoCodes();
+       const codes = await databaseService.getPromoCodes();
        const winCode = codes[0];
        setActivePromo(winCode);
        alert("Neural Fragment Decrypted: Promo Code " + winCode.code + " Active!");
@@ -309,74 +322,68 @@ const App: React.FC = () => {
     setIsCartOpen(true);
   };
 
-  const handleCompleteMicroCommitment = async (id: string) => {
-    if (!currentUser) return;
-    const commitment = stats.microCommitments.find(c => c.id === id);
-    if (!commitment) return;
-
-    if (commitment.type === 'SHARE_RANK') {
-      // Simulate sharing
-      const shareText = `I've reached Level ${databaseService.calculateLevel(rep)} on Closet Kraze! Join the elite archivers.`;
-      if (navigator.share) {
-        navigator.share({
-          title: 'Closet Kraze Status',
-          text: shareText,
-          url: window.location.href
-        }).catch(() => {});
-      } else {
-        alert(`Broadcasting to Neural Network: "${shareText}"`);
-      }
-    } else if (commitment.type === 'SYNC_LINK') {
-      alert("Neural Link Synchronized. Latency: 0.02ms");
-    } else if (commitment.type === 'VERIFY_TREND') {
-      alert("Sector Trends Verified. High Heat detected in Neo Tokyo.");
-    }
-
-    const updatedStats = await databaseService.completeMicroCommitment(currentUser.id, id);
-    if (updatedStats) setStats(updatedStats as any);
-  };
-
-  const handleSoftLock = async (productId: string) => {
-    if (!isAuthenticated || !currentUser) {
-      setShowAuthModal(true);
-      return;
-    }
-    const updatedStats = await databaseService.softLockProduct(currentUser.id, productId);
-    if (updatedStats) setStats(updatedStats as any);
-    gainRep(10);
-    databaseService.sendNotification(
-      'Neural Lock Engaged',
-      `Item ${productId} reserved for 5 minutes. Acquisition priority increased.`,
-      'INFO',
-      currentUser.id
-    );
-  };
-
   const renderView = () => {
     switch (currentView) {
       case ViewState.LOBBY:
-        return <Lobby products={products} stats={stats} userHandle={handle || 'Archiver'} socialPosts={socialPosts} wishlist={wishlist} onNavigate={handleNavigateView} onAddToCart={(id) => { const p = products.find(x => x.id === id); if (p) addToCart(p, p.sizes?.[0]); }} onToggleWishlist={toggleWishlist} onProductClick={setSelectedProduct} onCompleteQuest={() => {}} onCompleteMicroCommitment={handleCompleteMicroCommitment} onSoftLock={handleSoftLock} />;
+        return (
+          <Lobby 
+            userId={stats.userId} 
+            products={products} 
+            stats={stats} 
+            userHandle={handle || 'Archiver'} 
+            socialPosts={socialPosts} 
+            wishlist={wishlist} 
+            onNavigate={handleNavigateView} 
+            onAddToCart={(id) => { const p = products.find(x => x.id === id); if (p) addToCart(p, p.sizes?.[0]); }} 
+            onToggleWishlist={toggleWishlist} 
+            onProductClick={(p) => { databaseService.trackAction(stats.userId, p.id, 'view'); setSelectedProduct(p); }} 
+            onCompleteQuest={() => {}} 
+            limitedOfferEnd={limitedOfferEnd}
+            onResetLimitedOffer={resetLimitedOffer}
+          />
+        );
       case ViewState.FAMOUS:
-        return <FamousProducts products={selectedCategory === 'All' ? products : products.filter(p => p.category === selectedCategory)} wishlist={wishlist} onProductClick={setSelectedProduct} onAddToCart={(p) => addToCart(p, p.sizes?.[0])} onToggleWishlist={toggleWishlist} onSoftLock={handleSoftLock} stats={stats} />;
+        return (
+          <FamousProducts 
+            products={selectedCategory === 'All' ? products : products.filter(p => p.category === selectedCategory)} 
+            wishlist={wishlist} 
+            onProductClick={setSelectedProduct} 
+            onAddToCart={(p) => addToCart(p, p.sizes?.[0])} 
+            onToggleWishlist={toggleWishlist} 
+            limitedOfferEnd={limitedOfferEnd}
+          />
+        );
       case ViewState.TRY_ON: 
         return <TryOn rank={currentRank} stats={stats} onUsed={() => setStats(s => ({...s, aiTryOnsUsedToday: s.aiTryOnsUsedToday + 1}))} />;
       case ViewState.BUNDLES: 
         return <Bundles bundles={MOCK_BUNDLES} onAddBundle={addBundleToCart} />;
       case ViewState.CATEGORIES: return <Categories onSelectCategory={setSelectedCategory} onNavigate={handleNavigateView} />;
-      case ViewState.FLASH: 
+      case ViewState.PRICE_ANOMALY: 
         return (
-          <FlashSales 
-            onAddToCart={(sale) => {
-              const product = products.find(p => p.id === sale.productId);
+          <PriceAnomalies 
+            onAddToCart={(anomaly) => {
+              const product = products.find(p => p.id === anomaly.productId);
               if (product) {
-                addToCart({ ...product, price: sale.price, originalPrice: sale.originalPrice }, product.sizes?.[0] || 'M');
+                addToCart({ ...product, price: anomaly.price, originalPrice: anomaly.originalPrice }, product.sizes?.[0] || 'M');
               }
             }} 
             onNavigate={handleNavigateView}
           />
         );
-      case ViewState.PROFILE: return <Profile stats={stats} rep={rep} handle={handle} username={currentUser?.username} onUpdateHandle={setHandle} onNavigate={handleNavigateView} onLogout={() => { setIsAuthenticated(false); setCurrentUser(null); localStorage.removeItem('cc-auth-token'); localStorage.removeItem('cc-current-user'); setShowAuthModal(true); }} onApplyPromo={setActivePromo} activePromo={activePromo} onUpdateStats={setStats} theme={theme} onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />;
-      case ViewState.WISHLIST: return <WishlistView products={products} wishlistIds={wishlist} onAddToCart={(p) => addToCart(p, p.sizes?.[0])} onToggleWishlist={toggleWishlist} onProductClick={setSelectedProduct} onNavigate={handleNavigateView} rank={currentRank} />;
+      case ViewState.PROFILE: return <Profile stats={stats} rep={rep} handle={handle} onUpdateHandle={setHandle} onNavigate={handleNavigateView} onLogout={() => { setIsAuthenticated(false); localStorage.removeItem('cc-auth-token'); setShowAuthModal(true); }} onApplyPromo={setActivePromo} activePromo={activePromo} onUpdateStats={setStats} theme={theme} onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} onOpenStyleQuiz={() => setShowStyleQuiz(true)} />;
+      case ViewState.WISHLIST: 
+        return (
+          <WishlistView 
+            products={products} 
+            wishlistIds={wishlist} 
+            onAddToCart={(p) => addToCart(p, p.sizes?.[0])} 
+            onToggleWishlist={toggleWishlist} 
+            onProductClick={setSelectedProduct} 
+            onNavigate={handleNavigateView} 
+            rank={currentRank} 
+            limitedOfferEnd={limitedOfferEnd}
+          />
+        );
       case ViewState.HALL_OF_FAME: return <HallOfFame />;
       case ViewState.CONTACT: return <ContactPanel />;
       case ViewState.GAME_SHOWROOM: return <GameShowroom tickets={stats.tickets} jackpotProduct={jackpotProduct} onPlay={() => setStats(s => ({...s, tickets: s.tickets - 1}))} onWin={handleGameWin} />;
@@ -385,62 +392,50 @@ const App: React.FC = () => {
       case ViewState.ADMIN_LOGIN: return <AdminLogin onSuccess={() => { setIsAuthenticated(true); localStorage.setItem('cc-auth-token', 'true'); setCurrentView(ViewState.ADMIN); }} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
       case ViewState.SUPPLIER_LOGIN: return <SupplierLogin onSuccess={(id) => { setIsAuthenticated(true); localStorage.setItem('cc-auth-token', 'true'); setActiveSupplierId(id); setCurrentView(ViewState.SUPPLIER_DASHBOARD); }} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
       case ViewState.ROLE_SELECTION: return <RoleSelection onSelect={(role) => setCurrentView(role === 'ADMIN' ? ViewState.ADMIN_LOGIN : ViewState.SUPPLIER_LOGIN)} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
-      case ViewState.ADMIN: return <AdminPanel onExit={() => setCurrentView(ViewState.LOBBY)} onNavigate={handleNavigateView} onSetJackpot={handleSetJackpot} currentJackpotId={jackpotProductId} />;
+      case ViewState.ADMIN: return <AdminPanel onExit={() => setCurrentView(ViewState.LOBBY)} onNavigate={handleNavigateView} onSetJackpot={(id) => { setJackpotProductId(id); localStorage.setItem('cc-weekly-jackpot', id); }} currentJackpotId={jackpotProductId} />;
       case ViewState.SUPPLIER_DASHBOARD: return <SupplierDashboard supplierId={activeSupplierId || 'sup1'} onLogout={() => setCurrentView(ViewState.LOBBY)} />;
-      case ViewState.CHECKOUT: return <CheckoutView items={cart} onComplete={() => { 
+      case ViewState.CHECKOUT: return <CheckoutView items={cart} onComplete={async () => { 
         // Notify suppliers
-        cart.forEach(item => {
+        for (const item of cart) {
           if (item.isBundle && item.bundleProducts) {
-            item.bundleProducts.forEach(p => {
+            for (const p of item.bundleProducts) {
+              databaseService.trackAction(stats.userId, p.id, 'purchase');
               if (p.supplierId) {
-                databaseService.sendSupplierNotification(
+                await databaseService.sendSupplierNotification(
                   p.supplierId,
                   'Bundle Item Purchased',
                   `Your item "${p.name}" was purchased as part of the Synergy Kit "${item.name}".`
                 );
               }
-            });
-          } else if (item.supplierId) {
-            databaseService.sendSupplierNotification(
-              item.supplierId,
-              'Item Purchased',
-              `Your item "${item.name}" has been purchased.`
-            );
+            }
+          } else {
+            databaseService.trackAction(stats.userId, item.id, 'purchase');
+            if (item.supplierId) {
+              await databaseService.sendSupplierNotification(
+                item.supplierId,
+                'Item Purchased',
+                `Your item "${item.name}" has been purchased.`
+              );
+            }
           }
-        });
+        }
 
         setCart([]); 
         setSurgeTimerEnd(null); 
+        resetLimitedOffer();
         gainRep(Math.floor(cart.reduce((acc, item) => acc + item.price * item.quantity, 0) / 10));
         trackAchievement('a4', Math.floor(cart.reduce((acc, item) => acc + item.price * item.quantity, 0)));
         setStats(s => ({...s, tickets: s.tickets + 2})); 
         setCurrentView(ViewState.LOBBY); 
-      }} onCancel={() => setCurrentView(ViewState.LOBBY)} balances={balances} activePromo={activePromo} userId={handle} />;
-      default: 
-        return (
-          <Lobby 
-            products={products} 
-            stats={stats} 
-            userHandle={handle || 'Archiver'} 
-            socialPosts={socialPosts} 
-            wishlist={wishlist} 
-            onNavigate={handleNavigateView} 
-            onAddToCart={() => {}} 
-            onToggleWishlist={() => {}} 
-            onProductClick={setSelectedProduct} 
-            onCompleteQuest={() => {}} 
-            onCompleteMicroCommitment={handleCompleteMicroCommitment}
-            onSoftLock={handleSoftLock}
-          />
-        );
+      }} onCancel={() => setCurrentView(ViewState.LOBBY)} balances={balances} activePromo={activePromo} rank={currentRank} />;
+      default: return <Lobby userId={stats.userId} products={products} stats={stats} userHandle={handle || 'Archiver'} socialPosts={socialPosts} wishlist={wishlist} onNavigate={handleNavigateView} onAddToCart={(id) => { const p = products.find(x => x.id === id); if (p) addToCart(p, p.sizes?.[0]); }} onToggleWishlist={toggleWishlist} onProductClick={(p) => { databaseService.trackAction(stats.userId, p.id, 'view'); setSelectedProduct(p); }} onCompleteQuest={() => {}} isAuthenticated={isAuthenticated} tutorialFinished={tutorialFinished} limitedOfferEnd={limitedOfferEnd} userPrefs={userPrefs} />;
     }
   };
 
   return (
-    <ErrorBoundary>
-      <div className={`min-h-screen flex flex-col font-sans selection:bg-[#1a73e8] selection:text-white transition-colors duration-500 ${
-        theme === 'dark' ? 'bg-[#050505] text-[#FAFAFA]' : 'bg-[#F9F9F9] text-[#1A1A1A]'
-      }`}>
+    <div className={`min-h-screen flex flex-col font-sans selection:bg-[#00D1FF] selection:text-white transition-colors duration-500 ${
+      theme === 'dark' ? 'bg-[#050505] text-[#FAFAFA]' : 'bg-[#F9F9F9] text-[#1A1A1A]'
+    }`}>
       <Header 
         cartCount={cart.reduce((a, b) => a + b.quantity, 0)} 
         wishlistCount={wishlist.length}
@@ -460,10 +455,10 @@ const App: React.FC = () => {
       />
       
       <div className="fixed top-20 left-0 right-0 h-1 bg-white/5 z-40">
-         <div className="h-full bg-[#1a73e8] shadow-[0_0_10px_#1a73e8] transition-all duration-1000" style={{ width: `${(activeUsers / 1200) * 100}%` }}></div>
+         <div className="h-full bg-[#00D1FF] shadow-[0_0_10px_#00D1FF] transition-all duration-1000" style={{ width: `${(activeUsers / 1200) * 100}%` }}></div>
       </div>
 
-      <main className="pt-24 flex-1">{renderView()}</main>
+      <main className="pt-24 pb-24 flex-1">{renderView()}</main>
       
       <BottomNav 
         currentView={currentView} 
@@ -471,6 +466,7 @@ const App: React.FC = () => {
         onOpenCategories={() => setIsCategoryPanelOpen(true)} 
         onOpenSearch={() => setIsSearchOpen(true)}
         isAuthenticated={isAuthenticated}
+        onLogin={() => setShowAuthModal(true)}
       />
       
       <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cart} onRemove={(id) => setCart(prev => prev.filter(i => i.id !== id))} onUpdateQuantity={(id, d) => setCart(prev => prev.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity + d)} : i))} onClear={() => setCart([])} onNavigate={handleNavigateView} surgeTimerEnd={surgeTimerEnd} activePromo={activePromo} rank={currentRank} />
@@ -499,6 +495,7 @@ const App: React.FC = () => {
         category={selectedCategory} 
         products={products} 
         onProductSelect={setSelectedProduct} 
+        limitedOfferEnd={limitedOfferEnd}
       />
       
       {selectedProduct && (
@@ -506,7 +503,6 @@ const App: React.FC = () => {
           product={selectedProduct} 
           stats={stats} 
           allProducts={products} 
-          wishlistIds={wishlist}
           onClose={() => setSelectedProduct(null)} 
           onAddToCart={addToCart} 
           onUpdateSynergy={() => {}} 
@@ -514,17 +510,16 @@ const App: React.FC = () => {
           onProductClick={setSelectedProduct} 
           isInWishlist={wishlist.includes(selectedProduct.id)} 
           rank={currentRank} 
+          limitedOfferEnd={limitedOfferEnd}
         />
       )}
       
       {showAuthModal && (
         <LandingScreen 
-          onComplete={(user, isNew) => { 
-            setHandle(user.handle); 
-            setCurrentUser(user);
+          onComplete={(arch, isNew) => { 
+            setHandle('User_' + Math.floor(Math.random()*1000)); 
             setIsAuthenticated(true); 
             localStorage.setItem('cc-auth-token', 'true');
-            localStorage.setItem('cc-current-user', JSON.stringify(user));
             setShowAuthModal(false); 
             if (isNew) setShowTutorial(true); 
           }} 
@@ -536,7 +531,18 @@ const App: React.FC = () => {
         />
       )}
 
-      {showTutorial && <Tutorial onComplete={() => setShowTutorial(false)} onNavigate={handleNavigateView} />}
+      {showTutorial && <Tutorial onComplete={() => { setShowTutorial(false); setTutorialFinished(true); }} onNavigate={handleNavigateView} />}
+      
+      {showStyleQuiz && (
+        <StyleQuiz 
+          userId={stats.userId} 
+          onComplete={(prefs) => {
+            setUserPrefs(prefs);
+            setShowStyleQuiz(false);
+          }} 
+          onClose={() => setShowStyleQuiz(false)} 
+        />
+      )}
       
       <VaultEntrance />
       
@@ -545,8 +551,7 @@ const App: React.FC = () => {
         <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></div>
         <span className="text-[9px] font-black uppercase tracking-widest text-zinc-400">{activeUsers} Archivers Linked</span>
       </div>
-      </div>
-    </ErrorBoundary>
+    </div>
   );
 };
 

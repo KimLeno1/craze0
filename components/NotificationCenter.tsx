@@ -33,7 +33,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
               {notifications.some(n => !n.read) && (
                 <button 
                   onClick={onMarkAllRead}
-                  className="text-[7px] sm:text-[8px] font-black text-[#1a73e8] hover:text-white uppercase tracking-widest transition-colors"
+                  className="text-[7px] sm:text-[8px] font-black text-[#00D1FF] hover:text-white uppercase tracking-widest transition-colors"
                 >
                   Clear_All
                 </button>
@@ -54,11 +54,11 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                   key={n.id} 
                   onClick={() => onMarkRead(n.id)}
                   className={`group relative p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] border transition-all cursor-pointer overflow-hidden ${
-                    n.read ? 'bg-zinc-900/20 border-white/5 opacity-60' : 'bg-white/5 border-[#1a73e8]/30 shadow-[0_0_20px_rgba(26,115,232,0.05)]'
+                    n.read ? 'bg-zinc-900/20 border-white/5 opacity-60' : 'bg-white/5 border-[#00D1FF]/30 shadow-[0_0_20px_rgba(0,209,255,0.05)]'
                   }`}
                 >
                   {!n.read && (
-                    <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-1.5 h-1.5 rounded-full bg-[#1a73e8] animate-pulse shadow-[0_0_8px_#1a73e8]"></div>
+                    <div className="absolute top-4 sm:top-6 right-4 sm:right-6 w-1.5 h-1.5 rounded-full bg-[#00D1FF] animate-pulse shadow-[0_0_8px_#00D1FF]"></div>
                   )}
                   <div className="space-y-2 sm:space-y-3">
                     <div className="flex items-center gap-2 sm:gap-3">
@@ -72,7 +72,7 @@ const NotificationCenter: React.FC<NotificationCenterProps> = ({
                       </span>
                       <span className="text-[7px] sm:text-[8px] font-mono text-zinc-600 uppercase">{n.timestamp}</span>
                     </div>
-                    <h3 className="text-xs sm:text-sm font-black uppercase text-white group-hover:text-[#1a73e8] transition-colors">{n.title}</h3>
+                    <h3 className="text-xs sm:text-sm font-black uppercase text-white group-hover:text-[#00D1FF] transition-colors">{n.title}</h3>
                     <p className="text-[9px] sm:text-[10px] text-zinc-400 font-medium leading-relaxed italic">
                       "{n.message}"
                     </p>

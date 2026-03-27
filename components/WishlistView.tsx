@@ -10,6 +10,7 @@ interface WishlistViewProps {
   onProductClick: (p: Product) => void;
   onNavigate?: (view: ViewState) => void;
   rank: RankBenefits;
+  limitedOfferEnd?: number | null;
 }
 
 const WishlistView: React.FC<WishlistViewProps> = ({ 
@@ -19,7 +20,8 @@ const WishlistView: React.FC<WishlistViewProps> = ({
   onToggleWishlist,
   onProductClick,
   onNavigate,
-  rank
+  rank,
+  limitedOfferEnd
 }) => {
   const [searchHandle, setSearchHandle] = useState('');
   const wishlistItems = products.filter(p => wishlistIds.includes(p.id));
@@ -29,8 +31,8 @@ const WishlistView: React.FC<WishlistViewProps> = ({
       <header className="flex flex-col md:flex-row justify-between items-end gap-8 border-b border-white/5 pb-12">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-             <div className="w-2 h-2 rounded-full bg-[#1a73e8] glow-text animate-pulse"></div>
-             <span className="text-[10px] font-black text-[#1a73e8] uppercase tracking-[0.4em]">{rank.tier} Archive</span>
+             <div className="w-2 h-2 rounded-full bg-[#00D1FF] glow-text animate-pulse"></div>
+             <span className="text-[10px] font-black text-[#00D1FF] uppercase tracking-[0.4em]">{rank.tier} Archive</span>
           </div>
           <h1 className="text-5xl md:text-8xl font-serif italic text-white tracking-tighter leading-none">
             The Saved <span className="text-white not-italic font-sans font-black uppercase glow-text">Circuit</span>
@@ -72,6 +74,7 @@ const WishlistView: React.FC<WishlistViewProps> = ({
               onAddToCart={onAddToCart}
               onToggleWishlist={onToggleWishlist}
               onClick={onProductClick}
+              saleTimerEnd={p.price < p.originalPrice ? limitedOfferEnd : null}
             />
           ))}
         </div>
