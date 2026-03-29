@@ -1,5 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Product, Category, Gender } from '../types';
+import { databaseService } from '../services/databaseService';
+import { Camera, Upload, Loader2 } from 'lucide-react';
 
 interface SupplierProductEditorProps {
   product?: Product | null;
@@ -38,6 +40,8 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState<'text' | 'select' | 'color'>('text');
   const [newFieldOptions, setNewFieldOptions] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (product) {
@@ -120,6 +124,23 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
       ...formData,
       customizationFields: (formData.customizationFields || []).filter(f => f.id !== id)
     });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !formData.name) return;
+
+    setIsUploading(true);
+    try {
+      const result = await databaseService.uploadProductImage(file, formData.name);
+      if (result.url) {
+        setFormData(prev => ({ ...prev, image: result.url }));
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   return (
@@ -231,14 +252,47 @@ const SupplierProductEditor: React.FC<SupplierProductEditorProps> = ({ product, 
               </div>
 
               <div className="space-y-2">
-                <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Visual Uplink (Image URL)</label>
-                <input 
-                  type="url"
-                  required
-                  value={formData.image || ''}
-                  onChange={e => setFormData({...formData, image: e.target.value})}
-                  className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] focus:border-[#f59e0b] outline-none"
-                />
+                <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1 flex justify-between items-center">
+                  Visual Uplink (Image)
+                  {isUploading && <Loader2 className="w-3 h-3 animate-spin text-[#f59e0b]" />}
+                </label>
+                
+                <div className="flex gap-4">
+                  <div 
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-32 h-32 bg-black border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#f59e0b]/50 transition-all group shrink-0 overflow-hidden"
+                  >
+                    {formData.image ? (
+                      <img src={formData.image} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-zinc-700 group-hover:text-[#f59e0b] mb-2" />
+                        <span className="text-[8px] font-black text-zinc-700 group-hover:text-[#f59e0b] uppercase tracking-widest">Upload</span>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 space-y-2">
+                    <input 
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept="image/*"
+                      className="hidden"
+                    />
+                    <input 
+                      type="url"
+                      required
+                      value={formData.image || ''}
+                      onChange={e => setFormData({...formData, image: e.target.value})}
+                      className="w-full bg-black border border-white/10 rounded-2xl px-6 py-4 text-xs text-[#f59e0b] focus:border-[#f59e0b] outline-none"
+                      placeholder="OR_PASTE_URL_HERE"
+                    />
+                    <p className="text-[8px] text-zinc-600 uppercase tracking-widest px-2">
+                      {formData.name ? 'Ready for upload' : 'Enter product name first to enable upload'}
+                    </p>
+                  </div>
+                </div>
               </div>
 
               {/* Custom Product Configuration */}

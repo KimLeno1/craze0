@@ -30,6 +30,7 @@ import Tutorial from './components/Tutorial';
 import LandingScreen from './components/LandingScreen';
 import VaultEntrance from './components/VaultEntrance';
 import SocialGallery from './components/SocialGallery';
+import StylistAI from './components/StylistAI';
 import StyleQuiz from './components/StyleQuiz';
 import { EXTENDED_PRODUCTS, MOCK_BUNDLES } from './mockData';
 import { databaseService } from './services/databaseService';
@@ -76,21 +77,38 @@ const App: React.FC = () => {
   const [handle, setHandle] = useState<string>(() => localStorage.getItem('cc-user-handle') || 'Viper_X');
   const [activePromo, setActivePromo] = useState<PromoCode | null>(null);
   const [surgeTimerEnd, setSurgeTimerEnd] = useState<number | null>(() => Number(localStorage.getItem('cc-surge-timer') || '0') || null);
-  const [limitedOfferEnd, setLimitedOfferEnd] = useState<number | null>(() => Number(localStorage.getItem('cc-limited-offer-timer') || '0') || null);
+  const [limitedOfferEnd, setLimitedOfferEnd] = useState<number | null>(null);
   const [userPrefs, setUserPrefs] = useState<UserPreferences | null>(null);
   const [showStyleQuiz, setShowStyleQuiz] = useState<boolean>(false);
 
-  const resetLimitedOffer = () => {
-    const newEnd = Date.now() + (3600 * 1000); // 1 hour from now
-    setLimitedOfferEnd(newEnd);
-    localStorage.setItem('cc-limited-offer-timer', newEnd.toString());
+  const resetLimitedOffer = async () => {
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      try {
+        const session = await databaseService.startUserAnomalySession(userId);
+        if (session && session.endTime) {
+          setLimitedOfferEnd(session.endTime);
+        }
+      } catch (e) {
+        console.error('Error resetting limited offer:', e);
+      }
+    } else {
+      const newEnd = Date.now() + (3600 * 1000); // 1 hour from now
+      setLimitedOfferEnd(newEnd);
+      localStorage.setItem('cc-limited-offer-timer', newEnd.toString());
+    }
   };
 
   useEffect(() => {
-    if (!limitedOfferEnd) {
-      resetLimitedOffer();
+    if (!limitedOfferEnd && !isAuthenticated) {
+      const stored = localStorage.getItem('cc-limited-offer-timer');
+      if (stored) {
+        setLimitedOfferEnd(Number(stored));
+      } else {
+        resetLimitedOffer();
+      }
     }
-  }, [limitedOfferEnd]);
+  }, [limitedOfferEnd, isAuthenticated]);
 
   const [stats, setStats] = useState<UserStats>(() => {
     // Initial mock stats, will be updated in useEffect
@@ -114,6 +132,18 @@ const App: React.FC = () => {
       tagSubscriptions: []
     };
   });
+
+  const handleUpdateStats = async (newStats: UserStats) => {
+    setStats(newStats);
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      try {
+        await databaseService.updateUserStats(userId, newStats);
+      } catch (error) {
+        console.error('Error updating stats on backend:', error);
+      }
+    }
+  };
 
   useEffect(() => {
     const initUser = async () => {
@@ -141,9 +171,13 @@ const App: React.FC = () => {
           try {
             const config = await databaseService.getAnomalyConfig();
             if (config) {
-              const session = await databaseService.getUserAnomalySession(userId);
+              let session = await databaseService.getUserAnomalySession(userId);
               if (!session || session.eventId !== config.eventId) {
-                await databaseService.startUserAnomalySession(userId);
+                session = await databaseService.startUserAnomalySession(userId);
+              }
+              if (session && session.endTime) {
+                setLimitedOfferEnd(session.endTime);
+                localStorage.setItem('cc-limited-offer-timer', session.endTime.toString());
               }
             }
           } catch (e) {
@@ -475,11 +509,13 @@ const App: React.FC = () => {
           <TryOn 
             rank={currentRank} 
             stats={stats} 
-            onUsed={() => setStats(s => ({...s, aiTryOnsUsedToday: s.aiTryOnsUsedToday + 1}))} 
+            onUsed={() => handleUpdateStats({...stats, aiTryOnsUsedToday: stats.aiTryOnsUsedToday + 1})} 
             wishlistProducts={products.filter(p => wishlist.includes(p.id))}
             haulProducts={products.filter(p => haulProductIds.includes(p.id))}
           />
         );
+      case ViewState.STYLIST:
+        return <StylistAI />;
       case ViewState.BUNDLES: 
         return <Bundles bundles={MOCK_BUNDLES} onAddBundle={addBundleToCart} />;
       case ViewState.CATEGORIES: return <Categories onSelectCategory={setSelectedCategory} onNavigate={handleNavigateView} />;
@@ -493,6 +529,7 @@ const App: React.FC = () => {
               }
             }} 
             onNavigate={handleNavigateView}
+            session={limitedOfferEnd ? { endTime: limitedOfferEnd } : null}
           />
         );
       case ViewState.PROFILE: 
@@ -522,7 +559,7 @@ const App: React.FC = () => {
             }} 
             onApplyPromo={setActivePromo} 
             activePromo={activePromo} 
-            onUpdateStats={setStats} 
+            onUpdateStats={handleUpdateStats} 
             theme={theme} 
             onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} 
             onOpenStyleQuiz={() => setShowStyleQuiz(true)} 
@@ -543,8 +580,8 @@ const App: React.FC = () => {
         );
       case ViewState.HALL_OF_FAME: return <HallOfFame />;
       case ViewState.CONTACT: return <ContactPanel />;
-      case ViewState.GAME_SHOWROOM: return <GameShowroom tickets={stats.tickets} jackpotProduct={jackpotProduct} onPlay={() => setStats(s => ({...s, tickets: s.tickets - 1}))} onWin={handleGameWin} />;
-      case ViewState.SOCIAL: return <SocialGallery stats={stats} onUpdateStats={setStats} onGainRep={gainRep} onTrackAchievement={trackAchievement} />;
+      case ViewState.GAME_SHOWROOM: return <GameShowroom tickets={stats.tickets} jackpotProduct={jackpotProduct} onPlay={() => handleUpdateStats({...stats, tickets: stats.tickets - 1})} onWin={handleGameWin} />;
+      case ViewState.SOCIAL: return <SocialGallery stats={stats} onUpdateStats={handleUpdateStats} onGainRep={gainRep} onTrackAchievement={trackAchievement} />;
       case ViewState.PAY_FOR_ME: return <PayForMe rank={currentRank} wishlistProducts={products.filter(p => wishlist.includes(p.id))} onCompleteAcquisition={(p) => { setRep(r => r + 500); }} userHandle={handle} />;
       case ViewState.ADMIN_LOGIN: return <AdminLogin onSuccess={() => { setIsAuthenticated(true); localStorage.setItem('cc-auth-token', 'true'); setCurrentView(ViewState.ADMIN); }} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
       case ViewState.SUPPLIER_LOGIN: return <SupplierLogin onSuccess={(id) => { setIsAuthenticated(true); localStorage.setItem('cc-auth-token', 'true'); setActiveSupplierId(id); setCurrentView(ViewState.SUPPLIER_DASHBOARD); }} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
@@ -582,7 +619,7 @@ const App: React.FC = () => {
         resetLimitedOffer();
         gainRep(Math.floor(cart.reduce((acc, item) => acc + item.price * item.quantity, 0) / 10));
         trackAchievement('a4', Math.floor(cart.reduce((acc, item) => acc + item.price * item.quantity, 0)));
-        setStats(s => ({...s, tickets: s.tickets + 2})); 
+        handleUpdateStats({...stats, tickets: stats.tickets + 2}); 
         setCurrentView(ViewState.LOBBY); 
       }} onCancel={() => setCurrentView(ViewState.LOBBY)} balances={balances} activePromo={activePromo} rank={currentRank} />;
       default: return <Lobby userId={stats.userId} products={products} stats={stats} userHandle={handle || 'Archiver'} socialPosts={socialPosts} wishlist={wishlist} onNavigate={handleNavigateView} onAddToCart={(id) => { const p = products.find(x => x.id === id); if (p) addToCart(p, p.sizes?.[0]); }} onToggleWishlist={toggleWishlist} onProductClick={(p) => { databaseService.trackAction(stats.userId, p.id, 'view'); setSelectedProduct(p); }} onCompleteQuest={() => {}} isAuthenticated={isAuthenticated} tutorialFinished={tutorialFinished} limitedOfferEnd={limitedOfferEnd} userPrefs={userPrefs} />;

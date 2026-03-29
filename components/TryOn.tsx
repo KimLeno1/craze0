@@ -20,6 +20,7 @@ const TryOn: React.FC<TryOnProps> = ({ rank, stats, onUsed, wishlistProducts, ha
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeTab, setActiveTab] = useState<'WISHLIST' | 'HAUL'>('WISHLIST');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   useEffect(() => {
     if (stats.aiTryOnsUsedToday >= rank.aiTryOnLimit) {
@@ -76,8 +77,9 @@ const TryOn: React.FC<TryOnProps> = ({ rank, stats, onUsed, wishlistProducts, ha
     // Simulate AI processing
     setTimeout(() => {
       setIsProcessing(false);
+      setShowSuccess(true);
       onUsed();
-      alert(`Neural Materialization Complete: ${selectedProduct.name} has been projected onto your silhouette.`);
+      setTimeout(() => setShowSuccess(false), 3000);
     }, 2000);
   };
 
@@ -179,6 +181,13 @@ const TryOn: React.FC<TryOnProps> = ({ rank, stats, onUsed, wishlistProducts, ha
               <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center space-y-6 z-50">
                 <RefreshCw className="w-12 h-12 text-[#00D1FF] animate-spin" />
                 <p className="text-[10px] font-black text-white uppercase tracking-[0.4em] animate-pulse">Materializing Neural Mesh...</p>
+              </div>
+            )}
+
+            {showSuccess && (
+              <div className="absolute inset-0 bg-green-500/20 backdrop-blur-sm flex flex-col items-center justify-center space-y-6 z-50">
+                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center text-white text-2xl">✓</div>
+                <p className="text-[10px] font-black text-white uppercase tracking-[0.4em]">Neural Materialization Complete</p>
               </div>
             )}
             

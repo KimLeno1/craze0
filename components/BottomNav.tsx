@@ -29,6 +29,7 @@ const BottomNav: React.FC<BottomNavProps> = ({
     { id: ViewState.GAME_SHOWROOM, icon: '🎮', label: 'Playroom', desc: 'Arcade Arena & Rewards' },
     { id: ViewState.PAY_FOR_ME, icon: '💸', label: 'Pay For Me', desc: 'External Sponsorship Protocol' },
     { id: ViewState.TRY_ON, icon: '🤳', label: 'AI Try On', desc: 'Spatial Materializer' },
+    { id: ViewState.STYLIST, icon: '🧠', label: 'Neural Stylist', desc: 'AI Style Synthesis' },
     { id: ViewState.HALL_OF_FAME, icon: '🏆', label: 'Hall of Fame', desc: 'Apex Archiver Rankings' },
     { id: ViewState.CONTACT, icon: '🔌', label: 'Comms', desc: 'Direct Uplink Channel' },
   ];

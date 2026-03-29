@@ -526,25 +526,25 @@ export const databaseService = {
   },
 
   // --- STATS & PREFERENCES ---
-  getUserStats: async (userId: string): Promise<UserStats> => {
-    const response = await fetch(`${API_BASE}/user-stats/${userId}`);
-    return await handleResponse(response);
-  },
-
-  saveUserStats: async (userId: string, stats: UserStats) => {
-    const response = await fetch(`${API_BASE}/user-stats/${userId}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(stats)
-    });
-    return await handleResponse(response);
-  },
-
   updateAchievementProgress: async (userId: string, achievementId: string, progress: number) => {
     const response = await fetch(`${API_BASE}/user-stats/${userId}/achievements/${achievementId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ progress })
+    });
+    return await handleResponse(response);
+  },
+
+  getUserStats: async (userId: string): Promise<UserStats> => {
+    const response = await fetch(`${API_BASE}/user-stats/${userId}`);
+    return await handleResponse(response);
+  },
+
+  updateUserStats: async (userId: string, stats: UserStats) => {
+    const response = await fetch(`${API_BASE}/user-stats/${userId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(stats)
     });
     return await handleResponse(response);
   },
@@ -736,6 +736,28 @@ export const databaseService = {
 
   getTryOnHistory: async (userId: string) => {
     const response = await fetch(`${API_BASE}/user/try-on/${userId}`);
+    return await handleResponse(response);
+  },
+
+  // --- UPLOADS ---
+  uploadProductImage: async (file: File, productName: string) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('name', productName);
+    const response = await fetch(`${API_BASE}/upload/product`, {
+      method: 'POST',
+      body: formData
+    });
+    return await handleResponse(response);
+  },
+
+  uploadFeedImage: async (file: File) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    const response = await fetch(`${API_BASE}/upload/feed`, {
+      method: 'POST',
+      body: formData
+    });
     return await handleResponse(response);
   },
 

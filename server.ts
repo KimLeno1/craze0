@@ -15,6 +15,22 @@ async function startServer() {
 
   app.use(cors());
   app.use(express.json());
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
+  // Upload Endpoints
+  const { productUpload, feedUpload } = await import('./api/upload.js');
+
+  app.post('/api/upload/product', productUpload.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const filePath = `/uploads/products/${req.file.filename}`;
+    res.json({ success: true, url: filePath });
+  });
+
+  app.post('/api/upload/feed', feedUpload.single('image'), (req, res) => {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const filePath = `/uploads/feed/${req.file.filename}`;
+    res.json({ success: true, url: filePath });
+  });
 
   // Seed initial data if tables are empty
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };

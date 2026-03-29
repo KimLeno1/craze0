@@ -6,11 +6,18 @@ import { databaseService } from '../services/databaseService';
 interface PriceAnomaliesProps {
   onAddToCart: (anomaly: PriceAnomaly) => void;
   onNavigate: (view: ViewState) => void;
+  session?: { endTime: number } | null;
 }
 
-const PriceAnomalies: React.FC<PriceAnomaliesProps> = ({ onAddToCart, onNavigate }) => {
+const PriceAnomalies: React.FC<PriceAnomaliesProps> = ({ onAddToCart, onNavigate, session: propSession }) => {
   const [anomalies, setAnomalies] = useState<PriceAnomaly[]>([]);
-  const [session, setSession] = useState<{ endTime: number } | null>(null);
+  const [session, setSession] = useState<{ endTime: number } | null>(propSession || null);
+
+  useEffect(() => {
+    if (propSession) {
+      setSession(propSession);
+    }
+  }, [propSession]);
 
   useEffect(() => {
     const init = async () => {
@@ -19,8 +26,10 @@ const PriceAnomalies: React.FC<PriceAnomaliesProps> = ({ onAddToCart, onNavigate
         const userAnomalies = await databaseService.getPriceAnomalies(userId);
         setAnomalies(userAnomalies);
         
-        const userSession = await databaseService.getUserAnomalySession(userId);
-        setSession(userSession);
+        if (!propSession) {
+          const userSession = await databaseService.getUserAnomalySession(userId);
+          setSession(userSession);
+        }
       } else {
         // Fallback or show nothing if not logged in
         setAnomalies([]);

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Star, Share2, Camera, X, MessageSquare, TrendingUp, Clock, AlertTriangle, Send } from 'lucide-react';
+import { Heart, Star, Share2, Camera, X, MessageSquare, TrendingUp, Clock, AlertTriangle, Send, Upload, Loader2 } from 'lucide-react';
 import { UserPost, UserStats, Product, SocialComment, SocialInteraction } from '../types';
 import { databaseService } from '../services/databaseService';
 
@@ -23,6 +23,9 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
   const [newComment, setNewComment] = useState('');
   const [isReporting, setIsReporting] = useState(false);
   const [reportReason, setReportReason] = useState('');
+  const [reportSuccess, setReportSuccess] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const currentUserId = stats.userId;
 
@@ -85,7 +88,8 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
     if (success) {
       setIsReporting(false);
       setReportReason('');
-      alert('Report submitted for review.');
+      setReportSuccess(true);
+      setTimeout(() => setReportSuccess(false), 3000);
     }
   };
 
@@ -115,6 +119,23 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
     setShowPostModal(false);
     onGainRep?.(50);
     onTrackAchievement?.('a1', 1);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    try {
+      const result = await databaseService.uploadFeedImage(file);
+      if (result.url) {
+        setNewPostImage(result.url);
+      }
+    } catch (error) {
+      console.error('Upload failed:', error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const daysUntilReset = () => {
@@ -452,6 +473,20 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
         )}
       </AnimatePresence>
 
+      {/* Report Success Toast */}
+      <AnimatePresence>
+        {reportSuccess && (
+          <motion.div
+            initial={{ opacity: 0, y: 50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 50 }}
+            className="fixed bottom-32 left-1/2 -translate-x-1/2 z-[130] bg-emerald-500 text-white px-8 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl"
+          >
+            Report submitted for review.
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Post Modal */}
       <AnimatePresence>
         {showPostModal && (
@@ -479,22 +514,45 @@ const SocialGallery: React.FC<SocialGalleryProps> = ({ stats, onUpdateStats, onG
                 </div>
 
                 <div className="space-y-6">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4">Neural Image Link (URL)</label>
-                    <input
-                      type="text"
-                      value={newPostImage}
-                      onChange={(e) => setNewPostImage(e.target.value)}
-                      placeholder="https://images.unsplash.com/..."
-                      className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-[#00D1FF] transition-colors"
-                    />
-                  </div>
+                  <div className="space-y-4">
+                    <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest ml-4 flex justify-between items-center">
+                      Neural Image Link
+                      {isUploading && <Loader2 className="w-3 h-3 animate-spin text-[#00D1FF]" />}
+                    </label>
+                    
+                    <div className="flex gap-4">
+                      <div 
+                        onClick={() => fileInputRef.current?.click()}
+                        className="w-32 h-32 bg-white/5 border border-dashed border-white/10 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-[#00D1FF]/50 transition-all group shrink-0 overflow-hidden"
+                      >
+                        {newPostImage ? (
+                          <img src={newPostImage} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                        ) : (
+                          <>
+                            <Upload className="w-6 h-6 text-zinc-700 group-hover:text-[#00D1FF] mb-2" />
+                            <span className="text-[8px] font-black text-zinc-700 group-hover:text-[#00D1FF] uppercase tracking-widest">Upload</span>
+                          </>
+                        )}
+                      </div>
 
-                  {newPostImage && (
-                    <div className="aspect-square rounded-2xl overflow-hidden border border-white/10">
-                      <img src={newPostImage} alt="Preview" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                      <div className="flex-1 space-y-2">
+                        <input 
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileChange}
+                          accept="image/*"
+                          className="hidden"
+                        />
+                        <input
+                          type="text"
+                          value={newPostImage}
+                          onChange={(e) => setNewPostImage(e.target.value)}
+                          placeholder="OR_PASTE_URL_HERE"
+                          className="w-full bg-white/5 border border-white/10 rounded-2xl px-6 py-4 text-white text-sm focus:outline-none focus:border-[#00D1FF] transition-colors"
+                        />
+                      </div>
                     </div>
-                  )}
+                  </div>
 
                   <div className="bg-[#00D1FF]/10 border border-[#00D1FF]/20 rounded-2xl p-4 flex gap-4">
                     <div className="w-10 h-10 rounded-full bg-[#00D1FF]/20 flex items-center justify-center shrink-0">
