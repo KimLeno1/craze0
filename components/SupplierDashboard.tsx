@@ -37,36 +37,24 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
 
   const refreshData = async () => {
     try {
-      // Check auth and get supplier info
-      const authResponse = await fetch('/api/auth/check', {
-        headers: { 'Authorization': localStorage.getItem('cc-auth-token') || '' }
-      });
-      const authData = await authResponse.json();
-      
+      // Check auth
+      const authData = await databaseService.checkAuth(localStorage.getItem('cc-auth-token') || '');
       if (!authData.authenticated) {
         onLogout();
         return;
       }
       
-      // Fetch supplier details
-      const suppliersResponse = await fetch('/api/suppliers');
-      const allSuppliers = await suppliersResponse.json();
-      const currentSupplier = allSuppliers.find((s: any) => s.id === supplierId);
-      setSupplier(currentSupplier);
+      // Fetch data in parallel
+      const [currentSupplier, myProducts, myOrders, myAnomalies] = await Promise.all([
+        databaseService.getSupplierById(supplierId),
+        databaseService.getSupplierProducts(supplierId),
+        databaseService.getSupplierOrders(supplierId),
+        databaseService.getSupplierAnomalies(supplierId)
+      ]);
 
-      // Fetch products via API
-      const productsResponse = await fetch(`/api/products?supplierId=${supplierId}`);
-      const myProducts = await productsResponse.json();
+      if (currentSupplier) setSupplier(currentSupplier);
       setProducts(myProducts);
-
-      // Fetch orders via API
-      const ordersResponse = await fetch(`/api/orders?supplierId=${supplierId}`);
-      const myOrders = await ordersResponse.json();
       setOrders(myOrders);
-
-      // Fetch anomalies via API
-      const anomaliesResponse = await fetch(`/api/price-anomalies?supplierId=${supplierId}`);
-      const myAnomalies = await anomaliesResponse.json();
       setAnomalies(myAnomalies);
     } catch (error) {
       console.error('Data refresh error:', error);
@@ -75,14 +63,7 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
 
   const handleSaveProduct = async (formData: Partial<Product>) => {
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...formData, supplierId })
-      });
-      
-      if (!response.ok) throw new Error('Failed to save product');
-      
+      await databaseService.saveProduct({ ...formData, supplierId });
       setIsEditorOpen(false);
       await refreshData();
     } catch (error) {
@@ -92,14 +73,7 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
 
   const handleUpdateOrderStatus = async (orderId: string, status: OrderStatus) => {
     try {
-      const response = await fetch(`/api/orders/${orderId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status })
-      });
-      
-      if (!response.ok) throw new Error('Failed to update order');
-      
+      await databaseService.updateOrderStatus(orderId, status);
       await refreshData();
     } catch (error) {
       console.error('Update order error:', error);
@@ -108,20 +82,15 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
 
   const handleCreateAnomaly = async () => {
     try {
-      const response = await fetch('/api/price-anomalies', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `anomaly_${Date.now()}`,
-          productId: newAnomaly.productId,
-          price: newAnomaly.discountedPrice,
-          anomalyEndTime: Date.now() + newAnomaly.duration * 60 * 60 * 1000,
-          discountPercent: 0 // Could calculate this
-        })
-      });
+      const anomaly = {
+        id: `anomaly_${Date.now()}`,
+        productId: newAnomaly.productId,
+        price: newAnomaly.discountedPrice,
+        anomalyEndTime: Date.now() + newAnomaly.duration * 60 * 60 * 1000,
+        discountPercent: Math.round((1 - newAnomaly.discountedPrice / (products.find(p => p.id === newAnomaly.productId)?.price || 1)) * 100)
+      };
       
-      if (!response.ok) throw new Error('Failed to create anomaly');
-      
+      await databaseService.createPriceAnomaly(anomaly);
       setIsAnomalyModalOpen(false);
       await refreshData();
     } catch (error) {
@@ -131,12 +100,7 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
 
   const handleDeleteAnomaly = async (id: string) => {
     try {
-      const response = await fetch(`/api/price-anomalies/${id}`, {
-        method: 'DELETE'
-      });
-      
-      if (!response.ok) throw new Error('Failed to delete anomaly');
-      
+      await databaseService.deletePriceAnomaly(id);
       await refreshData();
     } catch (error) {
       console.error('Delete anomaly error:', error);
@@ -237,7 +201,7 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
         </div>
         <button 
           onClick={handleRegister}
-          className="bg-[#f59e0b] text-black px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-white transition-all rounded-2xl shadow-lg shadow-[#f59e0b]/10"
+          className="bg-[#f59e0b] text-black px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white active:bg-green-700 transition-all rounded-2xl shadow-lg shadow-[#f59e0b]/10"
         >
           Register New Silhouette
         </button>
@@ -295,7 +259,7 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
         </div>
         <button 
           onClick={() => setIsAnomalyModalOpen(true)}
-          className="bg-[#00D1FF] text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all rounded-2xl shadow-lg shadow-[#00D1FF]/10"
+          className="bg-green-500 text-white px-8 py-3 text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-green-500 transition-all rounded-2xl shadow-lg shadow-green-500/10"
         >
           Initialize New Anomaly
         </button>
@@ -404,7 +368,7 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
               <button 
                 onClick={handleCreateAnomaly}
                 disabled={!newAnomaly.productId}
-                className="flex-1 bg-[#00D1FF] text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all disabled:opacity-50"
+                className="flex-1 bg-green-500 text-white py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-green-500 transition-all disabled:opacity-50"
               >
                 Initialize Protocol
               </button>

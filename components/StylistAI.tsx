@@ -110,7 +110,7 @@ const StylistAI: React.FC = () => {
             </div>
             <button 
               onClick={handleConsult} disabled={isLoadingAdvice || !mood || !occasion}
-              className="w-full py-7 bg-white text-black rounded-3xl font-black uppercase tracking-[0.4em] text-[10px] hover:bg-[#EC4899] hover:text-white transition-all shadow-2xl"
+              className="w-full py-7 bg-white text-black rounded-3xl font-black uppercase tracking-[0.4em] text-[10px] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-2xl"
             >
               {isLoadingAdvice ? adviceLoadingText : 'Initialize Scan'}
             </button>
@@ -156,7 +156,7 @@ const StylistAI: React.FC = () => {
               />
               <button 
                 onClick={handleGenerateDream} disabled={isGeneratingImage || !dreamDescription}
-                className="w-full py-8 bg-white text-black rounded-[2rem] font-black uppercase tracking-[0.4em] text-[10px] hover:bg-purple-600 hover:text-white transition-all shadow-2xl"
+                className="w-full py-8 bg-white text-black rounded-[2rem] font-black uppercase tracking-[0.4em] text-[10px] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-2xl"
               >
                 {isGeneratingImage ? imageLoadingText : 'Authorize Materialization'}
               </button>

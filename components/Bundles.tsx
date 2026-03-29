@@ -73,7 +73,7 @@ const Bundles: React.FC<BundlesProps> = ({ bundles, onAddBundle }) => {
               <div className="flex justify-end">
                 <button 
                   onClick={() => onAddBundle(bundle)}
-                  className="h-16 px-16 bg-white text-black text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#00D1FF] hover:text-white transition-all shadow-2xl active:scale-95"
+                  className="h-16 px-16 bg-white text-black text-[10px] font-black uppercase tracking-[0.4em] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-2xl active:scale-95"
                 >
                   Acquire Synergy Kit
                 </button>

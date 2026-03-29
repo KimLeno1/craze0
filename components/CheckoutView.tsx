@@ -98,7 +98,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
             customizationDetails: item.customizationData // Map to customizationDetails for order consistency
           })), 
           total: finalTotal 
-        })} className="w-full sm:w-auto px-10 sm:px-20 py-6 sm:py-8 bg-white text-black rounded-full font-black uppercase tracking-[0.3em] text-[9px] sm:text-[10px] hover:bg-[#00D1FF] hover:text-white transition-all shadow-3xl active:scale-95">Return to Circuit</button>
+        })} className="w-full sm:w-auto px-10 sm:px-20 py-6 sm:py-8 bg-white text-black rounded-full font-black uppercase tracking-[0.3em] text-[9px] sm:text-[10px] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-3xl active:scale-95">Return to Circuit</button>
       </div>
     );
   }
@@ -221,10 +221,10 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                <button 
                 onClick={() => setStep('LOGISTICS')} 
                 disabled={!formData.region || !formData.city} 
-                className="w-full py-6 sm:py-8 bg-white text-black rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[10px] sm:text-[12px] tracking-[0.4em] hover:bg-[#00D1FF] hover:text-white transition-all disabled:opacity-20 active:scale-95 shadow-2xl relative overflow-hidden group"
+                className="w-full py-6 sm:py-8 bg-white text-black rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[10px] sm:text-[12px] tracking-[0.4em] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all disabled:opacity-20 active:scale-95 shadow-2xl relative overflow-hidden group"
                >
                  <span className="relative z-10">Authorize Zone Link</span>
-                 <div className="absolute inset-0 bg-[#00D1FF] translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+                 <div className="absolute inset-0 bg-green-500 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
                </button>
             </div>
           )}
@@ -255,7 +255,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
 
                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
                  <button type="button" onClick={() => setStep('GEO_ZONING')} className="w-full sm:flex-1 py-4 sm:py-6 bg-zinc-900 text-zinc-500 rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[9px] sm:text-[10px] tracking-widest hover:text-white transition-all">Back</button>
-                 <button type="submit" className="w-full sm:flex-[2] py-6 sm:py-8 bg-white text-black rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[10px] sm:text-[12px] tracking-[0.4em] hover:bg-[#00D1FF] hover:text-white transition-all shadow-2xl active:scale-95">Validate Protocol</button>
+                 <button type="submit" className="w-full sm:flex-[2] py-6 sm:py-8 bg-white text-black rounded-[2rem] sm:rounded-[2.5rem] font-black uppercase text-[10px] sm:text-[12px] tracking-[0.4em] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-2xl active:scale-95">Validate Protocol</button>
                </div>
             </form>
           )}
@@ -283,7 +283,7 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                </div>
 
                <div className="flex flex-col gap-4 sm:gap-6">
-                 <button onClick={handleFinalize} className="w-full py-6 sm:py-10 bg-[#00D1FF] text-white rounded-[2rem] sm:rounded-[3rem] font-black uppercase text-xs sm:text-sm tracking-[0.5em] hover:bg-white hover:text-[#00D1FF] transition-all shadow-[0_0_80px_rgba(0,209,255,0.3)] active:scale-95">
+                 <button onClick={handleFinalize} className="w-full py-6 sm:py-10 bg-green-500 text-white rounded-[2rem] sm:rounded-[3rem] font-black uppercase text-xs sm:text-sm tracking-[0.5em] hover:bg-green-600 active:bg-green-700 transition-all shadow-[0_0_80px_rgba(34,197,94,0.3)] active:scale-95">
                    Finalize Acquisition Handshake
                  </button>
                  <button onClick={() => setStep('LOGISTICS')} className="text-[8px] sm:text-[10px] font-black text-zinc-700 hover:text-white uppercase tracking-[0.5em] transition-colors mx-auto underline decoration-zinc-800 underline-offset-8">Review Protocol Steps</button>

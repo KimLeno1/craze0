@@ -3,6 +3,66 @@ import db from './db.js';
 
 const router = express.Router();
 
+// --- AUTH ---
+router.post('/auth/signup', (req, res) => {
+  const { email, password, handle, phone } = req.body;
+  const id = `u_${Date.now()}`;
+  try {
+    db.prepare('INSERT INTO users (id, email, password, handle, joinedAt) VALUES (?, ?, ?, ?, ?)')
+      .run(id, email, password, handle || `User_${Math.floor(Math.random()*1000)}`, Date.now());
+    
+    // Initialize stats and preferences
+    const initialStats = {
+      userId: id,
+      level: 1,
+      experience: 0,
+      nextLevelExp: 1000,
+      rank: 'NEOPHYTE',
+      totalSpent: 0,
+      itemsOwned: 0,
+      achievements: [],
+      dailyQuests: [],
+      tickets: 5,
+      aiTryOnsUsedToday: 0,
+      dailyGameAttempts: 3,
+      lastGameReset: new Date().toISOString(),
+      quests: [],
+      selectedPath: null,
+      brandSubscriptions: [],
+      tagSubscriptions: []
+    };
+    db.prepare('INSERT INTO user_stats (userId, stats) VALUES (?, ?)').run(id, JSON.stringify(initialStats));
+    db.prepare('INSERT INTO user_preferences (userId, preferences) VALUES (?, ?)').run(id, JSON.stringify({}));
+    
+    res.json({ success: true, userId: id, token: 'true' });
+  } catch (error: any) {
+    res.status(400).json({ error: 'Email already exists or invalid data' });
+  }
+});
+
+router.post('/auth/login', (req, res) => {
+  const { email, password } = req.body;
+  const user = db.prepare('SELECT id, handle FROM users WHERE email = ? AND password = ?').get(email, password) as any;
+  if (user) {
+    res.json({ success: true, userId: user.id, handle: user.handle, token: 'true' });
+  } else {
+    res.status(401).json({ error: 'Invalid credentials' });
+  }
+});
+
+router.get('/auth/check', (req, res) => {
+  const authHeader = req.headers.authorization;
+  if (authHeader === 'true') {
+    res.json({ authenticated: true });
+  } else {
+    res.json({ authenticated: false });
+  }
+});
+
+router.post('/auth/logout', (req, res) => {
+  res.json({ success: true });
+});
+
 // --- USERS ---
 router.get('/users', (req, res) => {
   const users = db.prepare('SELECT * FROM users').all();
@@ -61,14 +121,49 @@ router.get('/products', (req, res) => {
   } else {
     products = db.prepare('SELECT * FROM products').all();
   }
-  res.json(products.map((p: any) => ({ ...p, tags: JSON.parse(p.tags || '[]') })));
+  res.json(products.map((p: any) => ({ 
+    ...p, 
+    tags: JSON.parse(p.tags || '[]'),
+    details: JSON.parse(p.details || '[]'),
+    sizes: JSON.parse(p.sizes || '[]'),
+    priceRange: JSON.parse(p.priceRange || '{"min":0,"max":0}'),
+    customizationFields: JSON.parse(p.customizationFields || '[]'),
+    isCustom: !!p.isCustom,
+    inStock: !!p.inStock,
+    isHallOfFame: !!p.isHallOfFame,
+    isNew: !!p.isNew
+  })));
 });
 
 router.post('/products', (req, res) => {
-  const { id, name, price, originalPrice, image, category, gender, description, isNew, velocityScore, hypeScore, isHallOfFame, supplierId, shippingFee, tags, appeal, viewers, stockCount, inStock } = req.body;
-  db.prepare(
-    'INSERT OR REPLACE INTO products (id, name, price, originalPrice, image, category, gender, description, isNew, velocityScore, hypeScore, isHallOfFame, supplierId, shippingFee, tags, appeal, viewers, stockCount, inStock) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, name, price, originalPrice || price, image, category, gender, description, isNew ? 1 : 0, velocityScore || 0, hypeScore || 0, isHallOfFame ? 1 : 0, supplierId, shippingFee || 0, JSON.stringify(tags || []), appeal, viewers || 0, stockCount || 0, inStock !== undefined ? (inStock ? 1 : 0) : (stockCount > 0 ? 1 : 0));
+  const { 
+    id, name, price, originalPrice, image, category, gender, description, 
+    isNew, velocityScore, hypeScore, isHallOfFame, supplierId, shippingFee, 
+    tags, appeal, viewers, stockCount, inStock,
+    details, sizes, isCustom, priceRange, customizationFields
+  } = req.body;
+  
+  db.transaction(() => {
+    db.prepare(
+      `INSERT OR REPLACE INTO products (
+        id, name, price, originalPrice, image, category, gender, description, 
+        isNew, velocityScore, hypeScore, isHallOfFame, supplierId, shippingFee, 
+        tags, appeal, viewers, stockCount, inStock,
+        details, sizes, isCustom, priceRange, customizationFields
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(
+      id, name, price, originalPrice || price, image, category, gender, description, 
+      isNew ? 1 : 0, velocityScore || 0, hypeScore || 0, isHallOfFame ? 1 : 0, supplierId, shippingFee || 0, 
+      JSON.stringify(tags || []), appeal, viewers || 0, stockCount || 0, inStock !== undefined ? (inStock ? 1 : 0) : (stockCount > 0 ? 1 : 0),
+      JSON.stringify(details || []), JSON.stringify(sizes || []), isCustom ? 1 : 0, 
+      JSON.stringify(priceRange || { min: 0, max: 0 }), JSON.stringify(customizationFields || [])
+    );
+
+    if (supplierId) {
+      const count = db.prepare('SELECT COUNT(*) as count FROM products WHERE supplierId = ?').get(supplierId) as any;
+      db.prepare('UPDATE suppliers SET activeProducts = ? WHERE id = ?').run(count.count, supplierId);
+    }
+  })();
   res.json({ success: true });
 });
 
@@ -95,7 +190,15 @@ router.patch('/products/:id', (req, res) => {
 
 router.delete('/products/:id', (req, res) => {
   const { id } = req.params;
-  db.prepare('DELETE FROM products WHERE id = ?').run(id);
+  const product = db.prepare('SELECT supplierId FROM products WHERE id = ?').get(id) as any;
+  
+  db.transaction(() => {
+    db.prepare('DELETE FROM products WHERE id = ?').run(id);
+    if (product && product.supplierId) {
+      const count = db.prepare('SELECT COUNT(*) as count FROM products WHERE supplierId = ?').get(product.supplierId) as any;
+      db.prepare('UPDATE suppliers SET activeProducts = ? WHERE id = ?').run(count.count, product.supplierId);
+    }
+  })();
   res.json({ success: true });
 });
 
@@ -103,6 +206,16 @@ router.delete('/products/:id', (req, res) => {
 router.get('/suppliers', (req, res) => {
   const suppliers = db.prepare('SELECT * FROM suppliers').all();
   res.json(suppliers);
+});
+
+router.get('/suppliers/:id', (req, res) => {
+  const { id } = req.params;
+  const supplier = db.prepare('SELECT * FROM suppliers WHERE id = ?').get(id);
+  if (supplier) {
+    res.json(supplier);
+  } else {
+    res.status(404).json({ error: 'Supplier not found' });
+  }
 });
 
 router.post('/suppliers', (req, res) => {
@@ -149,7 +262,48 @@ router.post('/orders', (req, res) => {
 router.patch('/orders/:id/status', (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
-  db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
+  
+  const oldOrder = db.prepare('SELECT * FROM orders WHERE id = ?').get(id) as any;
+  if (!oldOrder) return res.status(404).json({ error: 'Order not found' });
+
+  db.transaction(() => {
+    db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
+
+    // If status changed to DELIVERED, update supplier revenue
+    if (status === 'DELIVERED' && oldOrder.status !== 'DELIVERED') {
+      const items = JSON.parse(oldOrder.items);
+      const supplierRevenues: Record<string, number> = {};
+      
+      items.forEach((item: any) => {
+        if (item.supplierId) {
+          supplierRevenues[item.supplierId] = (supplierRevenues[item.supplierId] || 0) + (item.price * (item.quantity || 1));
+        }
+      });
+
+      for (const [sId, revenue] of Object.entries(supplierRevenues)) {
+        db.prepare('UPDATE suppliers SET totalRevenueYield = totalRevenueYield + ? WHERE id = ?').run(revenue, sId);
+      }
+    }
+
+    // Update performance score for involved suppliers
+    const items = JSON.parse(oldOrder.items);
+    const involvedSupplierIds = [...new Set(items.map((i: any) => i.supplierId).filter(Boolean))];
+    
+    involvedSupplierIds.forEach((sId: any) => {
+      const allSupplierOrders = db.prepare('SELECT * FROM orders').all() as any[];
+      const supplierOrders = allSupplierOrders.filter(o => {
+        const oItems = JSON.parse(o.items);
+        return oItems.some((oi: any) => oi.supplierId === sId);
+      });
+      
+      const total = supplierOrders.length;
+      const delivered = supplierOrders.filter(o => o.status === 'DELIVERED').length;
+      const score = total > 0 ? Math.round((delivered / total) * 100) : 100;
+      
+      db.prepare('UPDATE suppliers SET performanceScore = ? WHERE id = ?').run(score, sId);
+    });
+  })();
+
   res.json({ success: true });
 });
 
@@ -187,12 +341,52 @@ router.post('/notifications/broadcast', (req, res) => {
 
 // --- PRICE ANOMALIES ---
 router.get('/price-anomalies', (req, res) => {
-  const { supplierId } = req.query;
+  const { userId, supplierId } = req.query;
+  
+  if (userId) {
+    // Get user session
+    const session = db.prepare('SELECT * FROM user_anomaly_sessions WHERE userId = ?').get(userId) as any;
+    if (!session) return res.json([]);
+    
+    // Check if session is still active
+    const now = Date.now();
+    if (now > session.endTime) return res.json([]);
+    
+    // Get anomaly config
+    const configRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('anomaly_config') as any;
+    if (!configRow) return res.json([]);
+    const config = JSON.parse(configRow.value);
+    
+    // If session eventId doesn't match current config eventId, session is stale
+    if (session.eventId !== config.eventId) return res.json([]);
+    
+    // Return products with calculated endTime
+    const products = db.prepare(`
+      SELECT p.* FROM products p
+      WHERE p.id IN (${config.productIds.map(() => '?').join(',')})
+    `).all(...config.productIds) as any[];
+    
+    const anomalies = products.map(p => ({
+      id: `anomaly_${p.id}`,
+      productId: p.id,
+      anomalyEndTime: session.endTime,
+      discountPercent: config.discount,
+      price: Math.floor(p.price * (1 - config.discount / 100)),
+      ...p,
+      tags: JSON.parse(p.tags || '[]'),
+      details: JSON.parse(p.details || '[]'),
+      sizes: JSON.parse(p.sizes || '[]'),
+      priceRange: JSON.parse(p.priceRange || '{"min":0,"max":0}'),
+      customizationFields: JSON.parse(p.customizationFields || '[]')
+    }));
+    
+    return res.json(anomalies);
+  }
+
   let anomalies;
   if (supplierId) {
-    // Join with products to filter by supplierId
     anomalies = db.prepare(`
-      SELECT pa.* FROM price_anomalies pa
+      SELECT pa.*, p.name, p.image, p.price as originalPrice FROM price_anomalies pa
       JOIN products p ON pa.productId = p.id
       WHERE p.supplierId = ?
     `).all(supplierId);
@@ -202,18 +396,44 @@ router.get('/price-anomalies', (req, res) => {
   res.json(anomalies);
 });
 
-router.post('/price-anomalies', (req, res) => {
-  const { id, productId, anomalyEndTime, discountPercent, price } = req.body;
-  db.prepare(
-    'INSERT OR REPLACE INTO price_anomalies (id, productId, anomalyEndTime, discountPercent, price) VALUES (?, ?, ?, ?, ?)'
-  ).run(id, productId, anomalyEndTime, discountPercent, price);
-  res.json({ success: true });
+router.get('/admin/anomaly-config', (req, res) => {
+  const config = db.prepare('SELECT value FROM settings WHERE key = ?').get('anomaly_config') as any;
+  res.json(config ? JSON.parse(config.value) : null);
 });
 
-router.delete('/price-anomalies/:id', (req, res) => {
-  const { id } = req.params;
-  db.prepare('DELETE FROM price_anomalies WHERE id = ?').run(id);
-  res.json({ success: true });
+router.post('/admin/anomaly-config', (req, res) => {
+  const { duration, productIds, discount } = req.body;
+  const config = {
+    eventId: `event_${Date.now()}`,
+    duration: parseInt(duration), // in seconds
+    productIds,
+    discount: parseInt(discount)
+  };
+  db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run('anomaly_config', JSON.stringify(config));
+  res.json({ success: true, config });
+});
+
+router.get('/user/anomaly-session/:userId', (req, res) => {
+  const { userId } = req.params;
+  const session = db.prepare('SELECT * FROM user_anomaly_sessions WHERE userId = ?').get(userId);
+  res.json(session || null);
+});
+
+router.post('/user/anomaly-session/start', (req, res) => {
+  const { userId } = req.body;
+  const configRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('anomaly_config') as any;
+  if (!configRow) return res.status(404).json({ error: 'No anomaly configured' });
+  
+  const config = JSON.parse(configRow.value);
+  const now = Date.now();
+  const endTime = now + (config.duration * 1000);
+  
+  db.prepare(`
+    INSERT OR REPLACE INTO user_anomaly_sessions (userId, eventId, startTime, endTime)
+    VALUES (?, ?, ?, ?)
+  `).run(userId, config.eventId, now, endTime);
+  
+  res.json({ success: true, endTime });
 });
 
 // --- BUNDLES (KITS) ---
@@ -363,6 +583,42 @@ router.delete('/pay-for-me/:id', (req, res) => {
 });
 
 // --- SOCIAL ---
+const MOCK_SOCIAL_POSTS = [
+  {
+    id: 'post_1',
+    userId: 'u1',
+    userHandle: 'Viper_X',
+    image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80',
+    likes: 124,
+    dislikes: 12,
+    reports: 0,
+    timestamp: new Date().toISOString(),
+    weekId: ''
+  },
+  {
+    id: 'post_2',
+    userId: 'u2',
+    userHandle: 'Ghost_Shell',
+    image: 'https://images.unsplash.com/photo-1539109132314-34a77bd6819f?auto=format&fit=crop&w=800&q=80',
+    likes: 89,
+    dislikes: 5,
+    reports: 0,
+    timestamp: new Date().toISOString(),
+    weekId: ''
+  },
+  {
+    id: 'post_3',
+    userId: 'u3',
+    userHandle: 'Luxe_Lord',
+    image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
+    likes: 256,
+    dislikes: 20,
+    reports: 0,
+    timestamp: new Date().toISOString(),
+    weekId: ''
+  }
+];
+
 router.get('/social-posts', (req, res) => {
   // Friday Cleanup Logic
   const now = new Date();
@@ -380,7 +636,19 @@ router.get('/social-posts', (req, res) => {
     }
   }
 
-  const posts = db.prepare('SELECT * FROM social_posts').all();
+  let posts = db.prepare('SELECT * FROM social_posts').all();
+  
+  // Seed if empty
+  if (posts.length === 0) {
+    const insertPost = db.prepare(
+      'INSERT INTO social_posts (id, userId, userHandle, image, likes, dislikes, reports, timestamp, weekId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    for (const p of MOCK_SOCIAL_POSTS) {
+      insertPost.run(p.id, p.userId, p.userHandle, p.image, p.likes, p.dislikes, p.reports, p.timestamp, p.weekId);
+    }
+    posts = db.prepare('SELECT * FROM social_posts').all();
+  }
+  
   res.json(posts);
 });
 
@@ -430,6 +698,9 @@ router.post('/social-posts/:id/interact', (req, res) => {
   })();
 
   const post = db.prepare('SELECT * FROM social_posts WHERE id = ?').get(id);
+  if (!post) {
+    return res.status(404).json({ error: 'Post not found' });
+  }
   res.json(post);
 });
 
@@ -512,6 +783,20 @@ router.post('/admin/exec', (req, res) => {
   }
 });
 
+// --- SECURITY EVENTS ---
+router.get('/admin/security-events', (req, res) => {
+  const events = db.prepare('SELECT * FROM security_events ORDER BY timestamp DESC LIMIT 100').all();
+  res.json(events);
+});
+
+router.post('/admin/security-events', (req, res) => {
+  const { id, type, severity, timestamp, details, ip } = req.body;
+  db.prepare(
+    'INSERT INTO security_events (id, type, severity, timestamp, details, ip) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(id || `evt_${Date.now()}`, type, severity, timestamp || new Date().toISOString(), details, ip || req.ip);
+  res.json({ success: true });
+});
+
 // --- ANALYTICS ---
 router.get('/admin/metrics', (req, res) => {
   try {
@@ -521,6 +806,16 @@ router.get('/admin/metrics', (req, res) => {
     const activeAnomalies = db.prepare('SELECT COUNT(*) as count FROM price_anomalies').get() as any;
     const totalProducts = db.prepare('SELECT COUNT(*) as count FROM products').get() as any;
     
+    // Get revenue over time (last 12 periods - simplified)
+    const revenueOverTime = db.prepare(`
+      SELECT strftime('%Y-%m-%d', timestamp) as date, SUM(totalPrice) as revenue 
+      FROM orders 
+      WHERE status != "CANCELLED" 
+      GROUP BY date 
+      ORDER BY date DESC 
+      LIMIT 12
+    `).all();
+
     res.json({
       totalUsers: totalUsers.count,
       totalOrders: totalOrders.count,
@@ -529,7 +824,8 @@ router.get('/admin/metrics', (req, res) => {
       totalProducts: totalProducts.count,
       activeOrders: totalOrders.count, // Simplified
       systemUptime: '99.9%',
-      threatLevel: 'LOW'
+      threatLevel: 'LOW',
+      revenueOverTime: revenueOverTime.reverse()
     });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -537,32 +833,27 @@ router.get('/admin/metrics', (req, res) => {
 });
 
 router.get('/admin/security', (req, res) => {
-  const events = [
-    {
-      id: 'evt_1',
-      type: 'LOGIN',
-      severity: 'LOW',
-      timestamp: new Date().toISOString(),
-      details: 'Admin session established: @leno',
-      ip: req.ip
-    },
-    {
-      id: 'evt_2',
-      type: 'UNAUTHORIZED_ACCESS',
-      severity: 'HIGH',
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-      details: 'Failed login attempt on Sector_Admin: ARCHITECT_X',
-      ip: '45.23.11.92'
-    }
-  ];
+  const events = db.prepare('SELECT * FROM security_events ORDER BY timestamp DESC LIMIT 10').all();
   
+  const firewall = db.prepare('SELECT value FROM settings WHERE key = ?').get('firewall_status') as any;
+  const threatLevel = db.prepare('SELECT value FROM settings WHERE key = ?').get('threat_level') as any;
+
   res.json({
-    firewall: 'ACTIVE',
+    firewall: firewall ? firewall.value : 'ACTIVE',
     encryption: 'AES-256-GCM',
     loadBalancer: 'HEALTHY',
     activeSessions: 12,
-    threatLevel: 'LOW',
-    events
+    threatLevel: threatLevel ? threatLevel.value : 'LOW',
+    events: events.length > 0 ? events : [
+      {
+        id: 'evt_1',
+        type: 'LOGIN',
+        severity: 'LOW',
+        timestamp: new Date().toISOString(),
+        details: 'Admin session established: @leno',
+        ip: req.ip
+      }
+    ]
   });
 });
 
@@ -590,6 +881,205 @@ router.delete('/admin/jackpot/:id', (req, res) => {
   const { id } = req.params;
   db.prepare('DELETE FROM jackpot_prizes WHERE id = ?').run(id);
   res.json({ success: true });
+});
+
+// --- USER PROFILE & STATS ---
+router.get('/user/profile/:userId', (req, res) => {
+  const { userId } = req.params;
+  const user = db.prepare('SELECT id, email, handle, rep, joinedAt FROM users WHERE id = ?').get(userId) as any;
+  const stats = db.prepare('SELECT stats FROM user_stats WHERE userId = ?').get(userId) as any;
+  const prefs = db.prepare('SELECT preferences FROM user_preferences WHERE userId = ?').get(userId) as any;
+  
+  if (user) {
+    res.json({
+      ...user,
+      stats: stats ? JSON.parse(stats.stats) : null,
+      preferences: prefs ? JSON.parse(prefs.preferences) : null
+    });
+  } else {
+    res.status(404).json({ error: 'User not found' });
+  }
+});
+
+router.patch('/user/profile/:userId', (req, res) => {
+  const { userId } = req.params;
+  const { handle, rep, stats, preferences } = req.body;
+  
+  db.transaction(() => {
+    if (handle !== undefined) {
+      db.prepare('UPDATE users SET handle = ? WHERE id = ?').run(handle, userId);
+    }
+    if (rep !== undefined) {
+      db.prepare('UPDATE users SET rep = ? WHERE id = ?').run(rep, userId);
+    }
+    if (stats !== undefined) {
+      db.prepare('INSERT OR REPLACE INTO user_stats (userId, stats) VALUES (?, ?)').run(userId, JSON.stringify(stats));
+    }
+    if (preferences !== undefined) {
+      db.prepare('INSERT OR REPLACE INTO user_preferences (userId, preferences) VALUES (?, ?)').run(userId, JSON.stringify(preferences));
+    }
+  })();
+  
+  res.json({ success: true });
+});
+
+// --- WISHLIST ---
+router.get('/user/wishlist/:userId', (req, res) => {
+  const { userId } = req.params;
+  const wishlist = db.prepare(`
+    SELECT p.* FROM products p
+    JOIN wishlist_items w ON p.id = w.productId
+    WHERE w.userId = ?
+  `).all();
+  
+  const parsedProducts = wishlist.map((p: any) => ({
+    ...p,
+    tags: JSON.parse(p.tags || '[]'),
+    details: JSON.parse(p.details || '[]'),
+    sizes: JSON.parse(p.sizes || '[]'),
+    priceRange: JSON.parse(p.priceRange || '{"min":0,"max":0}'),
+    customizationFields: JSON.parse(p.customizationFields || '[]'),
+    isCustom: !!p.isCustom,
+    inStock: !!p.inStock,
+    isHallOfFame: !!p.isHallOfFame,
+    isNew: !!p.isNew
+  }));
+  
+  res.json(parsedProducts);
+});
+
+router.post('/user/wishlist', (req, res) => {
+  const { userId, productId } = req.body;
+  db.prepare('INSERT OR IGNORE INTO wishlist_items (userId, productId, addedAt) VALUES (?, ?, ?)')
+    .run(userId, productId, Date.now());
+  res.json({ success: true });
+});
+
+router.delete('/user/wishlist/:userId/:productId', (req, res) => {
+  const { userId, productId } = req.params;
+  db.prepare('DELETE FROM wishlist_items WHERE userId = ? AND productId = ?').run(userId, productId);
+  res.json({ success: true });
+});
+
+// --- CART ---
+router.get('/user/cart/:userId', (req, res) => {
+  const { userId } = req.params;
+  const cart = db.prepare(`
+    SELECT p.*, c.quantity, c.selectedSize, c.selectedColor FROM products p
+    JOIN cart_items c ON p.id = c.productId
+    WHERE c.userId = ?
+  `).all();
+  
+  const parsedCart = cart.map((p: any) => ({
+    ...p,
+    tags: JSON.parse(p.tags || '[]'),
+    details: JSON.parse(p.details || '[]'),
+    sizes: JSON.parse(p.sizes || '[]'),
+    priceRange: JSON.parse(p.priceRange || '{"min":0,"max":0}'),
+    customizationFields: JSON.parse(p.customizationFields || '[]'),
+    isCustom: !!p.isCustom,
+    inStock: !!p.inStock,
+    isHallOfFame: !!p.isHallOfFame,
+    isNew: !!p.isNew
+  }));
+  
+  res.json(parsedCart);
+});
+
+router.post('/user/cart', (req, res) => {
+  const { userId, productId, quantity, selectedSize, selectedColor } = req.body;
+  db.prepare(`
+    INSERT INTO cart_items (userId, productId, quantity, selectedSize, selectedColor, addedAt)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(userId, productId, selectedSize, selectedColor) DO UPDATE SET
+    quantity = quantity + excluded.quantity
+  `).run(userId, productId, quantity || 1, selectedSize || '', selectedColor || '', Date.now());
+  res.json({ success: true });
+});
+
+router.put('/user/cart', (req, res) => {
+  const { userId, productId, quantity, selectedSize, selectedColor } = req.body;
+  db.prepare(`
+    UPDATE cart_items SET quantity = ? 
+    WHERE userId = ? AND productId = ? AND selectedSize = ? AND selectedColor = ?
+  `).run(quantity, userId, productId, selectedSize || '', selectedColor || '');
+  res.json({ success: true });
+});
+
+router.delete('/user/cart/:userId/:productId/:size/:color', (req, res) => {
+  const { userId, productId, size, color } = req.params;
+  db.prepare('DELETE FROM cart_items WHERE userId = ? AND productId = ? AND selectedSize = ? AND selectedColor = ?')
+    .run(userId, productId, size === 'none' ? '' : size, color === 'none' ? '' : color);
+  res.json({ success: true });
+});
+
+// --- MYSTERY BOX ---
+router.post('/user/mystery-box/open', (req, res) => {
+  const { id, userId, boxType, cost, rewardProductId, rewardType } = req.body;
+  db.prepare(`
+    INSERT INTO mystery_box_logs (id, userId, boxType, cost, rewardProductId, rewardType, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(id || `mbox_${Date.now()}`, userId, boxType, cost, rewardProductId, rewardType, Date.now());
+  res.json({ success: true });
+});
+
+router.get('/user/mystery-box/history/:userId', (req, res) => {
+  const { userId } = req.params;
+  const history = db.prepare('SELECT * FROM mystery_box_logs WHERE userId = ? ORDER BY timestamp DESC').all();
+  res.json(history);
+});
+
+// --- GAME SCORES ---
+router.post('/user/game-scores', (req, res) => {
+  const { id, userId, gameId, score, rank, rewardRep, details } = req.body;
+  db.prepare(`
+    INSERT INTO game_scores (id, userId, gameId, score, rank, rewardRep, details, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id || `score_${Date.now()}`, userId, gameId, score, rank || 'N/A', rewardRep || 0, JSON.stringify(details || {}), Date.now());
+  res.json({ success: true });
+});
+
+router.get('/user/game-scores/:userId', (req, res) => {
+  const { userId } = req.params;
+  const scores = db.prepare('SELECT * FROM game_scores WHERE userId = ? ORDER BY timestamp DESC').all() as any[];
+  res.json(scores.map(s => ({ ...s, details: JSON.parse(s.details || '{}') })));
+});
+
+// --- STYLIST SESSIONS ---
+router.post('/user/stylist-sessions', (req, res) => {
+  const { id, userId, messages, recommendations } = req.body;
+  db.prepare(`
+    INSERT INTO stylist_sessions (id, userId, messages, recommendations, timestamp)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(id || `stylist_${Date.now()}`, userId, JSON.stringify(messages), JSON.stringify(recommendations), Date.now());
+  res.json({ success: true });
+});
+
+router.get('/user/stylist-sessions/:userId', (req, res) => {
+  const { userId } = req.params;
+  const sessions = db.prepare('SELECT * FROM stylist_sessions WHERE userId = ? ORDER BY timestamp DESC').all();
+  const parsedSessions = sessions.map((s: any) => ({
+    ...s,
+    messages: JSON.parse(s.messages),
+    recommendations: JSON.parse(s.recommendations)
+  }));
+  res.json(parsedSessions);
+});
+
+// --- TRY-ON HISTORY ---
+router.post('/user/try-on', (req, res) => {
+  const { id, userId, productId, userImage, resultImage } = req.body;
+  db.prepare(`
+    INSERT INTO try_on_history (id, userId, productId, userImage, resultImage, timestamp)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(id || `tryon_${Date.now()}`, userId, productId, userImage, resultImage, Date.now());
+  res.json({ success: true });
+});
+
+router.get('/user/try-on/:userId', (req, res) => {
+  const { userId } = req.params;
+  const history = db.prepare('SELECT * FROM try_on_history WHERE userId = ? ORDER BY timestamp DESC').all();
+  res.json(history);
 });
 
 export default router;

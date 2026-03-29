@@ -98,6 +98,25 @@ export interface User {
   status: 'ACTIVE' | 'BANNED' | 'RESTRICTED';
   lastLogin: string;
   totalSpent: number;
+  loyaltyPoints: number;
+}
+
+export interface QuizResults {
+  userId: string;
+  styles: string[];
+  colors: string[];
+  occasions: string[];
+  budget: 'LOW' | 'MEDIUM' | 'HIGH' | 'ELITE';
+  timestamp: number;
+}
+
+export interface LoyaltyTransaction {
+  id: string;
+  userId: string;
+  type: 'EARN' | 'REDEEM';
+  amount: number;
+  reason: string;
+  timestamp: number;
 }
 
 export interface Bundle {

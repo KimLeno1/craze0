@@ -38,12 +38,23 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
   const totalProgress = Math.round((achievements.reduce((acc, a) => acc + (Math.min(a.progress, a.goal) / a.goal), 0) / achievements.length) * 100);
 
   const [userOrders, setUserOrders] = useState<Order[]>([]);
+  const [gameScores, setGameScores] = useState<any[]>([]);
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      setUserOrders(await databaseService.getOrders());
+    const fetchData = async () => {
+      const userId = localStorage.getItem('cc-user-id');
+      if (userId) {
+        const [orders, scores] = await Promise.all([
+          databaseService.getOrders(),
+          databaseService.getGameScores(userId)
+        ]);
+        setUserOrders(orders);
+        setGameScores(scores);
+      } else {
+        setUserOrders(await databaseService.getOrders());
+      }
     };
-    fetchOrders();
+    fetchData();
   }, []);
 
   const handlePromoActivate = async () => {
@@ -278,6 +289,44 @@ const Profile: React.FC<ProfileProps> = ({ stats, rep, handle, onUpdateHandle, o
                    <div className="hidden md:block text-zinc-800 group-hover:text-[#00D1FF] transition-colors">→</div>
                 </div>
               </button>
+            ))
+          )}
+        </div>
+      </section>
+
+      {/* Game Arena History */}
+      <section className="space-y-8 md:space-y-10">
+        <div className="flex items-center gap-6">
+          <h3 className="text-xl md:text-2xl font-serif italic text-white whitespace-nowrap">Arena Performance</h3>
+          <div className="h-px w-full bg-zinc-900"></div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {gameScores.length === 0 ? (
+            <div className="col-span-full py-16 md:py-20 text-center glass border-dashed border-white/5 rounded-[2.5rem] md:rounded-[3rem] opacity-30">
+               <p className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.5em]">No arena data recorded. Enter the Playroom to begin.</p>
+            </div>
+          ) : (
+            gameScores.map((score, idx) => (
+              <div 
+                key={idx}
+                className="glass border-white/5 p-6 rounded-[2rem] flex items-center justify-between group hover:border-[#EC4899]/30 transition-all"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-zinc-900 rounded-2xl flex items-center justify-center text-2xl group-hover:rotate-12 transition-transform">
+                    {score.gameType === 'DICE' ? '🎲' : score.gameType === 'GUESS' ? '🔮' : '📦'}
+                  </div>
+                  <div>
+                    <div className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">{score.gameType}</div>
+                    <div className="text-sm font-black text-white uppercase">{score.details?.outcome || score.details?.reason || 'Protocol Executed'}</div>
+                    <div className="text-[8px] font-bold text-zinc-700 uppercase tracking-widest">{new Date(score.timestamp).toLocaleDateString()}</div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Score</div>
+                  <div className="text-xl font-mono font-black text-[#EC4899]">{score.score}</div>
+                </div>
+              </div>
             ))
           )}
         </div>

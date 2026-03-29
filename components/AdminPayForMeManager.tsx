@@ -129,7 +129,7 @@ const AdminPayForMeManager: React.FC = () => {
                   </button>
                   <button 
                     onClick={() => handleStatusUpdate(request.id, PayForMeStatus.APPROVED)}
-                    className="p-3 bg-[#00D1FF]/10 text-[#00D1FF] rounded-xl hover:bg-[#00D1FF] hover:text-white transition-all border border-[#00D1FF]/20"
+                    className="p-3 bg-green-500/10 text-green-500 rounded-xl hover:bg-green-500 hover:text-white transition-all border border-green-500/20"
                     title="Approve Request"
                   >
                     <CheckCircle2 className="w-4 h-4" />

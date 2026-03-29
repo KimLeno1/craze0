@@ -20,15 +20,15 @@ async function startServer() {
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {
     const MOCK_USERS = [
-      { id: 'u1', handle: 'Viper_X', email: 'viper@archivers.net', archetype: 'CYBER', rep: 4500, level: 7, coins: 1200, gems: 45, status: 'ACTIVE', lastLogin: '2h ago', totalSpent: 850 },
-      { id: 'u2', handle: 'Ghost_Shell', email: 'ghost@void.com', archetype: 'VOID', rep: 8900, level: 10, coins: 5400, gems: 120, status: 'ACTIVE', lastLogin: '15m ago', totalSpent: 2400 },
-      { id: 'u3', handle: 'Luxe_Lord', email: 'lord@heirloom.io', archetype: 'LUXE', rep: 12000, level: 12, coins: 8900, gems: 300, status: 'ACTIVE', lastLogin: '5d ago', totalSpent: 12500 },
-      { id: 'u4', handle: 'Glitch_Boi', email: 'glitch@chaos.org', archetype: 'CYBER', rep: 1200, level: 4, coins: 400, gems: 5, status: 'BANNED', lastLogin: '1y ago', totalSpent: 0 },
+      { id: 'u1', handle: 'Viper_X', email: 'viper@archivers.net', archetype: 'CYBER', rep: 4500, level: 7, coins: 1200, gems: 45, status: 'ACTIVE', lastLogin: '2h ago', totalSpent: 850, loyaltyPoints: 120 },
+      { id: 'u2', handle: 'Ghost_Shell', email: 'ghost@void.com', archetype: 'VOID', rep: 8900, level: 10, coins: 5400, gems: 120, status: 'ACTIVE', lastLogin: '15m ago', totalSpent: 2400, loyaltyPoints: 540 },
+      { id: 'u3', handle: 'Luxe_Lord', email: 'lord@heirloom.io', archetype: 'LUXE', rep: 12000, level: 12, coins: 8900, gems: 300, status: 'ACTIVE', lastLogin: '5d ago', totalSpent: 12500, loyaltyPoints: 1250 },
+      { id: 'u4', handle: 'Glitch_Boi', email: 'glitch@chaos.org', archetype: 'CYBER', rep: 1200, level: 4, coins: 400, gems: 5, status: 'BANNED', lastLogin: '1y ago', totalSpent: 0, loyaltyPoints: 0 },
     ];
-    const insertUser = db.prepare('INSERT INTO users (id, handle, email, archetype, rep, level, coins, gems, status, lastLogin, totalSpent) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    const insertUser = db.prepare('INSERT INTO users (id, handle, email, archetype, rep, level, coins, gems, status, lastLogin, totalSpent, loyaltyPoints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     const insertStats = db.prepare('INSERT INTO user_stats (userId, stats) VALUES (?, ?)');
     for (const u of MOCK_USERS) {
-      insertUser.run(u.id, u.handle, u.email, u.archetype, u.rep, u.level, u.coins, u.gems, u.status, u.lastLogin, u.totalSpent);
+      insertUser.run(u.id, u.handle, u.email, u.archetype, u.rep, u.level, u.coins, u.gems, u.status, u.lastLogin, u.totalSpent, u.loyaltyPoints);
       
       const initialStats = {
         userId: u.id,
@@ -220,16 +220,65 @@ async function startServer() {
     }
   }
 
+  const socialCount = db.prepare('SELECT COUNT(*) as count FROM social_posts').get() as { count: number };
+  if (socialCount.count === 0) {
+    const MOCK_SOCIAL_POSTS = [
+      {
+        id: 'post_1',
+        userId: 'u1',
+        userHandle: 'Viper_X',
+        image: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=800&q=80',
+        likes: 124,
+        dislikes: 12,
+        reports: 0,
+        timestamp: new Date().toISOString(),
+        weekId: ''
+      },
+      {
+        id: 'post_2',
+        userId: 'u2',
+        userHandle: 'Ghost_Shell',
+        image: 'https://images.unsplash.com/photo-1539109132314-34a77bd6819f?auto=format&fit=crop&w=800&q=80',
+        likes: 89,
+        dislikes: 5,
+        reports: 0,
+        timestamp: new Date().toISOString(),
+        weekId: ''
+      },
+      {
+        id: 'post_3',
+        userId: 'u3',
+        userHandle: 'Luxe_Lord',
+        image: 'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=800&q=80',
+        likes: 256,
+        dislikes: 20,
+        reports: 0,
+        timestamp: new Date().toISOString(),
+        weekId: ''
+      }
+    ];
+    const insertPost = db.prepare(
+      'INSERT INTO social_posts (id, userId, userHandle, image, likes, dislikes, reports, timestamp, weekId) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    );
+    for (const p of MOCK_SOCIAL_POSTS) {
+      insertPost.run(p.id, p.userId, p.userHandle, p.image, p.likes, p.dislikes, p.reports, p.timestamp, p.weekId);
+    }
+  }
+
   // Use the modular API router
   app.use('/api', apiRouter);
 
-  // Recommendations logic (kept in server for now or could be moved)
+  // Recommendations logic
   app.get('/api/recommendations/:userId', (req, res) => {
     const { userId } = req.params;
     const prefsRow = db.prepare('SELECT * FROM user_preferences WHERE userId = ?').get(userId) as any;
     const historyRow = db.prepare('SELECT * FROM user_history WHERE userId = ?').get(userId) as any;
+    const quizRow = db.prepare('SELECT * FROM quiz_results WHERE userId = ?').get(userId) as any;
+    
     const prefs = prefsRow ? JSON.parse(prefsRow.preferences) : null;
     const history = historyRow ? JSON.parse(historyRow.history) : { viewedProductIds: [], wishlistedProductIds: [], purchasedProductIds: [] };
+    const quiz = quizRow ? JSON.parse(quizRow.results) : null;
+    
     const allProducts = db.prepare('SELECT * FROM products').all() as any[];
     
     const recommendations = allProducts
@@ -237,6 +286,18 @@ async function startServer() {
       .map(p => {
         let score = 0;
         const pTags = JSON.parse(p.tags || '[]');
+        
+        // Quiz scoring
+        if (quiz) {
+          if (quiz.styles?.some((s: string) => pTags.includes(s.toUpperCase()))) score += 20;
+          if (quiz.occasions?.some((o: string) => p.description.toLowerCase().includes(o.toLowerCase()))) score += 15;
+          if (quiz.budget) {
+            const budgetMap: Record<string, number> = { 'LOW': 200, 'MEDIUM': 500, 'HIGH': 1000, 'ELITE': 5000 };
+            if (p.price <= budgetMap[quiz.budget]) score += 10;
+          }
+        }
+
+        // Preferences scoring
         if (prefs) {
           if (prefs.preferredCategories?.includes(p.category)) score += 10;
           if (prefs.preferredGenders?.includes(p.gender)) score += 10;
@@ -247,6 +308,8 @@ async function startServer() {
             });
           }
         }
+        
+        // History scoring
         history.viewedProductIds.forEach(vid => {
           const viewedProduct = allProducts.find(ap => ap.id === vid);
           if (viewedProduct && viewedProduct.category === p.category) score += 2;
@@ -255,13 +318,67 @@ async function startServer() {
           const wishProduct = allProducts.find(ap => ap.id === wid);
           if (wishProduct && wishProduct.category === p.category) score += 5;
         });
+        
+        // Hype/Velocity
         score += (p.hypeScore || 0) / 100;
         score += (p.velocityScore || 0) / 100;
+        
         return { ...p, score, tags: pTags };
       })
       .sort((a, b) => b.score - a.score)
       .slice(0, 10);
     res.json(recommendations);
+  });
+
+  // Quiz Endpoints
+  app.post('/api/quiz/results', (req, res) => {
+    const { userId, results } = req.body;
+    db.prepare('INSERT OR REPLACE INTO quiz_results (userId, results, timestamp) VALUES (?, ?, ?)')
+      .run(userId, JSON.stringify(results), Date.now());
+    res.json({ status: 'success' });
+  });
+
+  app.get('/api/quiz/results/:userId', (req, res) => {
+    const { userId } = req.params;
+    const row = db.prepare('SELECT * FROM quiz_results WHERE userId = ?').get(userId) as any;
+    res.json(row ? JSON.parse(row.results) : null);
+  });
+
+  // Loyalty Endpoints
+  app.get('/api/loyalty/points/:userId', (req, res) => {
+    const { userId } = req.params;
+    const user = db.prepare('SELECT loyaltyPoints FROM users WHERE id = ?').get(userId) as any;
+    res.json({ points: user?.loyaltyPoints || 0 });
+  });
+
+  app.post('/api/loyalty/earn', (req, res) => {
+    const { userId, amount, reason } = req.body;
+    db.transaction(() => {
+      db.prepare('UPDATE users SET loyaltyPoints = loyaltyPoints + ? WHERE id = ?').run(amount, userId);
+      db.prepare('INSERT INTO loyalty_transactions (id, userId, type, amount, reason, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(Math.random().toString(36).substr(2, 9), userId, 'EARN', amount, reason, Date.now());
+    })();
+    res.json({ status: 'success' });
+  });
+
+  app.post('/api/loyalty/redeem', (req, res) => {
+    const { userId, amount, reason } = req.body;
+    const user = db.prepare('SELECT loyaltyPoints FROM users WHERE id = ?').get(userId) as any;
+    if (!user || user.loyaltyPoints < amount) {
+      return res.status(400).json({ error: 'Insufficient points' });
+    }
+    db.transaction(() => {
+      db.prepare('UPDATE users SET loyaltyPoints = loyaltyPoints - ? WHERE id = ?').run(amount, userId);
+      db.prepare('INSERT INTO loyalty_transactions (id, userId, type, amount, reason, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(Math.random().toString(36).substr(2, 9), userId, 'REDEEM', amount, reason, Date.now());
+    })();
+    res.json({ status: 'success' });
+  });
+
+  app.get('/api/loyalty/transactions/:userId', (req, res) => {
+    const { userId } = req.params;
+    const rows = db.prepare('SELECT * FROM loyalty_transactions WHERE userId = ? ORDER BY timestamp DESC').all(userId);
+    res.json(rows);
   });
 
   // Vite middleware for development

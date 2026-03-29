@@ -7,6 +7,7 @@ import { MOCK_ORDERS } from '../mockData';
 const AdminSupplierPanel: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   
@@ -21,6 +22,7 @@ const AdminSupplierPanel: React.FC = () => {
     const fetchData = async () => {
       setSuppliers(await databaseService.getSuppliers());
       setAllProducts(await databaseService.getProducts());
+      setAllOrders(await databaseService.getOrders());
     };
     fetchData();
   }, []);
@@ -34,7 +36,7 @@ const AdminSupplierPanel: React.FC = () => {
   };
 
   const supplierProducts = allProducts.filter(p => p.supplierId === selectedSupplier?.id);
-  const supplierOrders = MOCK_ORDERS.filter(o => 
+  const supplierOrders = allOrders.filter(o => 
     o.items.some(item => allProducts.find(ap => ap.id === item.id)?.supplierId === selectedSupplier?.id)
   );
 
@@ -156,7 +158,7 @@ const AdminSupplierPanel: React.FC = () => {
         
         <button 
           onClick={() => setIsRegistering(true)}
-          className="bg-white text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00D1FF] hover:text-white transition-all shadow-xl"
+          className="bg-white text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-xl"
         >
           Register Node
         </button>
@@ -218,7 +220,7 @@ const AdminSupplierPanel: React.FC = () => {
                     </button>
                     <button 
                       type="submit"
-                      className="flex-[2] py-4 bg-[#00D1FF] text-white rounded-2xl font-black uppercase tracking-widest text-[9px] hover:bg-white hover:text-[#00D1FF] transition-all shadow-2xl"
+                      className="flex-[2] py-4 bg-green-500 text-white rounded-2xl font-black uppercase tracking-widest text-[9px] hover:bg-white hover:text-green-500 active:bg-green-700 transition-all shadow-2xl"
                     >
                       Initialize Provisioning
                     </button>

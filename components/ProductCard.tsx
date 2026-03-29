@@ -71,7 +71,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <div className="flex gap-2">
             <button 
               onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-              className="h-10 px-6 bg-white text-black text-[8px] uppercase tracking-[0.3em] font-black hover:bg-[#00D1FF] hover:text-white transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)]"
+              className="h-10 px-6 bg-white text-black text-[8px] uppercase tracking-[0.3em] font-black hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-[0_0_15px_rgba(255,255,255,0.3)]"
             >
               Acquire
             </button>
@@ -115,7 +115,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
             <div className="text-base sm:text-lg font-mono tracking-tighter text-white">GH₵{product.price}</div>
             <button 
               onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-              className="sm:hidden px-4 py-2 bg-white text-black text-[7px] font-black uppercase tracking-widest rounded-lg active:bg-[#00D1FF] active:text-white transition-all"
+              className="sm:hidden px-4 py-2 bg-white text-black text-[7px] font-black uppercase tracking-widest rounded-lg hover:bg-green-500 hover:text-white active:bg-green-700 transition-all"
             >
               Acquire
             </button>

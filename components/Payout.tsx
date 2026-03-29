@@ -111,7 +111,7 @@ const Payout: React.FC<PayoutProps> = ({ onNavigate, balances = { coins: 4250, g
                     disabled={!canAfford}
                     className={`w-full py-5 rounded-2xl font-black uppercase tracking-widest text-[9px] transition-all ${
                       canAfford 
-                      ? 'bg-white text-black hover:bg-[#EC4899] hover:text-white' 
+                      ? 'bg-white text-black hover:bg-green-500 hover:text-white active:bg-green-700' 
                       : 'bg-zinc-900 text-zinc-700 cursor-not-allowed'
                     }`}
                   >

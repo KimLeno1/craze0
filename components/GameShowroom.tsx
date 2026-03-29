@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Product } from '../types';
+import { databaseService } from '../services/databaseService';
 
 interface GameShowroomProps {
   tickets: number;
@@ -47,17 +48,35 @@ const GameShowroom: React.FC<GameShowroomProps> = ({ tickets, jackpotProduct, on
     localStorage.setItem('cc-arena-cooldown', end.toString());
   };
 
-  const triggerWin = (outcome: string) => {
+  const triggerWin = async (outcome: string, score: number = 100) => {
     onWin(outcome);
     setGameState({ result: outcome, win: true, icon: '💎' });
     startCooldown();
+    
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      try {
+        await databaseService.saveGameScore(userId, activeGame, score, { outcome });
+      } catch (error) {
+        console.error('Error saving game score:', error);
+      }
+    }
   };
 
-  const triggerLoss = (reason: string) => {
+  const triggerLoss = async (reason: string, score: number = 0) => {
     setGameState({ result: reason, win: false, icon: '💀' });
     setGlitchActive(true);
     setTimeout(() => setGlitchActive(false), 1000);
     startCooldown();
+    
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      try {
+        await databaseService.saveGameScore(userId, activeGame, score, { reason });
+      } catch (error) {
+        console.error('Error saving game score:', error);
+      }
+    }
   };
 
   const handleRollDice = () => {

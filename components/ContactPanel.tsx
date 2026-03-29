@@ -124,12 +124,12 @@ const ContactPanel: React.FC = () => {
                 type="submit"
                 disabled={isSubmitting}
                 className={`w-full py-8 rounded-[2.5rem] font-black uppercase tracking-[0.5em] text-xs transition-all shadow-3xl active:scale-95 group relative overflow-hidden ${
-                  isSubmitting ? 'bg-zinc-900 text-zinc-600' : 'bg-white text-black hover:bg-[#EC4899] hover:text-white'
+                  isSubmitting ? 'bg-zinc-900 text-zinc-600' : 'bg-white text-black hover:bg-green-500 hover:text-white active:bg-green-700'
                 }`}
               >
                 <span className="relative z-10">{isSubmitting ? 'ENCRYPTING_TRANSMISSION...' : 'Establish Uplink Connection'}</span>
                 {!isSubmitting && (
-                  <div className="absolute inset-0 bg-[#EC4899] translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                  <div className="absolute inset-0 bg-green-500 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                 )}
               </button>
             </div>

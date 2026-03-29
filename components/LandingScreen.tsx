@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { databaseService } from '../services/databaseService';
 
 interface LandingScreenProps {
   onComplete: (archetype: string, isNewUser: boolean) => void;
@@ -31,17 +32,40 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
     }
   };
 
-  const handleAuthSubmit = (e: React.FormEvent) => {
+  const handleAuthSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (authMode === 'SIGNUP' && formData.password !== formData.confirmPassword) {
       alert("Neural Mismatch: Security Phrases do not sync.");
       return;
     }
     setIsAuthenticating(true);
-    setTimeout(() => {
+    try {
+      let result;
+      if (authMode === 'LOGIN') {
+        result = await databaseService.login({
+          email: formData.email,
+          password: formData.password
+        });
+      } else {
+        result = await databaseService.signup({
+          email: formData.email,
+          password: formData.password,
+          phone: formData.phone
+        });
+      }
+      
+      if (result.success) {
+        localStorage.setItem('cc-auth-token', 'true');
+        localStorage.setItem('cc-user-id', result.userId);
+        if (result.handle) localStorage.setItem('cc-user-handle', result.handle);
+        onComplete('CYBER', authMode === 'SIGNUP');
+      }
+    } catch (error) {
+      console.error('Auth error:', error);
+      alert(authMode === 'LOGIN' ? 'Access Denied: Invalid Credentials' : 'Registration Failed: Identity already exists');
+    } finally {
       setIsAuthenticating(false);
-      onComplete('CYBER', authMode === 'SIGNUP');
-    }, 1200);
+    }
   };
 
   return (
@@ -74,7 +98,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
               <input type="password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} placeholder="CONFIRM_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
             )}
 
-            <button type="submit" disabled={isAuthenticating} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] bg-white text-black hover:bg-[#EC4899] hover:text-white transition-all active:scale-95 disabled:opacity-50">
+            <button type="submit" disabled={isAuthenticating} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] bg-white text-black hover:bg-green-500 hover:text-white active:bg-green-700 transition-all active:scale-95 disabled:opacity-50">
               {isAuthenticating ? 'Decrypting...' : authMode === 'LOGIN' ? 'Initialize Uplink' : 'Register Profile'}
             </button>
           </form>

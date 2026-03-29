@@ -10,19 +10,21 @@ interface PriceAnomaliesProps {
 
 const PriceAnomalies: React.FC<PriceAnomaliesProps> = ({ onAddToCart, onNavigate }) => {
   const [anomalies, setAnomalies] = useState<PriceAnomaly[]>([]);
-  const [window, setWindow] = useState<{ startTime: number; endTime: number } | null>(null);
-  const [isFirstVisit, setIsFirstVisit] = useState(false);
+  const [session, setSession] = useState<{ endTime: number } | null>(null);
 
   useEffect(() => {
     const init = async () => {
-      setAnomalies(await databaseService.getPriceAnomalies());
-      
-      let currentWindow = await databaseService.getPriceAnomalyWindow();
-      if (!currentWindow) {
-        currentWindow = await databaseService.initializePriceAnomalyWindow();
-        setIsFirstVisit(true);
+      const userId = localStorage.getItem('cc-user-id');
+      if (userId) {
+        const userAnomalies = await databaseService.getPriceAnomalies(userId);
+        setAnomalies(userAnomalies);
+        
+        const userSession = await databaseService.getUserAnomalySession(userId);
+        setSession(userSession);
+      } else {
+        // Fallback or show nothing if not logged in
+        setAnomalies([]);
       }
-      setWindow(currentWindow);
 
       const timer = setInterval(() => {
         setAnomalies(prev => [...prev]); // Force re-render for timer
@@ -40,7 +42,7 @@ const PriceAnomalies: React.FC<PriceAnomaliesProps> = ({ onAddToCart, onNavigate
     return `${h > 0 ? h + ':' : ''}${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const isWindowActive = window && Date.now() < window.endTime;
+  const isWindowActive = session && Date.now() < session.endTime;
 
   return (
     <div className="min-h-screen bg-[#050505] text-white pb-40 animate-in fade-in duration-1000">
@@ -51,11 +53,6 @@ const PriceAnomalies: React.FC<PriceAnomaliesProps> = ({ onAddToCart, onNavigate
               {isWindowActive ? 'Reduction_Active' : 'Window_Closed'}
             </div>
             <div className="h-px w-8 md:w-20 bg-[#00D1FF]/20"></div>
-            {isFirstVisit && (
-              <span className="text-[8px] md:text-[9px] font-bold text-amber-500 uppercase tracking-widest animate-bounce">
-                Daily Window Initialized!
-              </span>
-            )}
           </div>
           <h1 className="text-4xl sm:text-6xl md:text-9xl font-serif italic tracking-tighter leading-none">
             Global <span className="text-[#00D1FF] not-italic font-sans">Reductions</span>
@@ -64,10 +61,10 @@ const PriceAnomalies: React.FC<PriceAnomaliesProps> = ({ onAddToCart, onNavigate
             <p className="text-zinc-500 text-[9px] md:text-[10px] uppercase tracking-[0.3em] md:tracking-[0.4em] font-black max-w-md leading-relaxed">
               High-velocity reductions active in the archive. These assets are de-materializing rapidly. Secure them before the window collapses.
             </p>
-            {window && (
+            {session && (
               <div className="bg-zinc-900/50 border border-[#00D1FF]/20 p-4 md:p-6 rounded-2xl md:rounded-3xl flex flex-col items-center min-w-[140px] md:min-w-[200px] w-fit">
                 <span className="text-[7px] md:text-[8px] font-black text-[#00D1FF] uppercase tracking-widest mb-1 md:mb-2">Reduction Window Collapse</span>
-                <span className="text-2xl md:text-4xl font-mono font-black text-white">{formatTime(window.endTime)}</span>
+                <span className="text-2xl md:text-4xl font-mono font-black text-white">{formatTime(session.endTime)}</span>
               </div>
             )}
           </div>

@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PromoCode } from '../types';
+import { databaseService } from '../services/databaseService';
 import { Ticket, Plus, Trash2, Calendar, Percent, Tag } from 'lucide-react';
 
 const AdminPromoManager: React.FC = () => {
@@ -20,8 +21,7 @@ const AdminPromoManager: React.FC = () => {
 
   const fetchPromos = async () => {
     try {
-      const response = await fetch('/api/promo-codes');
-      const data = await response.json();
+      const data = await databaseService.getPromoCodes();
       setPromoCodes(data);
     } catch (error) {
       console.error('Fetch promos error:', error);
@@ -31,22 +31,19 @@ const AdminPromoManager: React.FC = () => {
   const handleCreatePromo = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const response = await fetch('/api/promo-codes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...newPromo,
-          id: `promo_${Date.now()}`,
-          isActive: true,
-          usedCount: 0
-        })
-      });
-
-      if (response.ok) {
-        setIsAdding(false);
-        setNewPromo({ code: '', discount: 0, type: 'PERCENT', expiryDate: '', usageLimit: 100 });
-        fetchPromos();
-      }
+      const promoData = {
+        ...newPromo,
+        id: `promo_${Date.now()}`,
+        isActive: true,
+        usedCount: 0,
+        value: newPromo.discount,
+        description: `${newPromo.discount}${newPromo.type === 'PERCENT' ? '%' : ' GH₵'} discount code`
+      };
+      
+      await databaseService.savePromoCodes([promoData as any]);
+      setIsAdding(false);
+      setNewPromo({ code: '', discount: 0, type: 'PERCENT', expiryDate: '', usageLimit: 100 });
+      fetchPromos();
     } catch (error) {
       console.error('Create promo error:', error);
     }
@@ -54,12 +51,8 @@ const AdminPromoManager: React.FC = () => {
 
   const handleDeletePromo = async (id: string) => {
     try {
-      const response = await fetch(`/api/promo-codes/${id}`, {
-        method: 'DELETE'
-      });
-      if (response.ok) {
-        fetchPromos();
-      }
+      await databaseService.deletePromoCode(id);
+      fetchPromos();
     } catch (error) {
       console.error('Delete promo error:', error);
     }
@@ -77,7 +70,7 @@ const AdminPromoManager: React.FC = () => {
         </div>
         <button 
           onClick={() => setIsAdding(true)}
-          className="bg-white text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00D1FF] hover:text-white transition-all shadow-xl flex items-center gap-3"
+          className="bg-white text-black px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-xl flex items-center gap-3"
         >
           <Plus className="w-4 h-4" />
           Generate Protocol
@@ -162,7 +155,7 @@ const AdminPromoManager: React.FC = () => {
                 </button>
                 <button 
                   type="submit"
-                  className="flex-[2] py-4 bg-[#00D1FF] text-white rounded-2xl font-black uppercase tracking-widest text-[9px] hover:bg-white hover:text-[#00D1FF] transition-all shadow-2xl"
+                  className="flex-[2] py-4 bg-green-500 text-white rounded-2xl font-black uppercase tracking-widest text-[9px] hover:bg-white hover:text-green-500 active:bg-green-700 transition-all shadow-2xl"
                 >
                   Initialize Protocol
                 </button>

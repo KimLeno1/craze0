@@ -117,15 +117,45 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const initUser = async () => {
-      const users = await databaseService.getUsers();
-      const user = users.find(u => u.handle === (localStorage.getItem('cc-user-handle') || 'Viper_X'));
-      if (user) {
-        setRep(user.rep);
-        setHandle(user.handle);
-        const userStats = await databaseService.getUserStats(user.id);
-        setStats(userStats);
-        const prefs = await databaseService.getUserPreferences(user.id);
-        setUserPrefs(prefs);
+      const userId = localStorage.getItem('cc-user-id');
+      if (userId) {
+        try {
+          const profile = await databaseService.getUserProfile(userId);
+          setRep(profile.rep);
+          setHandle(profile.handle);
+          setStats(profile.stats);
+          setUserPrefs(profile.preferences);
+          
+          // Fetch wishlist and cart from backend
+          const backendWishlist = await databaseService.getWishlist(userId);
+          setWishlist(backendWishlist.map(p => p.id));
+          
+          const backendCart = await databaseService.getCart(userId);
+          setCart(backendCart.map(item => ({
+            ...item,
+            id: item.productId,
+            customizationData: item.selectedColor ? { color: item.selectedColor } : undefined
+          })));
+
+          // Check and initialize anomaly session
+          try {
+            const config = await databaseService.getAnomalyConfig();
+            if (config) {
+              const session = await databaseService.getUserAnomalySession(userId);
+              if (!session || session.eventId !== config.eventId) {
+                await databaseService.startUserAnomalySession(userId);
+              }
+            }
+          } catch (e) {
+            console.error('Error initializing anomaly session:', e);
+          }
+        } catch (error) {
+          console.error('Error initializing user from backend:', error);
+          // Fallback to local storage or defaults if backend fails
+          setRep(Number(localStorage.getItem('cc-user-rep') || '8500'));
+          const userStats = await databaseService.getUserStats('u1');
+          setStats(userStats);
+        }
       } else {
         setRep(Number(localStorage.getItem('cc-user-rep') || '8500'));
         const userStats = await databaseService.getUserStats('u1');
@@ -135,7 +165,7 @@ const App: React.FC = () => {
       }
     };
     initUser();
-  }, []);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (isAuthenticated && tutorialFinished && !userPrefs && !showStyleQuiz) {
@@ -196,10 +226,31 @@ const App: React.FC = () => {
     fetchData();
   }, []);
 
-  const addToCart = (product: Product, selectedSize?: string, customizationData?: Record<string, string>) => {
+  const addToCart = async (product: Product, selectedSize?: string, customizationData?: Record<string, string>) => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
+    }
+
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      try {
+        await databaseService.addToCart(userId, {
+          productId: product.id,
+          quantity: 1,
+          size: selectedSize,
+          color: customizationData?.color
+        });
+        // Refresh cart from backend
+        const backendCart = await databaseService.getCart(userId);
+        setCart(backendCart.map(item => ({
+          ...item,
+          id: item.productId,
+          customizationData: item.selectedColor ? { color: item.selectedColor } : undefined
+        })));
+      } catch (error) {
+        console.error('Error adding to cart on backend:', error);
+      }
     }
 
     if (!surgeTimerEnd) {
@@ -207,24 +258,11 @@ const App: React.FC = () => {
       setSurgeTimerEnd(newEnd);
       localStorage.setItem('cc-surge-timer', newEnd.toString());
     }
-    setCart(prev => {
-      const existing = prev.find(item => 
-        item.id === product.id && 
-        item.selectedSize === selectedSize && 
-        JSON.stringify(item.customizationData) === JSON.stringify(customizationData)
-      );
-      if (existing) return prev.map(i => (
-        i.id === product.id && 
-        i.selectedSize === selectedSize && 
-        JSON.stringify(i.customizationData) === JSON.stringify(customizationData)
-      ) ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, { ...product, quantity: 1, selectedSize, customizationData }];
-    });
     setIsCartOpen(true);
   };
 
   const gainRep = async (amount: number) => {
-    const userId = 'u1'; 
+    const userId = localStorage.getItem('cc-user-id') || 'u1'; 
     const updatedUser = await databaseService.addRep(userId, amount);
     if (updatedUser) {
       setRep(updatedUser.rep);
@@ -233,35 +271,102 @@ const App: React.FC = () => {
   };
 
   const trackAchievement = async (achievementId: string, progress: number) => {
-    const userId = 'u1';
+    const userId = localStorage.getItem('cc-user-id') || 'u1';
     await databaseService.updateAchievementProgress(userId, achievementId, progress);
     setStats(await databaseService.getUserStats(userId));
-    const users = await databaseService.getUsers();
-    const user = users.find(u => u.id === userId);
-    if (user) setRep(user.rep);
+    const profile = await databaseService.getUserProfile(userId);
+    if (profile) setRep(profile.rep);
   };
 
-  const toggleWishlist = (product: Product) => {
+  const toggleWishlist = async (product: Product) => {
     if (!isAuthenticated) {
       setShowAuthModal(true);
       return;
     }
 
-    setWishlist(prev => {
-      const isAdding = !prev.includes(product.id);
-      const updated = isAdding ? [...prev, product.id] : prev.filter(id => id !== product.id);
-      localStorage.setItem('closet-kraze-wishlist', JSON.stringify(updated));
-      
-      if (isAdding) {
-        gainRep(5);
-        trackAchievement('a5', 1); // Void Stalker progress
-        databaseService.trackAction(stats.userId, product.id, 'wishlist');
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      const isAdding = !wishlist.includes(product.id);
+      try {
+        if (isAdding) {
+          await databaseService.addToWishlist(userId, product.id);
+          gainRep(5);
+          trackAchievement('a5', 1); // Void Stalker progress
+          databaseService.trackAction(userId, product.id, 'wishlist');
+        } else {
+          await databaseService.removeFromWishlist(userId, product.id);
+        }
+        // Refresh wishlist from backend
+        const backendWishlist = await databaseService.getWishlist(userId);
+        setWishlist(backendWishlist.map(p => p.id));
+      } catch (error) {
+        console.error('Error toggling wishlist on backend:', error);
       }
-      
-      return updated;
-    });
+    }
   };
 
+  const removeFromCart = async (productId: string, size?: string, color?: string) => {
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      try {
+        await databaseService.removeFromCart(userId, productId, size || '', color || '');
+        const backendCart = await databaseService.getCart(userId);
+        setCart(backendCart.map(item => ({
+          ...item,
+          id: item.productId,
+          customizationData: item.selectedColor ? { color: item.selectedColor } : undefined
+        })));
+      } catch (error) {
+        console.error('Error removing from cart on backend:', error);
+      }
+    } else {
+      setCart(prev => prev.filter(i => i.id !== productId));
+    }
+  };
+
+  const updateCartQuantity = async (productId: string, delta: number, size?: string, color?: string) => {
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      const item = cart.find(i => i.id === productId && i.selectedSize === size && i.customizationData?.color === color);
+      if (item) {
+        try {
+          await databaseService.updateCartItem(userId, {
+            productId,
+            quantity: item.quantity + delta,
+            size,
+            color
+          });
+          const backendCart = await databaseService.getCart(userId);
+          setCart(backendCart.map(item => ({
+            ...item,
+            id: item.productId,
+            customizationData: item.selectedColor ? { color: item.selectedColor } : undefined
+          })));
+        } catch (error) {
+          console.error('Error updating cart quantity on backend:', error);
+        }
+      }
+    } else {
+      setCart(prev => prev.map(i => i.id === productId ? {...i, quantity: Math.max(1, i.quantity + delta)} : i));
+    }
+  };
+
+  const clearCart = async () => {
+    const userId = localStorage.getItem('cc-user-id');
+    if (userId) {
+      try {
+        const backendCart = await databaseService.getCart(userId);
+        for (const item of backendCart) {
+          await databaseService.removeFromCart(userId, item.productId, item.size, item.color);
+        }
+        setCart([]);
+      } catch (error) {
+        console.error('Error clearing cart on backend:', error);
+      }
+    } else {
+      setCart([]);
+    }
+  };
   const handleNavigateView = (view: ViewState) => {
     const protectedViews = [ViewState.PROFILE, ViewState.WISHLIST, ViewState.TRY_ON, ViewState.PAY_FOR_ME, ViewState.GAME_SHOWROOM];
     if (!isAuthenticated && protectedViews.includes(view)) {
@@ -322,6 +427,18 @@ const App: React.FC = () => {
     setIsCartOpen(true);
   };
 
+  const [haulProductIds, setHaulProductIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchHaul = async () => {
+      const orders = await databaseService.getOrders();
+      const userOrders = orders.filter(o => o.userId === stats.userId || o.userName === handle);
+      const ids = userOrders.flatMap(o => o.items.map(i => i.id));
+      setHaulProductIds([...new Set(ids)]);
+    };
+    fetchHaul();
+  }, [stats.userId, handle]);
+
   const renderView = () => {
     switch (currentView) {
       case ViewState.LOBBY:
@@ -354,7 +471,15 @@ const App: React.FC = () => {
           />
         );
       case ViewState.TRY_ON: 
-        return <TryOn rank={currentRank} stats={stats} onUsed={() => setStats(s => ({...s, aiTryOnsUsedToday: s.aiTryOnsUsedToday + 1}))} />;
+        return (
+          <TryOn 
+            rank={currentRank} 
+            stats={stats} 
+            onUsed={() => setStats(s => ({...s, aiTryOnsUsedToday: s.aiTryOnsUsedToday + 1}))} 
+            wishlistProducts={products.filter(p => wishlist.includes(p.id))}
+            haulProducts={products.filter(p => haulProductIds.includes(p.id))}
+          />
+        );
       case ViewState.BUNDLES: 
         return <Bundles bundles={MOCK_BUNDLES} onAddBundle={addBundleToCart} />;
       case ViewState.CATEGORIES: return <Categories onSelectCategory={setSelectedCategory} onNavigate={handleNavigateView} />;
@@ -370,7 +495,39 @@ const App: React.FC = () => {
             onNavigate={handleNavigateView}
           />
         );
-      case ViewState.PROFILE: return <Profile stats={stats} rep={rep} handle={handle} onUpdateHandle={setHandle} onNavigate={handleNavigateView} onLogout={() => { setIsAuthenticated(false); localStorage.removeItem('cc-auth-token'); setShowAuthModal(true); }} onApplyPromo={setActivePromo} activePromo={activePromo} onUpdateStats={setStats} theme={theme} onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} onOpenStyleQuiz={() => setShowStyleQuiz(true)} />;
+      case ViewState.PROFILE: 
+        return (
+          <Profile 
+            stats={stats} 
+            rep={rep} 
+            handle={handle} 
+            onUpdateHandle={async (newHandle) => {
+              const userId = localStorage.getItem('cc-user-id');
+              if (userId) {
+                try {
+                  await databaseService.updateUserProfile(userId, { handle: newHandle });
+                  setHandle(newHandle);
+                } catch (error) {
+                  console.error('Error updating handle on backend:', error);
+                }
+              } else {
+                setHandle(newHandle);
+              }
+            }} 
+            onNavigate={handleNavigateView} 
+            onLogout={async () => { 
+              await databaseService.logout();
+              setIsAuthenticated(false); 
+              setShowAuthModal(true); 
+            }} 
+            onApplyPromo={setActivePromo} 
+            activePromo={activePromo} 
+            onUpdateStats={setStats} 
+            theme={theme} 
+            onToggleTheme={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} 
+            onOpenStyleQuiz={() => setShowStyleQuiz(true)} 
+          />
+        );
       case ViewState.WISHLIST: 
         return (
           <WishlistView 
@@ -420,7 +577,7 @@ const App: React.FC = () => {
           }
         }
 
-        setCart([]); 
+        await clearCart();
         setSurgeTimerEnd(null); 
         resetLimitedOffer();
         gainRep(Math.floor(cart.reduce((acc, item) => acc + item.price * item.quantity, 0) / 10));
@@ -469,7 +626,24 @@ const App: React.FC = () => {
         onLogin={() => setShowAuthModal(true)}
       />
       
-      <CartDrawer isOpen={isCartOpen} onClose={() => setIsCartOpen(false)} items={cart} onRemove={(id) => setCart(prev => prev.filter(i => i.id !== id))} onUpdateQuantity={(id, d) => setCart(prev => prev.map(i => i.id === id ? {...i, quantity: Math.max(1, i.quantity + d)} : i))} onClear={() => setCart([])} onNavigate={handleNavigateView} surgeTimerEnd={surgeTimerEnd} activePromo={activePromo} rank={currentRank} />
+      <CartDrawer 
+        isOpen={isCartOpen} 
+        onClose={() => setIsCartOpen(false)} 
+        items={cart} 
+        onRemove={(id) => {
+          const item = cart.find(i => i.id === id);
+          if (item) removeFromCart(id, item.selectedSize, item.customizationData?.color);
+        }} 
+        onUpdateQuantity={(id, d) => {
+          const item = cart.find(i => i.id === id);
+          if (item) updateCartQuantity(id, d, item.selectedSize, item.customizationData?.color);
+        }} 
+        onClear={clearCart} 
+        onNavigate={handleNavigateView} 
+        surgeTimerEnd={surgeTimerEnd} 
+        activePromo={activePromo} 
+        rank={currentRank} 
+      />
       <NotificationCenter isOpen={isNotificationOpen} onClose={() => setIsNotificationOpen(false)} notifications={notifications} onMarkRead={(id) => setNotifications(prev => prev.map(n => n.id === id ? {...n, read: true} : n))} onMarkAllRead={() => setNotifications(prev => prev.map(n => ({...n, read: true})))} />
       <CategoryPanel 
         isOpen={isCategoryPanelOpen} 
@@ -517,9 +691,7 @@ const App: React.FC = () => {
       {showAuthModal && (
         <LandingScreen 
           onComplete={(arch, isNew) => { 
-            setHandle('User_' + Math.floor(Math.random()*1000)); 
             setIsAuthenticated(true); 
-            localStorage.setItem('cc-auth-token', 'true');
             setShowAuthModal(false); 
             if (isNew) setShowTutorial(true); 
           }} 

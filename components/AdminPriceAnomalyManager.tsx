@@ -5,52 +5,61 @@ import { databaseService } from '../services/databaseService';
 
 const AdminPriceAnomalyManager: React.FC = () => {
   const [products, setProducts] = useState<Product[]>([]);
-  const [priceAnomalies, setPriceAnomalies] = useState<PriceAnomaly[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [globalDuration, setGlobalDuration] = useState(2);
-  const [newAnomaly, setNewAnomaly] = useState({
-    productId: '',
-    discountPercent: 20
-  });
+  const [config, setConfig] = useState<{
+    duration: number;
+    productIds: string[];
+    discount: number;
+    eventId: string;
+  } | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       setProducts(await databaseService.getProducts());
-      setPriceAnomalies(await databaseService.getPriceAnomalies());
-      setGlobalDuration(await databaseService.getPriceAnomalyDuration());
+      const currentConfig = await databaseService.getAnomalyConfig();
+      if (currentConfig) {
+        setConfig(currentConfig);
+      } else {
+        setConfig({
+          duration: 2,
+          productIds: [],
+          discount: 20,
+          eventId: ''
+        });
+      }
     };
     fetchData();
   }, []);
 
-  const handleUpdateDuration = async (hours: number) => {
-    setGlobalDuration(hours);
-    await databaseService.savePriceAnomalyDuration(hours);
+  const handleSaveConfig = async () => {
+    if (!config) return;
+    setIsSaving(true);
+    try {
+      await databaseService.saveAnomalyConfig({
+        duration: config.duration,
+        productIds: config.productIds,
+        discount: config.discount
+      });
+      // Refresh config to get new eventId
+      const updated = await databaseService.getAnomalyConfig();
+      if (updated) setConfig(updated);
+      alert('Anomaly Protocol Updated Successfully. New sessions will start for users on their next visit.');
+    } catch (error) {
+      console.error('Error saving config:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleAddAnomaly = async () => {
-    const product = products.find(p => p.id === newAnomaly.productId);
-    if (!product) return;
-
-    const anomaly: PriceAnomaly = {
-      ...product,
-      id: `anomaly_${Date.now()}`,
-      productId: product.id,
-      discountPercent: newAnomaly.discountPercent,
-      price: Math.floor(product.price * (1 - newAnomaly.discountPercent / 100)),
-      anomalyEndTime: Date.now() + globalDuration * 60 * 60 * 1000
-    };
-
-    const updated = [...priceAnomalies, anomaly];
-    setPriceAnomalies(updated);
-    await databaseService.savePriceAnomalies(updated);
-    setIsAdding(false);
+  const toggleProduct = (productId: string) => {
+    if (!config) return;
+    const newIds = config.productIds.includes(productId)
+      ? config.productIds.filter(id => id !== productId)
+      : [...config.productIds, productId];
+    setConfig({ ...config, productIds: newIds });
   };
 
-  const handleDeleteAnomaly = async (id: string) => {
-    const updated = priceAnomalies.filter(s => s.id !== id);
-    setPriceAnomalies(updated);
-    await databaseService.savePriceAnomalies(updated);
-  };
+  if (!config) return <div className="text-zinc-500 font-black uppercase tracking-widest p-20">Loading_Protocols...</div>;
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500">
@@ -59,82 +68,80 @@ const AdminPriceAnomalyManager: React.FC = () => {
           <h2 className="text-3xl font-serif italic text-white">Global_Reduction_Protocols</h2>
           <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em] mt-2">Initialize High-Velocity Liquidation Events</p>
         </div>
-        <div className="flex gap-4">
-          <div className="bg-zinc-950 border border-white/10 p-4 rounded-xl flex items-center gap-4">
-            <label className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Global_Window (Hrs)</label>
-            <input 
-              type="number"
-              value={globalDuration}
-              onChange={e => handleUpdateDuration(parseInt(e.target.value))}
-              className="w-16 bg-black border border-white/10 p-2 rounded text-xs text-white outline-none focus:border-[#00D1FF]"
-            />
-          </div>
-          <button 
-            onClick={() => setIsAdding(true)}
-            className="bg-[#00D1FF] text-white px-8 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all"
-          >
-            Initialize_New_Reduction
-          </button>
-        </div>
+        <button 
+          onClick={handleSaveConfig}
+          disabled={isSaving}
+          className="bg-green-500 text-white px-12 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-white hover:text-green-500 active:bg-green-700 transition-all disabled:opacity-50"
+        >
+          {isSaving ? 'UPDATING_PROTOCOLS...' : 'DEPLOY_REDUCTION_EVENT'}
+        </button>
       </header>
 
-      {isAdding && (
-        <div className="bg-zinc-950 border border-[#00D1FF]/30 p-10 rounded-[3rem] space-y-8 animate-in slide-in-from-top-4">
-          <div className="grid md:grid-cols-2 gap-8">
-            <div className="space-y-2">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Target_Asset</label>
-              <select 
-                value={newAnomaly.productId}
-                onChange={e => setNewAnomaly({...newAnomaly, productId: e.target.value})}
-                className="w-full bg-black border border-white/10 p-4 rounded-xl text-xs text-white outline-none focus:border-[#00D1FF]"
-              >
-                <option value="">Select Product</option>
-                {products.map(p => (
-                  <option key={p.id} value={p.id}>{p.name} (GH₵{p.price})</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Discount_Factor (%)</label>
-              <input 
-                type="number"
-                value={newAnomaly.discountPercent}
-                onChange={e => setNewAnomaly({...newAnomaly, discountPercent: parseInt(e.target.value)})}
-                className="w-full bg-black border border-white/10 p-4 rounded-xl text-xs text-white outline-none focus:border-[#00D1FF]"
-              />
-            </div>
-          </div>
-          <div className="flex gap-4">
-            <button onClick={handleAddAnomaly} className="flex-1 bg-white text-black py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#00D1FF] hover:text-white transition-all">Confirm_Protocol</button>
-            <button onClick={() => setIsAdding(false)} className="flex-1 bg-zinc-900 text-zinc-500 py-4 rounded-xl text-[10px] font-black uppercase tracking-widest hover:text-white transition-all">Abort</button>
-          </div>
+      <div className="grid md:grid-cols-3 gap-8">
+        <div className="bg-zinc-950 border border-white/10 p-8 rounded-3xl space-y-4">
+          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Window_Duration (Hours)</label>
+          <input 
+            type="number"
+            value={config.duration}
+            onChange={e => setConfig({ ...config, duration: parseInt(e.target.value) || 0 })}
+            className="w-full bg-black border border-white/10 p-4 rounded-xl text-xl font-mono text-white outline-none focus:border-[#00D1FF]"
+          />
+          <p className="text-[8px] text-zinc-600 uppercase tracking-widest">Time allowed per user session</p>
         </div>
-      )}
 
-      <div className="grid md:grid-cols-2 gap-6">
-        {priceAnomalies.map(anomaly => (
-          <div key={anomaly.id} className="bg-zinc-950 border border-white/5 p-8 rounded-[2.5rem] flex gap-8 items-center group hover:border-[#00D1FF]/30 transition-all">
-            <img src={anomaly.image} className="w-24 h-24 object-cover rounded-2xl grayscale group-hover:grayscale-0 transition-all" />
-            <div className="flex-1 space-y-4">
-              <div>
-                <div className="text-xl font-black text-white">{anomaly.name}</div>
-                <div className="text-[9px] text-[#00D1FF] font-black uppercase tracking-widest">-{anomaly.discountPercent}% Liquidation</div>
-              </div>
-              <div className="flex justify-between items-end">
-                <div className="space-y-1">
-                  <div className="text-[8px] text-zinc-600 uppercase tracking-widest">Reduction_Price</div>
-                  <div className="text-2xl font-mono text-white">GH₵{anomaly.price}</div>
-                </div>
-                <button 
-                  onClick={() => handleDeleteAnomaly(anomaly.id)}
-                  className="text-[9px] font-black text-red-500 uppercase tracking-widest hover:underline"
-                >
-                  Terminate
-                </button>
-              </div>
-            </div>
+        <div className="bg-zinc-950 border border-white/10 p-8 rounded-3xl space-y-4">
+          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Discount_Factor (%)</label>
+          <input 
+            type="number"
+            value={config.discount}
+            onChange={e => setConfig({ ...config, discount: parseInt(e.target.value) || 0 })}
+            className="w-full bg-black border border-white/10 p-4 rounded-xl text-xl font-mono text-white outline-none focus:border-[#00D1FF]"
+          />
+          <p className="text-[8px] text-zinc-600 uppercase tracking-widest">Global reduction applied to selected assets</p>
+        </div>
+
+        <div className="bg-zinc-950 border border-white/10 p-8 rounded-3xl space-y-4">
+          <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Active_Event_ID</label>
+          <div className="w-full bg-black/50 border border-white/5 p-4 rounded-xl text-xs font-mono text-zinc-500 overflow-hidden text-ellipsis">
+            {config.eventId || 'NO_ACTIVE_EVENT'}
           </div>
-        ))}
+          <p className="text-[8px] text-zinc-600 uppercase tracking-widest">Unique identifier for current protocol</p>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-black text-white uppercase tracking-widest">Target_Assets_Selection</h3>
+          <span className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest">{config.productIds.length} Assets Selected</span>
+        </div>
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {products.map(p => (
+            <button
+              key={p.id}
+              onClick={() => toggleProduct(p.id)}
+              className={`relative group aspect-[3/4] overflow-hidden rounded-2xl border-2 transition-all ${
+                config.productIds.includes(p.id) 
+                  ? 'border-[#00D1FF] scale-[0.98]' 
+                  : 'border-white/5 grayscale hover:grayscale-0 hover:border-white/20'
+              }`}
+            >
+              <img src={p.image} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <div className="absolute bottom-3 left-3 right-3 text-left">
+                <div className="text-[8px] font-black text-white uppercase truncate">{p.name}</div>
+                <div className="text-[7px] font-bold text-zinc-400 uppercase tracking-widest">GH₵{p.price}</div>
+              </div>
+              {config.productIds.includes(p.id) && (
+                <div className="absolute top-3 right-3 bg-[#00D1FF] text-white p-1 rounded-full">
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   );

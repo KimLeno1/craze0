@@ -103,7 +103,7 @@ const ProductModal: React.FC<ProductModalProps> = ({ product, onClose, onAddToCa
                   disabled={!product.inStock}
                   className={`flex-[3] py-7 text-[12px] uppercase tracking-[0.4em] font-black transition-all shadow-2xl relative overflow-hidden group ${
                     product.inStock 
-                    ? 'bg-white text-black hover:bg-[#00D1FF] hover:text-white' 
+                    ? 'bg-white text-black hover:bg-green-500 hover:text-white active:bg-green-700' 
                     : 'bg-zinc-800 text-zinc-600 cursor-not-allowed'
                   }`}
                 >

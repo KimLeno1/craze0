@@ -141,8 +141,7 @@ const SupplierLogin: React.FC<SupplierLoginProps> = ({ onSuccess, onCancel }) =>
                 </button>
                 <button 
                   type="submit" 
-                  className="flex-[2] py-5 text-black rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all shadow-xl active:scale-95" 
-                  style={{ backgroundColor: themeColor }}
+                  className="flex-[2] py-5 bg-green-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-green-600 active:bg-green-700 transition-all shadow-xl active:scale-95" 
                 >
                   INITIALIZE_UPLINK
                 </button>

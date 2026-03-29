@@ -187,7 +187,7 @@ const CartDrawer: React.FC<CartDrawerProps> = ({
                   </div>
                 </div>
               </div>
-              <button onClick={() => { onClose(); if (onNavigate) onNavigate(ViewState.CHECKOUT); }} className="w-full py-6 md:py-8 bg-white text-black text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] rounded-2xl md:rounded-3xl hover:bg-[#00D1FF] hover:text-white transition-all shadow-[0_0_50px_rgba(0,209,255,0.3)]">
+              <button onClick={() => { onClose(); if (onNavigate) onNavigate(ViewState.CHECKOUT); }} className="w-full py-6 md:py-8 bg-white text-black text-[10px] md:text-[12px] font-black uppercase tracking-[0.3em] md:tracking-[0.5em] rounded-2xl md:rounded-3xl hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-[0_0_50px_rgba(34,197,94,0.3)]">
                 Initialize Acquisition
               </button>
             </footer>

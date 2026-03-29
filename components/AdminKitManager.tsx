@@ -40,7 +40,7 @@ const AdminKitManager: React.FC = () => {
 
     const updatedBundles = [...bundles, newBundle];
     setBundles(updatedBundles);
-    await databaseService.saveBundles(updatedBundles);
+    await databaseService.saveBundles([newBundle]);
     
     // Reset form
     setIsCreating(false);
@@ -59,9 +59,8 @@ const AdminKitManager: React.FC = () => {
   };
 
   const deleteBundle = async (id: string) => {
-    const updated = bundles.filter(b => b.id !== id);
-    setBundles(updated);
-    await databaseService.saveBundles(updated);
+    await databaseService.deleteBundle(id);
+    setBundles(prev => prev.filter(b => b.id !== id));
   };
 
   return (
@@ -73,7 +72,7 @@ const AdminKitManager: React.FC = () => {
         </div>
         <button 
           onClick={() => setIsCreating(true)}
-          className="px-8 py-4 bg-[#00D1FF] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-white hover:text-black transition-all"
+          className="px-8 py-4 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-white hover:text-green-500 active:bg-green-700 transition-all"
         >
           Initialize_New_Kit
         </button>
@@ -166,7 +165,7 @@ const AdminKitManager: React.FC = () => {
             </button>
             <button 
               onClick={handleCreateBundle}
-              className="flex-[2] py-5 bg-white text-black rounded-3xl font-black uppercase tracking-widest text-[10px] hover:bg-[#00D1FF] hover:text-white transition-all shadow-2xl"
+              className="flex-[2] py-5 bg-white text-black rounded-3xl font-black uppercase tracking-widest text-[10px] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-2xl"
             >
               Finalize_Synergy_Kit
             </button>

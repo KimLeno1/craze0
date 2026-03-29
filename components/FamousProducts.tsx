@@ -183,7 +183,7 @@ const FamousProducts: React.FC<FamousProductsProps> = ({
                   <div className="flex gap-4">
                     <button 
                       onClick={() => onAddToCart(p)}
-                      className="flex-1 sm:flex-none h-14 md:h-16 px-8 md:px-12 bg-white text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] hover:bg-[#00D1FF] hover:text-white transition-all active:scale-95"
+                      className="flex-1 sm:flex-none h-14 md:h-16 px-8 md:px-12 bg-white text-black text-[9px] md:text-[10px] font-black uppercase tracking-[0.4em] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all active:scale-95"
                     >
                       Acquire
                     </button>

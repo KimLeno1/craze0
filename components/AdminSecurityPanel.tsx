@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { databaseService } from '../services/databaseService';
 
 interface SecurityEvent {
   id: string;
@@ -19,45 +20,36 @@ const AdminSecurityPanel: React.FC = () => {
     activeSessions: 12,
     threatLevel: 'LOW'
   });
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Generate some mock security events
-    const mockEvents: SecurityEvent[] = [
-      {
-        id: 'evt_1',
-        type: 'LOGIN',
-        severity: 'LOW',
-        timestamp: new Date().toISOString(),
-        details: 'Admin session established: @leno',
-        ip: '192.168.1.105'
-      },
-      {
-        id: 'evt_2',
-        type: 'UNAUTHORIZED_ACCESS',
-        severity: 'HIGH',
-        timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-        details: 'Failed login attempt on Sector_Admin: ARCHITECT_X',
-        ip: '45.23.11.92'
-      },
-      {
-        id: 'evt_3',
-        type: 'SYSTEM_CONFIG_CHANGE',
-        severity: 'MEDIUM',
-        timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-        details: 'Price range updated for SKU: 102',
-        ip: '192.168.1.105'
-      },
-      {
-        id: 'evt_4',
-        type: 'LOGIN',
-        severity: 'LOW',
-        timestamp: new Date(Date.now() - 1000 * 60 * 300).toISOString(),
-        details: 'Supplier session established: @sup1',
-        ip: '172.16.0.4'
+    const fetchSecurityData = async () => {
+      try {
+        const data = await databaseService.getSecurityStatus();
+        setEvents(data.events || []);
+        setSystemStatus({
+          firewall: data.firewall,
+          encryption: data.encryption,
+          loadBalancer: data.loadBalancer,
+          activeSessions: data.activeSessions,
+          threatLevel: data.threatLevel
+        });
+      } catch (error) {
+        console.error('Failed to fetch security status:', error);
+      } finally {
+        setLoading(false);
       }
-    ];
-    setEvents(mockEvents);
+    };
+    fetchSecurityData();
   }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="w-8 h-8 border-2 border-[#00D1FF] border-t-transparent animate-spin rounded-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-12 animate-in fade-in duration-500">

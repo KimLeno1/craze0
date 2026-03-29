@@ -14,17 +14,12 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
   const [activeRequests, setActiveRequests] = useState<PayForMeRequest[]>([]);
   const [isSelecting, setIsSelecting] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY' | 'GLOBAL'>('ACTIVE');
+  const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
 
   useEffect(() => {
     const fetchRequests = async () => {
       const allRequests = await databaseService.getPayForMeRequests();
-      if (activeTab === 'GLOBAL') {
-        // Show all pending/approved requests from other users
-        setActiveRequests(allRequests.filter(r => r.userName !== userHandle && (r.status === PayForMeStatus.PENDING || r.status === PayForMeStatus.APPROVED)));
-      } else {
-        setActiveRequests(allRequests.filter(r => r.userName === userHandle));
-      }
+      setActiveRequests(allRequests.filter(r => r.userName === userHandle));
     };
     fetchRequests();
   }, [userHandle, activeTab]);
@@ -69,7 +64,6 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
   };
 
   const filteredRequests = useMemo(() => {
-    if (activeTab === 'GLOBAL') return activeRequests;
     if (activeTab === 'ACTIVE') {
       return activeRequests.filter(r => r.status !== PayForMeStatus.PAID && r.status !== PayForMeStatus.REJECTED);
     }
@@ -103,12 +97,6 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
               className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'HISTORY' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
             >
               Archive_Log
-            </button>
-            <button 
-              onClick={() => setActiveTab('GLOBAL')}
-              className={`px-6 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${activeTab === 'GLOBAL' ? 'bg-white text-black' : 'text-zinc-500 hover:text-white'}`}
-            >
-              Global_Feed
             </button>
           </div>
         </div>
@@ -161,40 +149,21 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
 
                   {!isPaid && (
                     <div className="flex gap-3 pt-2">
-                      {activeTab === 'GLOBAL' ? (
+                      <button 
+                        onClick={() => alert(`Strategic link copied: https://closetkraze.app/pay/${request.id}`)}
+                        className="flex-1 py-3 bg-zinc-900 text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
+                      >
+                        <Share2 className="w-3 h-3" />
+                        Copy Link
+                      </button>
+                      {request.status === PayForMeStatus.APPROVED && (
                         <button 
-                          onClick={async () => {
-                            if (confirm(`Authorize sponsorship of GH₵${request.total} for @${request.userName}?`)) {
-                              await databaseService.updatePayForMeStatus(request.id, PayForMeStatus.PAID);
-                              // In a real app, we'd notify the user. Here we just update local state.
-                              setActiveRequests(prev => prev.filter(r => r.id !== request.id));
-                              alert('Sponsorship authorized. Acquisition protocol initiated.');
-                            }
-                          }}
-                          className="flex-1 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
+                          onClick={() => handlePayRemaining(request)}
+                          className="flex-1 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-lg flex items-center justify-center gap-2"
                         >
                           <Wallet className="w-3 h-3" />
-                          Authorize_Sponsorship
+                          Complete_Acquisition
                         </button>
-                      ) : (
-                        <>
-                          <button 
-                            onClick={() => alert(`Strategic link copied: https://closetkraze.app/pay/${request.id}`)}
-                            className="flex-1 py-3 bg-zinc-900 text-white rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-white hover:text-black transition-all flex items-center justify-center gap-2"
-                          >
-                            <Share2 className="w-3 h-3" />
-                            Copy Link
-                          </button>
-                          {request.status === PayForMeStatus.APPROVED && (
-                            <button 
-                              onClick={() => handlePayRemaining(request)}
-                              className="flex-1 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all shadow-lg flex items-center justify-center gap-2"
-                            >
-                              <Wallet className="w-3 h-3" />
-                              Complete_Acquisition
-                            </button>
-                          )}
-                        </>
                       )}
                     </div>
                   )}
@@ -219,11 +188,11 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
         {activeTab === 'ACTIVE' && canAddMore && !isSelecting && (
           <button 
             onClick={() => setIsSelecting(true)}
-            className="h-[240px] rounded-[3rem] border-2 border-dashed border-white/5 bg-white/5 flex flex-col items-center justify-center gap-4 hover:border-[#EC4899]/40 hover:bg-white/10 transition-all group"
+            className="h-[240px] rounded-[3rem] border-2 border-dashed border-white/5 bg-white/5 flex flex-col items-center justify-center gap-4 hover:border-green-500/40 hover:bg-green-500/10 transition-all group"
           >
-            <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">➕</div>
+            <div className="w-16 h-16 rounded-full bg-zinc-900 flex items-center justify-center text-2xl group-hover:scale-110 group-hover:bg-green-500 transition-transform">➕</div>
             <div className="text-center">
-              <p className="text-xs font-black text-white uppercase tracking-widest">Initialize New Uplink</p>
+              <p className="text-xs font-black text-white uppercase tracking-widest group-hover:text-green-500">Initialize New Uplink</p>
               <p className="text-[8px] text-zinc-500 uppercase tracking-widest mt-1">Select from your Wishlist</p>
             </div>
           </button>
@@ -259,7 +228,7 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
                     <button 
                       disabled={generatingId === product.id}
                       onClick={() => handleInitializeSponsorship(product)}
-                      className="px-6 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-[#EC4899] hover:text-white transition-all disabled:opacity-50"
+                      className="px-6 py-3 bg-white text-black rounded-xl text-[8px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white active:bg-green-700 transition-all disabled:opacity-50"
                     >
                       {generatingId === product.id ? 'Materializing...' : 'Select'}
                     </button>

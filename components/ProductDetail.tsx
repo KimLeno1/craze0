@@ -388,8 +388,8 @@ const ProductDetail: React.FC<ProductDetailProps> = ({
               onClick={handleAddToCart}
               className={`w-full h-16 md:h-20 rounded-2xl font-bold uppercase tracking-[0.3em] md:tracking-[0.4em] text-[10px] md:text-xs transition-all active:scale-[0.98] shadow-2xl ${
                 showCustomForm 
-                ? 'bg-amber-500 text-black hover:bg-white' 
-                : 'bg-white text-black hover:bg-[#00D1FF] hover:text-white'
+                ? 'bg-amber-500 text-black hover:bg-green-500 hover:text-white active:bg-green-700' 
+                : 'bg-white text-black hover:bg-green-500 hover:text-white active:bg-green-700'
               }`}
             >
               {showCustomForm ? 'Confirm Customization' : (product.isCustom ? 'Configure Silhouette' : 'Initialize Acquisition')}

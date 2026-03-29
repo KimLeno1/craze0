@@ -15,7 +15,23 @@ db.exec(`
     gems INTEGER,
     status TEXT,
     lastLogin TEXT,
-    totalSpent INTEGER
+    totalSpent INTEGER,
+    loyaltyPoints INTEGER DEFAULT 0
+  );
+
+  CREATE TABLE IF NOT EXISTS quiz_results (
+    userId TEXT PRIMARY KEY,
+    results JSON,
+    timestamp INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS loyalty_transactions (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    type TEXT, -- 'EARN' or 'REDEEM'
+    amount INTEGER,
+    reason TEXT,
+    timestamp INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS products (
@@ -37,7 +53,12 @@ db.exec(`
     appeal TEXT,
     viewers INTEGER,
     stockCount INTEGER DEFAULT 0,
-    inStock BOOLEAN DEFAULT 1
+    inStock BOOLEAN DEFAULT 1,
+    details JSON,
+    sizes JSON,
+    isCustom BOOLEAN DEFAULT 0,
+    priceRange JSON,
+    customizationFields JSON
   );
 
   CREATE TABLE IF NOT EXISTS suppliers (
@@ -150,6 +171,15 @@ db.exec(`
     PRIMARY KEY (userId, postId)
   );
 
+  CREATE TABLE IF NOT EXISTS security_events (
+    id TEXT PRIMARY KEY,
+    type TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    timestamp TEXT NOT NULL,
+    details TEXT NOT NULL,
+    ip TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -173,6 +203,69 @@ db.exec(`
     rarity TEXT,
     image TEXT,
     isActive BOOLEAN
+  );
+
+  -- --- USER FEATURES ---
+  CREATE TABLE IF NOT EXISTS wishlist_items (
+    userId TEXT,
+    productId TEXT,
+    addedAt INTEGER,
+    PRIMARY KEY (userId, productId)
+  );
+
+  CREATE TABLE IF NOT EXISTS cart_items (
+    userId TEXT,
+    productId TEXT,
+    quantity INTEGER DEFAULT 1,
+    selectedSize TEXT,
+    selectedColor TEXT,
+    addedAt INTEGER,
+    PRIMARY KEY (userId, productId, selectedSize, selectedColor)
+  );
+
+  CREATE TABLE IF NOT EXISTS mystery_box_logs (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    boxType TEXT,
+    cost INTEGER,
+    rewardProductId TEXT,
+    rewardType TEXT,
+    timestamp INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS game_scores (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    gameId TEXT,
+    score INTEGER,
+    rank TEXT,
+    rewardRep INTEGER,
+    details JSON,
+    timestamp INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS stylist_sessions (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    messages TEXT, -- JSON array
+    recommendations TEXT, -- JSON array of product IDs
+    timestamp INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS try_on_history (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    productId TEXT,
+    userImage TEXT, -- Base64 or URL
+    resultImage TEXT, -- Base64 or URL
+    timestamp INTEGER
+  );
+  
+  CREATE TABLE IF NOT EXISTS user_anomaly_sessions (
+    userId TEXT PRIMARY KEY,
+    eventId TEXT,
+    startTime INTEGER,
+    endTime INTEGER
   );
 `);
 

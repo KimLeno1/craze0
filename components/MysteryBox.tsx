@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { databaseService } from '../services/databaseService';
 
 interface MysteryBoxProps {
   onReveal: (reward: any) => void;
@@ -9,10 +10,12 @@ const MysteryBox: React.FC<MysteryBoxProps> = ({ onReveal, cost }) => {
   const [isOpening, setIsOpening] = useState(false);
   const [reward, setReward] = useState<string | null>(null);
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
     if (isOpening) return;
     setIsOpening(true);
-    setTimeout(() => {
+    
+    // Simulate decryption delay
+    setTimeout(async () => {
       const rewards = [
         "15% Off Your Entire Cart",
         "500 Bonus Kraze Coins",
@@ -21,6 +24,16 @@ const MysteryBox: React.FC<MysteryBoxProps> = ({ onReveal, cost }) => {
         "Early Access to Drop #42"
       ];
       const win = rewards[Math.floor(Math.random() * rewards.length)];
+      
+      const userId = localStorage.getItem('cc-user-id');
+      if (userId) {
+        try {
+          await databaseService.logMysteryBoxOpening({ userId, boxType: 'CYBER_VAULT', reward: win });
+        } catch (error) {
+          console.error('Error logging mystery box opening:', error);
+        }
+      }
+      
       setReward(win);
       setIsOpening(false);
       onReveal(win);
@@ -62,7 +75,7 @@ const MysteryBox: React.FC<MysteryBoxProps> = ({ onReveal, cost }) => {
             <button
               disabled={isOpening}
               onClick={handleOpen}
-              className="group relative h-14 w-full bg-white text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all duration-500 hover:bg-pink-500 hover:text-white disabled:opacity-50 overflow-hidden shadow-2xl"
+              className="group relative h-14 w-full bg-white text-black rounded-2xl font-black text-xs uppercase tracking-[0.2em] transition-all duration-500 hover:bg-green-500 hover:text-white active:bg-green-700 disabled:opacity-50 overflow-hidden shadow-2xl"
             >
               <span className="relative z-10">{isOpening ? 'Decrypting...' : `Unlock [${cost} GEMS]`}</span>
               <div className="absolute inset-0 bg-zinc-900 translate-y-full group-hover:translate-y-0 transition-transform duration-300 opacity-10"></div>

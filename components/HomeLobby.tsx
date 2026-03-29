@@ -122,7 +122,7 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
           <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 md:gap-6 pt-4">
             <button 
               onClick={() => onNavigate(ViewState.FAMOUS)}
-              className="h-12 sm:h-14 md:h-16 px-8 md:px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-[#00D1FF] hover:text-white transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95"
+              className="h-12 sm:h-14 md:h-16 px-8 md:px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-[0_0_30px_rgba(255,255,255,0.1)] active:scale-95"
             >
               Shop the Drop
             </button>
@@ -270,7 +270,7 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
               </div>
               <button 
                 onClick={() => onProductClick(featured)}
-                className="w-full md:w-auto h-12 sm:h-14 md:h-16 px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-[#00D1FF] hover:text-white transition-all shadow-2xl active:scale-95"
+                className="w-full md:w-auto h-12 sm:h-14 md:h-16 px-12 bg-white text-black font-black uppercase tracking-[0.3em] md:tracking-[0.4em] text-[8px] sm:text-[9px] md:text-[10px] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all shadow-2xl active:scale-95"
               >
                 Secure Now
               </button>
@@ -293,7 +293,7 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
             </div>
             <button 
               onClick={() => onNavigate(ViewState.PRICE_ANOMALY)}
-              className="w-full sm:w-auto h-12 sm:h-16 px-8 sm:px-16 bg-white text-black font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[8px] sm:text-[10px] hover:bg-[#00D1FF] hover:text-white transition-all active:scale-95"
+              className="w-full sm:w-auto h-12 sm:h-16 px-8 sm:px-16 bg-white text-black font-black uppercase tracking-[0.3em] sm:tracking-[0.4em] text-[8px] sm:text-[10px] hover:bg-green-500 hover:text-white active:bg-green-700 transition-all active:scale-95"
             >
               Access Vault
             </button>
