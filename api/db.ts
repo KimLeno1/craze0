@@ -228,6 +228,17 @@ db.exec(`
     isActive BOOLEAN
   );
 
+  CREATE TABLE IF NOT EXISTS drops (
+    id TEXT PRIMARY KEY,
+    name TEXT,
+    description TEXT,
+    startTime INTEGER,
+    endTime INTEGER,
+    productIds JSON,
+    isActive BOOLEAN DEFAULT 1,
+    rarity TEXT
+  );
+
   -- --- USER FEATURES ---
   CREATE TABLE IF NOT EXISTS wishlist_items (
     userId TEXT,
