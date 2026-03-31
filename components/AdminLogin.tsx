@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { databaseService } from '../services/databaseService';
 
 interface AdminLoginProps {
@@ -10,6 +11,7 @@ interface AdminLoginProps {
 const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) => {
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [status, setStatus] = useState<'IDLE' | 'AUTHENTICATING' | 'SUCCESS' | 'ERROR'>('IDLE');
+  const [showPassword, setShowPassword] = useState(false);
   const [authProgress, setAuthProgress] = useState(0);
 
   useEffect(() => {
@@ -116,12 +118,23 @@ const AdminLogin: React.FC<AdminLoginProps> = ({ onSuccess, onCancel }) => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-[9px] uppercase font-black text-zinc-600 tracking-widest px-1">Security Signature</label>
-                  <input 
-                    type="password" required value={credentials.password}
-                    onChange={e => setCredentials({...credentials, password: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-xs font-mono text-white outline-none focus:border-white/20 transition-all placeholder:text-zinc-800"
-                    placeholder="••••••••••••"
-                  />
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      required 
+                      value={credentials.password}
+                      onChange={e => setCredentials({...credentials, password: e.target.value})}
+                      className="w-full bg-white/5 border border-white/10 p-5 rounded-2xl text-xs font-mono text-white outline-none focus:border-white/20 transition-all placeholder:text-zinc-800 pr-14"
+                      placeholder="••••••••••••"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+                    >
+                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
                 </div>
               </div>
               

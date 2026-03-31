@@ -96,6 +96,13 @@ const AdminPayForMeManager: React.FC = () => {
                 </div>
                 <div className="text-sm font-serif italic text-zinc-400">{request.items[0].name}</div>
                 <div className="text-[10px] font-black text-[#00D1FF] uppercase tracking-widest">GH₵{request.total}</div>
+                {request.payerName && (
+                  <div className="mt-2 p-3 bg-emerald-500/5 border border-emerald-500/10 rounded-2xl">
+                    <p className="text-[7px] font-black text-emerald-500 uppercase tracking-widest mb-1">Sponsor_Identified</p>
+                    <p className="text-[9px] text-emerald-200 font-bold">@{request.payerName}</p>
+                    {request.payerContact && <p className="text-[7px] text-zinc-500 font-mono">{request.payerContact}</p>}
+                  </div>
+                )}
               </div>
             </div>
 

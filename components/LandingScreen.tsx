@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
 import { databaseService } from '../services/databaseService';
 
 interface LandingScreenProps {
@@ -13,6 +14,7 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [adminClicks, setAdminClicks] = useState(0);
   const [isGlitching, setIsGlitching] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -92,10 +94,35 @@ const LandingScreen: React.FC<LandingScreenProps> = ({ onComplete, onAdminAccess
               <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} placeholder="CONTACT_PHONE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
             )}
 
-            <input type="password" required value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} placeholder="SECURITY_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
+            <div className="relative">
+              <input 
+                type={showPassword ? "text" : "password"} 
+                required 
+                value={formData.password} 
+                onChange={e => setFormData({...formData, password: e.target.value})} 
+                placeholder="SECURITY_PHRASE" 
+                className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none pr-14" 
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-6 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
             
             {authMode === 'SIGNUP' && (
-              <input type="password" required value={formData.confirmPassword} onChange={e => setFormData({...formData, confirmPassword: e.target.value})} placeholder="CONFIRM_PHRASE" className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none" />
+              <div className="relative">
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  required 
+                  value={formData.confirmPassword} 
+                  onChange={e => setFormData({...formData, confirmPassword: e.target.value})} 
+                  placeholder="CONFIRM_PHRASE" 
+                  className="w-full bg-zinc-950 border border-white/10 px-6 py-5 rounded-2xl text-xs font-black text-white focus:border-[#EC4899] outline-none pr-14" 
+                />
+              </div>
             )}
 
             <button type="submit" disabled={isAuthenticating} className="w-full py-6 rounded-2xl font-black uppercase tracking-[0.4em] text-[10px] bg-white text-black hover:bg-green-500 hover:text-white active:bg-green-700 transition-all active:scale-95 disabled:opacity-50">

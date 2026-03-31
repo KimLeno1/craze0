@@ -3,6 +3,7 @@ import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
+import { WebSocketServer, WebSocket } from 'ws';
 import apiRouter from './api/index.js';
 import db from './api/db.js';
 
@@ -36,15 +37,15 @@ async function startServer() {
   const userCount = db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number };
   if (userCount.count === 0) {
     const MOCK_USERS = [
-      { id: 'u1', handle: 'Viper_X', email: 'viper@archivers.net', archetype: 'CYBER', rep: 4500, level: 7, coins: 1200, gems: 45, status: 'ACTIVE', lastLogin: '2h ago', totalSpent: 850, loyaltyPoints: 120 },
-      { id: 'u2', handle: 'Ghost_Shell', email: 'ghost@void.com', archetype: 'VOID', rep: 8900, level: 10, coins: 5400, gems: 120, status: 'ACTIVE', lastLogin: '15m ago', totalSpent: 2400, loyaltyPoints: 540 },
-      { id: 'u3', handle: 'Luxe_Lord', email: 'lord@heirloom.io', archetype: 'LUXE', rep: 12000, level: 12, coins: 8900, gems: 300, status: 'ACTIVE', lastLogin: '5d ago', totalSpent: 12500, loyaltyPoints: 1250 },
-      { id: 'u4', handle: 'Glitch_Boi', email: 'glitch@chaos.org', archetype: 'CYBER', rep: 1200, level: 4, coins: 400, gems: 5, status: 'BANNED', lastLogin: '1y ago', totalSpent: 0, loyaltyPoints: 0 },
+      { id: 'u1', handle: 'Viper_X', email: 'viper@archivers.net', password: 'password123', archetype: 'CYBER', rep: 4500, level: 7, coins: 1200, gems: 45, status: 'ACTIVE', lastLogin: '2h ago', totalSpent: 850, loyaltyPoints: 120, joinedAt: Date.now() },
+      { id: 'u2', handle: 'Ghost_Shell', email: 'ghost@void.com', password: 'password123', archetype: 'VOID', rep: 8900, level: 10, coins: 5400, gems: 120, status: 'ACTIVE', lastLogin: '15m ago', totalSpent: 2400, loyaltyPoints: 540, joinedAt: Date.now() },
+      { id: 'u3', handle: 'Luxe_Lord', email: 'lord@heirloom.io', password: 'password123', archetype: 'LUXE', rep: 12000, level: 12, coins: 8900, gems: 300, status: 'ACTIVE', lastLogin: '5d ago', totalSpent: 12500, loyaltyPoints: 1250, joinedAt: Date.now() },
+      { id: 'u4', handle: 'Glitch_Boi', email: 'glitch@chaos.org', password: 'password123', archetype: 'CYBER', rep: 1200, level: 4, coins: 400, gems: 5, status: 'BANNED', lastLogin: '1y ago', totalSpent: 0, loyaltyPoints: 0, joinedAt: Date.now() },
     ];
-    const insertUser = db.prepare('INSERT INTO users (id, handle, email, archetype, rep, level, coins, gems, status, lastLogin, totalSpent, loyaltyPoints) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    const insertUser = db.prepare('INSERT INTO users (id, handle, email, password, archetype, rep, level, coins, gems, status, lastLogin, totalSpent, loyaltyPoints, joinedAt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     const insertStats = db.prepare('INSERT INTO user_stats (userId, stats) VALUES (?, ?)');
     for (const u of MOCK_USERS) {
-      insertUser.run(u.id, u.handle, u.email, u.archetype, u.rep, u.level, u.coins, u.gems, u.status, u.lastLogin, u.totalSpent, u.loyaltyPoints);
+      insertUser.run(u.id, u.handle, u.email, u.password, u.archetype, u.rep, u.level, u.coins, u.gems, u.status, u.lastLogin, u.totalSpent, u.loyaltyPoints, u.joinedAt);
       
       const initialStats = {
         userId: u.id,
@@ -281,6 +282,45 @@ async function startServer() {
     }
   }
 
+  const dropCount = db.prepare('SELECT COUNT(*) as count FROM drops').get() as { count: number };
+  if (dropCount.count === 0) {
+    const MOCK_DROPS = [
+      {
+        id: 'drop_1',
+        name: 'Cyber Monday Genesis',
+        description: 'The first drop of the new era. Exclusive technical gear.',
+        startTime: Date.now() + 3600000, // 1 hour from now
+        endTime: Date.now() + 86400000, // 24 hours from now
+        productIds: JSON.stringify(['1', '2', '3']),
+        isActive: 1,
+        rarity: 'LEGENDARY'
+      },
+      {
+        id: 'drop_2',
+        name: 'Void Echoes',
+        description: 'Minimalist aesthetics for the silent observer.',
+        startTime: Date.now() + 172800000, // 2 days from now
+        endTime: Date.now() + 259200000, // 3 days from now
+        productIds: JSON.stringify(['4', '5', '6']),
+        isActive: 1,
+        rarity: 'EPIC'
+      }
+    ];
+    const insertDrop = db.prepare('INSERT INTO drops (id, name, description, startTime, endTime, productIds, isActive, rarity) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const d of MOCK_DROPS) {
+      insertDrop.run(d.id, d.name, d.description, d.startTime, d.endTime, d.productIds, d.isActive, d.rarity);
+    }
+  }
+
+  // Health Check
+  app.get('/api/health', (req, res) => {
+    res.json({ 
+      status: 'ok', 
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development'
+    });
+  });
+
   // Use the modular API router
   app.use('/api', apiRouter);
 
@@ -407,14 +447,81 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
 
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
+
+  // WebSocket Server
+  const wss = new WebSocketServer({ server });
+  const clients = new Set<WebSocket>();
+
+  wss.on('connection', (ws) => {
+    clients.add(ws);
+    
+    // Broadcast active users count
+    const broadcastActiveUsers = () => {
+      const count = clients.size + 1024; // Base 1024 + real connections
+      const message = JSON.stringify({ type: 'USER_COUNT', count });
+      clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    };
+
+    broadcastActiveUsers();
+
+    ws.on('close', () => {
+      clients.delete(ws);
+      broadcastActiveUsers();
+    });
+
+    // Handle incoming messages if needed
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        if (message.type === 'PURCHASE') {
+          // Broadcast purchase notification
+          const notification = JSON.stringify({
+            type: 'SOCIAL_PROOF',
+            message: `${message.handle} just copped ${message.itemName}!`,
+            timestamp: Date.now()
+          });
+          clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(notification);
+            }
+          });
+        }
+      } catch (e) {
+        console.error('WS Message Error:', e);
+      }
+    });
+  });
+
+  // Periodic activity simulation
+  setInterval(() => {
+    if (clients.size > 0) {
+      const activities = [
+        'Someone just viewed the Midnight Cyber Cloak',
+        'New drop alert: Void Echoes coming soon',
+        '3 people just added Neon Glitch Sneakers to wishlist',
+        'Jackpot prize "Cyber-Core Processor" is still up for grabs!'
+      ];
+      const activity = activities[Math.floor(Math.random() * activities.length)];
+      const message = JSON.stringify({ type: 'ACTIVITY', activity });
+      clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+          client.send(message);
+        }
+      });
+    }
+  }, 15000);
 }
 
 startServer();

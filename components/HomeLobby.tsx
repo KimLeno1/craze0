@@ -25,6 +25,7 @@ interface HomeLobbyProps {
   isAuthenticated?: boolean;
   tutorialFinished?: boolean;
   userPrefs?: UserPreferences | null;
+  drops?: any[];
 }
 
 const HomeLobby: React.FC<HomeLobbyProps> = ({ 
@@ -42,7 +43,8 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
   onResetLimitedOffer,
   isAuthenticated = false,
   tutorialFinished = false,
-  userPrefs = null
+  userPrefs = null,
+  drops = []
 }) => {
   const [recommendations, setRecommendations] = useState<Product[]>([]);
 
@@ -169,6 +171,62 @@ const HomeLobby: React.FC<HomeLobbyProps> = ({
           ))}
         </div>
       </div>
+
+      {/* UPCOMING DROPS SECTION */}
+      {drops.length > 0 && (
+        <section className="max-w-screen-2xl mx-auto px-4 sm:px-12 md:px-20 py-16 sm:py-20 md:py-32 border-b border-white/5">
+          <div className="flex flex-col md:flex-row justify-between items-baseline mb-10 sm:mb-12 md:mb-20 gap-4 sm:gap-6 md:gap-8">
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-[9px] md:text-[10px] font-black text-green-500 uppercase tracking-[0.4em] md:tracking-[0.5em]">Upcoming Drops</span>
+              </div>
+              <h2 className="text-4xl sm:text-5xl md:text-8xl font-serif italic text-white tracking-tighter">Limited Releases</h2>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-10">
+            {drops.map((drop) => {
+              const startTime = new Date(drop.startTime);
+              const isLive = startTime <= new Date();
+              
+              return (
+                <div key={drop.id} className="group relative bg-zinc-900/40 border border-white/5 rounded-[2rem] p-8 hover:border-green-500/30 transition-all overflow-hidden">
+                  <div className="absolute top-0 right-0 p-6">
+                    <div className={`px-4 py-1 rounded-full text-[8px] font-black uppercase tracking-widest ${isLive ? 'bg-green-500 text-white' : 'bg-zinc-800 text-zinc-400'}`}>
+                      {isLive ? 'LIVE' : 'UPCOMING'}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-6 relative z-10">
+                    <div className="space-y-2">
+                      <div className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{drop.rarity} DROP</div>
+                      <h3 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tighter">{drop.name}</h3>
+                      <p className="text-zinc-500 text-xs font-medium leading-relaxed line-clamp-2">{drop.description}</p>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-4 border-t border-white/5">
+                      <div className="space-y-1">
+                        <div className="text-[8px] font-black text-zinc-600 uppercase tracking-widest">Release Date</div>
+                        <div className="text-sm font-mono text-white">{startTime.toLocaleDateString()} {startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                      <button 
+                        onClick={() => onNavigate(ViewState.FAMOUS)}
+                        className="h-10 px-6 bg-white text-black text-[8px] font-black uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all rounded-full"
+                      >
+                        {isLive ? 'ENTER_DROP' : 'SET_REMINDER'}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {/* Background Glow */}
+                  <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-green-500/5 blur-[80px] group-hover:bg-green-500/10 transition-all"></div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {/* New Arrivals Grid */}
       <section className="max-w-screen-2xl mx-auto px-4 sm:px-12 md:px-20 py-16 sm:py-20 md:py-32">

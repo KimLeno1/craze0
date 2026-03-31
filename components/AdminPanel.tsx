@@ -15,7 +15,29 @@ import AdminPayForMeManager from './AdminPayForMeManager';
 import AdminPromoManager from './AdminPromoManager';
 import AdminMetricsView from './AdminMetricsView';
 import AdminJackpotManager from './AdminJackpotManager';
-
+import AdminDropManager from './AdminDropManager';
+import AdminWalletView from './AdminWalletView';
+import { 
+  LayoutDashboard, 
+  Package, 
+  Users, 
+  Settings, 
+  Shield, 
+  Database, 
+  Bell, 
+  TrendingUp, 
+  Truck, 
+  Trophy, 
+  Ticket, 
+  Zap, 
+  Handshake, 
+  Calendar,
+  LogOut,
+  Menu,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
+ 
 interface AdminPanelProps {
   onExit: () => void;
   onNavigate: (view: ViewState) => void;
@@ -24,7 +46,8 @@ interface AdminPanelProps {
 }
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpot, currentJackpotId }) => {
-  const [activeTab, setActiveTab] = useState<'METRICS' | 'INVENTORY' | 'JACKPOT' | 'ORDERS' | 'DATABASE' | 'SUPPLIERS' | 'PROMOS' | 'SECURITY' | 'PRICE_ANOMALY' | 'KITS' | 'NOTIFICATIONS' | 'SPONSORSHIPS'>('METRICS');
+  const [activeTab, setActiveTab] = useState<'METRICS' | 'INVENTORY' | 'JACKPOT' | 'DROPS' | 'ORDERS' | 'DATABASE' | 'SUPPLIERS' | 'PROMOS' | 'SECURITY' | 'PRICE_ANOMALY' | 'KITS' | 'NOTIFICATIONS' | 'SPONSORSHIPS' | 'TREASURY'>('METRICS');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
   const [localOrders, setLocalOrders] = useState<Order[]>([]);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -60,21 +83,31 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
   return (
     <div className="fixed inset-0 z-[300] bg-[#020202] text-white flex flex-col font-mono overflow-hidden">
       <div className="h-14 bg-zinc-950 border-b border-white/10 px-8 flex items-center justify-between text-[10px] font-black uppercase tracking-[0.3em]">
-        <span>SYSTEM_OVERRIDE_ACTIVE</span>
+        <div className="flex items-center gap-6">
+          <button 
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="p-2 hover:bg-white/5 rounded-lg transition-all border border-white/5"
+          >
+            <Menu className="w-4 h-4 text-white" />
+          </button>
+          <span>SYSTEM_OVERRIDE_ACTIVE</span>
+        </div>
         <button onClick={onExit} className="text-red-500 hover:bg-red-500 hover:text-white px-4 py-2 transition-all border border-red-500/20">
           TERMINATE_SESSION
         </button>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
-        <aside className="w-64 bg-black border-r border-white/5 flex flex-col p-4 space-y-2">
+        <aside className={`${isSidebarOpen ? 'w-64' : 'w-0 opacity-0 pointer-events-none'} bg-black border-r border-white/5 flex flex-col p-4 space-y-2 overflow-y-auto transition-all duration-300 scrollbar-hide`}>
           {[
             { id: 'METRICS', label: 'Analytics', icon: '📊' },
             { id: 'INVENTORY', label: 'Inventory', icon: '👕' },
             { id: 'JACKPOT', label: 'Jackpot Prize', icon: '🏆' },
+            { id: 'DROPS', label: 'Drops', icon: '📅' },
             { id: 'ORDERS', label: 'Orders', icon: '🚚' },
             { id: 'DATABASE', label: 'Database', icon: '🗄️' },
             { id: 'SUPPLIERS', label: 'Suppliers', icon: '🏢' },
+            { id: 'TREASURY', label: 'Treasury', icon: '🏦' },
             { id: 'PROMOS', label: 'Promos', icon: '🎟️' },
             { id: 'KITS', label: 'Synergy Kits', icon: '📦' },
             { id: 'PRICE_ANOMALY', label: 'Global Reduction', icon: '⚡' },
@@ -103,6 +136,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
               onSetJackpot={onSetJackpot} 
             />
           )}
+          {activeTab === 'DROPS' && <AdminDropManager />}
           {activeTab === 'INVENTORY' && (
             <div className="grid gap-4">
               {localProducts.map(p => (
@@ -150,6 +184,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onExit, onNavigate, onSetJackpo
           {activeTab === 'ORDERS' && <AdminOrderManager orders={localOrders} onUpdateStatus={handleUpdateOrderStatus} />}
           {activeTab === 'DATABASE' && <AdminDatabaseView />}
           { activeTab === 'SUPPLIERS' && <AdminSupplierPanel /> }
+          { activeTab === 'TREASURY' && <AdminWalletView /> }
           { activeTab === 'PROMOS' && <AdminPromoManager /> }
           { activeTab === 'PRICE_ANOMALY' && <AdminPriceAnomalyManager /> }
           { activeTab === 'KITS' && <AdminKitManager /> }

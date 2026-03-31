@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Product, Supplier, Order, OrderStatus } from '../types';
 import { databaseService } from '../services/databaseService';
 import SupplierProductEditor from './SupplierProductEditor';
+import SupplierWalletView from './SupplierWalletView';
 import { Package, LayoutDashboard, ShoppingBag, User, LogOut, CheckCircle, Clock, Truck, XCircle, Settings, Zap } from 'lucide-react';
 
 interface SupplierDashboardProps {
@@ -10,7 +11,7 @@ interface SupplierDashboardProps {
   onLogout: () => void;
 }
 
-type Tab = 'DASHBOARD' | 'PRODUCTS' | 'ORDERS' | 'ANOMALIES';
+type Tab = 'DASHBOARD' | 'PRODUCTS' | 'ORDERS' | 'ANOMALIES' | 'WALLET';
 
 const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLogout }) => {
   const [supplier, setSupplier] = useState<Supplier | null>(null);
@@ -505,6 +506,13 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
             <Zap size={20} />
             <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">Global Reduction</span>
           </button>
+          <button 
+            onClick={() => setActiveTab('WALLET')}
+            className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all ${activeTab === 'WALLET' ? 'bg-[#f59e0b] text-black shadow-lg shadow-[#f59e0b]/20' : 'text-zinc-500 hover:bg-white/5 hover:text-white'}`}
+          >
+            <div className="w-5 h-5 flex items-center justify-center text-lg">🏦</div>
+            <span className="text-[10px] font-black uppercase tracking-widest hidden md:block">Wallet</span>
+          </button>
         </nav>
 
         <div className="p-4 border-t border-[#f59e0b]/10">
@@ -552,6 +560,7 @@ const SupplierDashboard: React.FC<SupplierDashboardProps> = ({ supplierId, onLog
           {activeTab === 'PRODUCTS' && renderProducts()}
           {activeTab === 'ORDERS' && renderOrders()}
           {activeTab === 'ANOMALIES' && renderAnomalies()}
+          {activeTab === 'WALLET' && <SupplierWalletView supplierId={supplierId} />}
         </main>
 
         {/* Footer Marquee */}

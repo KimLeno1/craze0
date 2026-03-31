@@ -15,7 +15,8 @@ const AdminSupplierPanel: React.FC = () => {
   const [newSupplier, setNewSupplier] = useState({
     name: '',
     contactEmail: '',
-    region: 'Neo Tokyo Central'
+    region: 'Neo Tokyo Central',
+    commissionRate: 10
   });
 
   useEffect(() => {
@@ -32,7 +33,19 @@ const AdminSupplierPanel: React.FC = () => {
     const updated = await databaseService.registerSupplier(newSupplier);
     setSuppliers(updated);
     setIsRegistering(false);
-    setNewSupplier({ name: '', contactEmail: '', region: 'Neo Tokyo Central' });
+    setNewSupplier({ name: '', contactEmail: '', region: 'Neo Tokyo Central', commissionRate: 10 });
+  };
+
+  const handleUpdateCommission = async (supplierId: string, rate: number) => {
+    try {
+      await databaseService.updateSupplierCommission(supplierId, rate);
+      setSuppliers(prev => prev.map(s => s.id === supplierId ? { ...s, commissionRate: rate } : s));
+      if (selectedSupplier?.id === supplierId) {
+        setSelectedSupplier(prev => prev ? { ...prev, commissionRate: rate } : null);
+      }
+    } catch (error) {
+      console.error('Error updating commission:', error);
+    }
   };
 
   const supplierProducts = allProducts.filter(p => p.supplierId === selectedSupplier?.id);
@@ -66,6 +79,18 @@ const AdminSupplierPanel: React.FC = () => {
              <div className="bg-zinc-950 px-8 py-4 rounded-2xl border border-white/5 flex flex-col items-center">
                 <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Revenue Yield</span>
                 <span className="text-xl font-mono font-black text-white">GH₵{selectedSupplier.totalRevenueYield.toLocaleString()}</span>
+             </div>
+             <div className="bg-zinc-950 px-8 py-4 rounded-2xl border border-white/5 flex flex-col items-center">
+                <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Commission Rate</span>
+                <div className="flex items-center gap-2 mt-1">
+                  <input 
+                    type="number"
+                    value={selectedSupplier.commissionRate || 10}
+                    onChange={(e) => handleUpdateCommission(selectedSupplier.id, parseInt(e.target.value))}
+                    className="w-12 bg-black border border-white/10 rounded text-center text-sm font-mono font-black text-[#00D1FF] outline-none"
+                  />
+                  <span className="text-sm font-mono font-black text-[#00D1FF]">%</span>
+                </div>
              </div>
              <div className="bg-zinc-950 px-8 py-4 rounded-2xl border border-white/5 flex flex-col items-center">
                 <span className="text-[8px] font-black text-zinc-600 uppercase tracking-widest mb-1">Performance Sync</span>
@@ -208,6 +233,20 @@ const AdminSupplierPanel: React.FC = () => {
                       <option>Emerald Heights</option>
                       <option>Void Outer-Rim</option>
                     </select>
+                 </div>
+
+                 <div className="space-y-2">
+                    <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest px-1">Commission Rate (%)</label>
+                    <input 
+                      type="number" 
+                      required
+                      min={0}
+                      max={100}
+                      value={newSupplier.commissionRate}
+                      onChange={e => setNewSupplier({...newSupplier, commissionRate: parseInt(e.target.value)})}
+                      className="w-full bg-zinc-900 border border-white/10 p-5 rounded-2xl text-xs font-black text-white focus:border-[#00D1FF] outline-none"
+                      placeholder="10"
+                    />
                  </div>
                  
                  <div className="flex gap-4 pt-6">

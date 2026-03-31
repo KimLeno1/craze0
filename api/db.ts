@@ -8,6 +8,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     handle TEXT,
     email TEXT,
+    password TEXT,
     archetype TEXT,
     rep INTEGER,
     level INTEGER,
@@ -16,7 +17,8 @@ db.exec(`
     status TEXT,
     lastLogin TEXT,
     totalSpent INTEGER,
-    loyaltyPoints INTEGER DEFAULT 0
+    loyaltyPoints INTEGER DEFAULT 0,
+    joinedAt INTEGER
   );
 
   CREATE TABLE IF NOT EXISTS quiz_results (
@@ -71,7 +73,24 @@ db.exec(`
     totalRevenueYield INTEGER,
     joinedDate TEXT,
     rating REAL DEFAULT 5.0,
-    activeProducts INTEGER DEFAULT 0
+    activeProducts INTEGER DEFAULT 0,
+    commissionRate REAL DEFAULT 0.10
+  );
+
+  CREATE TABLE IF NOT EXISTS wallets (
+    id TEXT PRIMARY KEY, -- User ID or Supplier ID
+    balance INTEGER DEFAULT 0,
+    updatedAt TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS wallet_transactions (
+    id TEXT PRIMARY KEY,
+    walletId TEXT,
+    amount INTEGER,
+    type TEXT, -- 'EARNING', 'PAYOUT', 'COMMISSION'
+    description TEXT,
+    timestamp TEXT,
+    orderId TEXT
   );
 
   CREATE TABLE IF NOT EXISTS orders (
@@ -81,7 +100,8 @@ db.exec(`
     status TEXT,
     timestamp TEXT,
     items JSON,
-    tracking TEXT
+    tracking TEXT,
+    paystackReference TEXT
   );
 
   CREATE TABLE IF NOT EXISTS notifications (
@@ -128,11 +148,14 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS pay_for_me_requests (
     id TEXT PRIMARY KEY,
     userId TEXT,
-    productId TEXT,
+    items JSON,
+    total INTEGER,
     status TEXT,
     timestamp TEXT,
     message TEXT,
-    targetEmail TEXT
+    targetEmail TEXT,
+    payerName TEXT,
+    payerContact TEXT
   );
 
   CREATE TABLE IF NOT EXISTS social_posts (
@@ -266,6 +289,21 @@ db.exec(`
     eventId TEXT,
     startTime INTEGER,
     endTime INTEGER
+  );
+
+  CREATE TABLE IF NOT EXISTS withdrawals (
+    id TEXT PRIMARY KEY,
+    userId TEXT,
+    amount INTEGER,
+    bankCode TEXT,
+    bankName TEXT,
+    accountNumber TEXT,
+    accountName TEXT,
+    recipientCode TEXT,
+    transferCode TEXT,
+    reference TEXT,
+    status TEXT,
+    timestamp TEXT
   );
 `);
 

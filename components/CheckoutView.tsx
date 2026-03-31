@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
+import PaystackPop from '@paystack/inline-js';
 import { CartItem, ViewState, OrderStatus, PromoCode } from '../types';
+import { databaseService } from '../services/databaseService';
 
 interface CheckoutViewProps {
   items: CartItem[];
@@ -34,12 +36,14 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
   const [step, setStep] = useState<'GEO_ZONING' | 'LOGISTICS' | 'PAYMENT' | 'PROCESSING' | 'SUCCESS'>('GEO_ZONING');
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     phone: '',
     address: '',
     region: '',
     city: '',
     verificationPhrase: ''
   });
+  const [paymentMethod, setPaymentMethod] = useState<'CRYPTO' | 'PAYSTACK'>('CRYPTO');
 
   const rawSubtotal = items.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const totalShipping = items.reduce((acc, item) => acc + ((item.shippingFee || 0) * item.quantity), 0);
@@ -63,14 +67,121 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
     else if (step === 'LOGISTICS') setStep('PAYMENT');
   };
 
-  const handleFinalize = () => {
+  const handleFinalize = async () => {
+    if (paymentMethod === 'PAYSTACK') {
+      handlePaystackPayment();
+      return;
+    }
     if (!formData.verificationPhrase) {
       alert("Terminal Lock: Verification phrase required.");
       return;
     }
     setStep('PROCESSING');
-    setTimeout(() => setStep('SUCCESS'), 3000);
+    
+    try {
+      const orderId = `ord_${Date.now()}`;
+      await databaseService.createOrder({
+        id: orderId,
+        userId: localStorage.getItem('cc-user-id') || 'guest',
+        totalPrice: finalTotal,
+        status: 'PAID',
+        timestamp: new Date().toISOString(),
+        items: items,
+        shippingAddress: JSON.stringify(formData)
+      });
+      setStep('SUCCESS');
+    } catch (error) {
+      console.error("Order Creation Error:", error);
+      alert("Failed to create order. Please try again.");
+      setStep('PAYMENT');
+    }
   };
+
+  const handlePaystackPayment = async () => {
+    if (!formData.email) {
+      alert("Email required for Paystack payment.");
+      return;
+    }
+    
+    setStep('PROCESSING');
+    try {
+      const orderId = `ord_${Date.now()}`;
+      const response = await fetch('/api/paystack/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          amount: finalTotal,
+          metadata: { orderId, items: items.map(i => i.id) }
+        })
+      });
+      
+      const data = await response.json();
+      if (data.status) {
+        // Create order in pending state
+        await databaseService.createOrder({
+          id: orderId,
+          userId: localStorage.getItem('cc-user-id') || 'guest',
+          totalPrice: finalTotal,
+          status: 'PENDING_PAYMENT',
+          timestamp: new Date().toISOString(),
+          items: items,
+          shippingAddress: JSON.stringify(formData),
+          paystackReference: data.data.reference
+        });
+
+        // Use Paystack Popup
+        const popup = new PaystackPop();
+        popup.resumeTransaction(data.data.access_code, {
+          onSuccess: (transaction: any) => {
+            console.log('Payment successful', transaction);
+            verifyPayment(transaction.reference);
+          },
+          onCancel: () => {
+            console.log('Payment cancelled');
+            setStep('PAYMENT');
+          }
+        });
+      } else {
+        alert("Paystack Initialization Failed: " + (data.message || "Unknown error"));
+        setStep('PAYMENT');
+      }
+    } catch (error) {
+      console.error("Payment Error:", error);
+      alert("Payment Error. Check console.");
+      setStep('PAYMENT');
+    }
+  };
+
+  const verifyPayment = async (reference: string) => {
+    setStep('PROCESSING');
+    try {
+      const response = await fetch(`/api/paystack/verify/${reference}`);
+      const data = await response.json();
+      if (data.status && data.data.status === 'success') {
+        setStep('SUCCESS');
+      } else {
+        alert("Payment verification failed.");
+        setStep('PAYMENT');
+      }
+    } catch (error) {
+      console.error("Verification error:", error);
+      setStep('PAYMENT');
+    }
+  };
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const reference = urlParams.get('reference');
+    const trxref = urlParams.get('trxref');
+    
+    if (reference || trxref) {
+      const ref = reference || trxref;
+      if (ref) verifyPayment(ref);
+      // Clear URL params
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
 
   if (step === 'PROCESSING') {
     return (
@@ -236,20 +347,26 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                   <p className="text-[8px] sm:text-[10px] font-black text-zinc-500 uppercase tracking-[0.4em]">Designate Physical Handover Point</p>
                </div>
                
-               <div className="space-y-4 sm:space-y-6">
+                <div className="space-y-4 sm:space-y-6">
                   <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
                     <div className="space-y-2">
                       <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Archiver Name</label>
                       <input type="text" required value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#00D1FF] outline-none placeholder:text-zinc-800" placeholder="LEGAL_IDENTIFIER" />
                     </div>
                     <div className="space-y-2">
+                      <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Email Address</label>
+                      <input type="email" required value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#00D1FF] outline-none placeholder:text-zinc-800" placeholder="ARCHIVE@NODE.NET" />
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="space-y-2">
                       <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Uplink (Phone)</label>
                       <input type="tel" required value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#00D1FF] outline-none placeholder:text-zinc-800" placeholder="+233 XX XXX XXXX" />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Spatial Coordinates</label>
-                    <textarea required rows={3} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#00D1FF] outline-none resize-none placeholder:text-zinc-800" placeholder="STREET / APARTMENT / LANDMARK" />
+                    <div className="space-y-2">
+                      <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest px-2">Spatial Coordinates</label>
+                      <textarea required rows={1} value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} className="w-full bg-zinc-950 border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-[10px] sm:text-xs font-black text-white focus:border-[#00D1FF] outline-none resize-none placeholder:text-zinc-800" placeholder="STREET / APARTMENT / LANDMARK" />
+                    </div>
                   </div>
                </div>
 
@@ -268,6 +385,23 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                </div>
 
                <div className="bg-zinc-950 border border-white/5 p-6 sm:p-10 rounded-[2rem] sm:rounded-[4rem] space-y-6 sm:space-y-8">
+                  <div className="grid grid-cols-2 gap-4">
+                    <button 
+                      onClick={() => setPaymentMethod('CRYPTO')}
+                      className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${paymentMethod === 'CRYPTO' ? 'bg-white border-white text-black' : 'bg-black border-white/10 text-zinc-500'}`}
+                    >
+                      <span className="text-2xl">⚡</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest">Crypto Sync</span>
+                    </button>
+                    <button 
+                      onClick={() => setPaymentMethod('PAYSTACK')}
+                      className={`p-4 rounded-2xl border transition-all flex flex-col items-center gap-2 ${paymentMethod === 'PAYSTACK' ? 'bg-[#00D1FF] border-[#00D1FF] text-white' : 'bg-black border-white/10 text-zinc-500'}`}
+                    >
+                      <span className="text-2xl">💳</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest">Paystack</span>
+                    </button>
+                  </div>
+
                   <div className="flex justify-between text-[8px] sm:text-[10px] font-black uppercase tracking-[0.2em] text-zinc-600">
                     <span>Dest Node</span>
                     <span className="text-white">{formData.city}, {formData.region}</span>
@@ -276,10 +410,22 @@ const CheckoutView: React.FC<CheckoutViewProps> = ({ items, onComplete, onCancel
                     <span>Authorized Value</span>
                     <span className="text-[#00D1FF] font-mono text-lg sm:text-xl">GH₵{finalTotal}</span>
                   </div>
-                  <div className="pt-4 border-t border-white/5 space-y-3 sm:space-y-4">
-                    <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest block px-2 text-center">Verify Secret Phrase</label>
-                    <input type="password" required value={formData.verificationPhrase} onChange={e => setFormData({...formData, verificationPhrase: e.target.value})} className="w-full bg-black border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-xs sm:text-sm text-center font-black text-white focus:border-[#00D1FF] outline-none" placeholder="••••••••••••" />
-                  </div>
+                  
+                  {paymentMethod === 'CRYPTO' ? (
+                    <div className="pt-4 border-t border-white/5 space-y-3 sm:space-y-4">
+                      <label className="text-[8px] sm:text-[9px] font-black text-zinc-600 uppercase tracking-widest block px-2 text-center">Verify Secret Phrase</label>
+                      <input type="password" required value={formData.verificationPhrase} onChange={e => setFormData({...formData, verificationPhrase: e.target.value})} className="w-full bg-black border border-white/10 p-4 sm:p-6 rounded-[1.5rem] sm:rounded-[2rem] text-xs sm:text-sm text-center font-black text-white focus:border-[#00D1FF] outline-none" placeholder="••••••••••••" />
+                    </div>
+                  ) : (
+                    <div className="pt-4 border-t border-white/5 text-center space-y-2">
+                      <p className="text-[7px] font-black text-zinc-500 uppercase tracking-widest">Redirecting to Paystack Secure Gateway</p>
+                      <div className="flex justify-center gap-2">
+                        <span className="w-2 h-2 bg-[#00D1FF] rounded-full animate-bounce"></span>
+                        <span className="w-2 h-2 bg-[#00D1FF] rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                        <span className="w-2 h-2 bg-[#00D1FF] rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                      </div>
+                    </div>
+                  )}
                </div>
 
                <div className="flex flex-col gap-4 sm:gap-6">

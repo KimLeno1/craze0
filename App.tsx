@@ -35,6 +35,7 @@ import StyleQuiz from './components/StyleQuiz';
 import { EXTENDED_PRODUCTS, MOCK_BUNDLES } from './mockData';
 import { databaseService } from './services/databaseService';
 import { getCurrentRank } from './data/rankingSystem';
+import { Toaster, toast } from 'sonner';
 import { Product, CartItem, Page, ViewState, UserStats, Notification, PromoCode, Bundle, UserPreferences } from './types';
 
 const App: React.FC = () => {
@@ -72,6 +73,7 @@ const App: React.FC = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<any>('All');
   const [products, setProducts] = useState<Product[]>([]);
+  const [drops, setDrops] = useState<any[]>([]);
   
   const [rep, setRep] = useState<number>(8500);
   const [handle, setHandle] = useState<string>(() => localStorage.getItem('cc-user-handle') || 'Viper_X');
@@ -210,13 +212,35 @@ const App: React.FC = () => {
 
   const [jackpotProductId, setJackpotProductId] = useState<string>(() => localStorage.getItem('cc-weekly-jackpot') || '1');
 
-  // Live Activity Simulator
+  // Live Activity
   const [activeUsers, setActiveUsers] = useState(1024);
+
+  // WebSocket Connection
   useEffect(() => {
-    const interval = setInterval(() => {
-      setActiveUsers(prev => prev + (Math.random() > 0.5 ? 1 : -1) * Math.floor(Math.random() * 5));
-    }, 4000);
-    return () => clearInterval(interval);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}`;
+    const socket = new WebSocket(wsUrl);
+
+    socket.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'USER_COUNT') {
+          setActiveUsers(data.count);
+        } else if (data.type === 'SOCIAL_PROOF') {
+          toast(data.message, {
+            description: 'Real-time activity',
+            icon: '🔥',
+          });
+        } else if (data.type === 'ACTIVITY') {
+          // Optional: show subtle activity feed or just log
+          console.log('Live Activity:', data.message);
+        }
+      } catch (e) {
+        console.error('WS Message Error:', e);
+      }
+    };
+
+    return () => socket.close();
   }, []);
 
   const currentRank = useMemo(() => getCurrentRank(rep), [rep]);
@@ -256,6 +280,7 @@ const App: React.FC = () => {
       setNotifications(await databaseService.getGlobalNotifications());
       setSocialPosts(await databaseService.getSocialPosts());
       setProducts(await databaseService.getProducts());
+      setDrops(await databaseService.getDrops());
     };
     fetchData();
   }, []);
@@ -491,6 +516,7 @@ const App: React.FC = () => {
             onCompleteQuest={() => {}} 
             limitedOfferEnd={limitedOfferEnd}
             onResetLimitedOffer={resetLimitedOffer}
+            drops={drops}
           />
         );
       case ViewState.FAMOUS:
@@ -588,9 +614,10 @@ const App: React.FC = () => {
       case ViewState.ROLE_SELECTION: return <RoleSelection onSelect={(role) => setCurrentView(role === 'ADMIN' ? ViewState.ADMIN_LOGIN : ViewState.SUPPLIER_LOGIN)} onCancel={() => setCurrentView(ViewState.LOBBY)} />;
       case ViewState.ADMIN: return <AdminPanel onExit={() => setCurrentView(ViewState.LOBBY)} onNavigate={handleNavigateView} onSetJackpot={(id) => { setJackpotProductId(id); localStorage.setItem('cc-weekly-jackpot', id); }} currentJackpotId={jackpotProductId} />;
       case ViewState.SUPPLIER_DASHBOARD: return <SupplierDashboard supplierId={activeSupplierId || 'sup1'} onLogout={() => setCurrentView(ViewState.LOBBY)} />;
-      case ViewState.CHECKOUT: return <CheckoutView items={cart} onComplete={async () => { 
+      case ViewState.CHECKOUT: return <CheckoutView items={cart} onComplete={async (orderDetails) => { 
         // Notify suppliers
-        for (const item of cart) {
+        const itemsToProcess = orderDetails?.items || cart;
+        for (const item of itemsToProcess) {
           if (item.isBundle && item.bundleProducts) {
             for (const p of item.bundleProducts) {
               databaseService.trackAction(stats.userId, p.id, 'purchase');
@@ -617,12 +644,13 @@ const App: React.FC = () => {
         await clearCart();
         setSurgeTimerEnd(null); 
         resetLimitedOffer();
-        gainRep(Math.floor(cart.reduce((acc, item) => acc + item.price * item.quantity, 0) / 10));
-        trackAchievement('a4', Math.floor(cart.reduce((acc, item) => acc + item.price * item.quantity, 0)));
+        const totalValue = orderDetails?.total || cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
+        gainRep(Math.floor(totalValue / 10));
+        trackAchievement('a4', Math.floor(totalValue));
         handleUpdateStats({...stats, tickets: stats.tickets + 2}); 
         setCurrentView(ViewState.LOBBY); 
       }} onCancel={() => setCurrentView(ViewState.LOBBY)} balances={balances} activePromo={activePromo} rank={currentRank} />;
-      default: return <Lobby userId={stats.userId} products={products} stats={stats} userHandle={handle || 'Archiver'} socialPosts={socialPosts} wishlist={wishlist} onNavigate={handleNavigateView} onAddToCart={(id) => { const p = products.find(x => x.id === id); if (p) addToCart(p, p.sizes?.[0]); }} onToggleWishlist={toggleWishlist} onProductClick={(p) => { databaseService.trackAction(stats.userId, p.id, 'view'); setSelectedProduct(p); }} onCompleteQuest={() => {}} isAuthenticated={isAuthenticated} tutorialFinished={tutorialFinished} limitedOfferEnd={limitedOfferEnd} userPrefs={userPrefs} />;
+      default: return <Lobby userId={stats.userId} products={products} stats={stats} userHandle={handle || 'Archiver'} socialPosts={socialPosts} wishlist={wishlist} onNavigate={handleNavigateView} onAddToCart={(id) => { const p = products.find(x => x.id === id); if (p) addToCart(p, p.sizes?.[0]); }} onToggleWishlist={toggleWishlist} onProductClick={(p) => { databaseService.trackAction(stats.userId, p.id, 'view'); setSelectedProduct(p); }} onCompleteQuest={() => {}} isAuthenticated={isAuthenticated} tutorialFinished={tutorialFinished} limitedOfferEnd={limitedOfferEnd} userPrefs={userPrefs} drops={drops} />;
     }
   };
 
@@ -630,6 +658,7 @@ const App: React.FC = () => {
     <div className={`min-h-screen flex flex-col font-sans selection:bg-[#00D1FF] selection:text-white transition-colors duration-500 ${
       theme === 'dark' ? 'bg-[#050505] text-[#FAFAFA]' : 'bg-[#F9F9F9] text-[#1A1A1A]'
     }`}>
+      <Toaster position="top-right" richColors closeButton />
       <Header 
         cartCount={cart.reduce((a, b) => a + b.quantity, 0)} 
         wishlistCount={wishlist.length}

@@ -84,6 +84,7 @@ export interface Supplier {
   performanceScore: number;
   totalRevenueYield: number;
   joinedDate: string;
+  commissionRate?: number;
 }
 
 export interface User {
@@ -335,4 +336,19 @@ export interface UserHistory {
   viewedProductIds: string[];
   wishlistedProductIds: string[];
   purchasedProductIds: string[];
+}
+
+export interface Withdrawal {
+  id: string;
+  userId: string;
+  amount: number;
+  bankName: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  recipientCode: string;
+  transferCode: string;
+  reference: string;
+  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  timestamp: string;
 }

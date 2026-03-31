@@ -15,6 +15,7 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
   const [isSelecting, setIsSelecting] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'ACTIVE' | 'HISTORY'>('ACTIVE');
+  const [paymentLink, setPaymentLink] = useState<{ url: string; requestId: string } | null>(null);
 
   useEffect(() => {
     const fetchRequests = async () => {
@@ -30,19 +31,40 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
     if (!canAddMore) return;
     
     setGeneratingId(product.id);
-    setTimeout(async () => {
-      const newRequest = await databaseService.createPayForMeRequest({
-        userId: userHandle, // Using handle as ID for this mock
+    try {
+      const requestId = `pfm_${Date.now()}`;
+      const newRequest: PayForMeRequest = {
+        id: requestId,
+        userId: userHandle,
         userName: userHandle,
         items: [{ ...product, quantity: 1 }],
         total: product.price,
+        status: PayForMeStatus.PENDING,
+        timestamp: new Date().toISOString(),
         message: `I'd love to have this ${product.name}! Can someone help me out?`
-      });
+      };
+
+      await databaseService.createPayForMeRequest(newRequest);
+      
+      // Initialize Paystack transaction for this request
+      const paystackResponse = await databaseService.initializePaystackTransaction(
+        `${userHandle}@closetkraze.app`, // Fallback email
+        product.price,
+        { payForMeId: requestId, userId: userHandle }
+      );
+
+      if (paystackResponse.data?.authorization_url) {
+        setPaymentLink({ url: paystackResponse.data.authorization_url, requestId });
+      }
       
       setActiveRequests(prev => [newRequest, ...prev]);
-      setGeneratingId(null);
       setIsSelecting(false);
-    }, 1500);
+    } catch (error) {
+      console.error('Failed to initialize sponsorship:', error);
+      alert('Failed to initialize sponsorship protocol. Please try again.');
+    } finally {
+      setGeneratingId(null);
+    }
   };
 
   const handlePayRemaining = async (request: PayForMeRequest) => {
@@ -219,7 +241,7 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
                 wishlistProducts.map(product => (
                   <div key={product.id} className="flex items-center gap-6 p-4 bg-white/5 border border-white/5 rounded-2xl group hover:border-[#EC4899]/30 transition-all">
                     <div className="w-16 h-20 rounded-xl overflow-hidden grayscale group-hover:grayscale-0 transition-all">
-                      <img src={product.image} className="w-full h-full object-cover" />
+                      <img src={product.image} className="w-full h-full object-cover" alt={product.name} />
                     </div>
                     <div className="flex-1">
                       <h4 className="text-sm font-black text-white uppercase">{product.name}</h4>
@@ -236,6 +258,48 @@ const PayForMe: React.FC<PayForMeProps> = ({ rank, wishlistProducts, onCompleteA
                 ))
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Link Modal */}
+      {paymentLink && (
+        <div className="fixed inset-0 z-[400] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-6 animate-in zoom-in-95">
+          <div className="bg-zinc-950 border border-emerald-500/20 w-full max-w-md rounded-[3rem] p-10 text-center space-y-8 shadow-[0_0_100px_rgba(16,185,129,0.1)]">
+            <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto border border-emerald-500/20">
+              <Share2 className="w-8 h-8 text-emerald-500" />
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-3xl font-serif italic text-white">Uplink Established</h2>
+              <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em]">Strategic Payment Channel Active</p>
+            </div>
+            
+            <div className="p-6 bg-black/40 rounded-3xl border border-white/5 space-y-4">
+              <p className="text-[9px] text-emerald-400 font-black uppercase tracking-widest">Share this link with your sponsor</p>
+              <div className="flex items-center gap-2 p-3 bg-zinc-900 rounded-xl border border-white/5">
+                <input 
+                  readOnly 
+                  value={paymentLink.url} 
+                  className="flex-1 bg-transparent text-[10px] font-mono text-zinc-400 outline-none overflow-hidden text-ellipsis"
+                />
+                <button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(paymentLink.url);
+                    alert('Strategic link copied to clipboard!');
+                  }}
+                  className="px-3 py-1.5 bg-white text-black rounded-lg text-[8px] font-black uppercase tracking-widest hover:bg-emerald-500 hover:text-white transition-all"
+                >
+                  Copy
+                </button>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setPaymentLink(null)}
+              className="w-full py-4 bg-white text-black rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] hover:bg-emerald-500 hover:text-white transition-all"
+            >
+              Acknowledge_Protocol
+            </button>
           </div>
         </div>
       )}

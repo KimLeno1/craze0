@@ -1,5 +1,7 @@
 import express from 'express';
 import db from './db.js';
+import axios from 'axios';
+import crypto from 'crypto';
 
 const router = express.Router();
 
@@ -41,18 +43,39 @@ router.post('/auth/signup', (req, res) => {
 });
 
 router.post('/auth/login', (req, res) => {
-  const { email, password } = req.body;
-  const user = db.prepare('SELECT id, handle FROM users WHERE email = ? AND password = ?').get(email, password) as any;
-  if (user) {
-    res.json({ success: true, userId: user.id, handle: user.handle, token: 'true' });
+  const { email, identifier, password, role } = req.body;
+  const loginId = identifier || email;
+
+  if (role === 'ADMIN') {
+    const adminCredsRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('admin_creds') as any;
+    const adminCreds = adminCredsRow ? JSON.parse(adminCredsRow.value) : { identifier: 'leno', password: '1q2w3!' };
+    
+    if (loginId === adminCreds.identifier && password === adminCreds.password) {
+      return res.json({ success: true, token: 'admin-token-' + Date.now(), role: 'ADMIN' });
+    } else {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+  } else if (role === 'SUPPLIER') {
+    const supplier = db.prepare('SELECT * FROM suppliers WHERE id = ? OR name = ?').get(loginId, loginId) as any;
+    if (supplier) {
+      return res.json({ success: true, token: 'supplier-token-' + Date.now(), role: 'SUPPLIER', supplierId: supplier.id });
+    } else {
+      return res.status(401).json({ error: 'Supplier not found' });
+    }
   } else {
-    res.status(401).json({ error: 'Invalid credentials' });
+    // Default to normal user login
+    const user = db.prepare('SELECT id, handle FROM users WHERE email = ? AND password = ?').get(loginId, password) as any;
+    if (user) {
+      return res.json({ success: true, userId: user.id, handle: user.handle, token: 'true' });
+    } else {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
   }
 });
 
 router.get('/auth/check', (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (authHeader === 'true') {
+  const token = req.headers.authorization;
+  if (token && token !== 'undefined' && token !== 'null') {
     res.json({ authenticated: true });
   } else {
     res.json({ authenticated: false });
@@ -87,6 +110,22 @@ router.patch('/users/:id', (req, res) => {
   res.json(user);
 });
 
+router.patch('/users/:id/status', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, id);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  res.json(user);
+});
+
+router.post('/users/:id/rep', (req, res) => {
+  const { id } = req.params;
+  const { amount } = req.body;
+  db.prepare('UPDATE users SET rep = rep + ? WHERE id = ?').run(amount, id);
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+  res.json(user);
+});
+
 router.delete('/users/:id', (req, res) => {
   const { id } = req.params;
   db.prepare('DELETE FROM users WHERE id = ?').run(id);
@@ -112,7 +151,62 @@ router.post('/user-stats/:userId', (req, res) => {
   res.json({ success: true });
 });
 
+router.patch('/user-stats/:userId/achievements/:achievementId', (req, res) => {
+  const { userId, achievementId } = req.params;
+  const { progress } = req.body;
+  
+  const row = db.prepare('SELECT stats FROM user_stats WHERE userId = ?').get(userId) as any;
+  if (row) {
+    const stats = JSON.parse(row.stats);
+    const achievements = stats.achievements || [];
+    const index = achievements.findIndex((a: any) => a.id === achievementId);
+    if (index !== -1) {
+      achievements[index].progress = progress;
+      if (progress >= 100) achievements[index].completed = true;
+    } else {
+      achievements.push({ id: achievementId, progress, completed: progress >= 100 });
+    }
+    stats.achievements = achievements;
+    db.prepare('UPDATE user_stats SET stats = ? WHERE userId = ?').run(JSON.stringify(stats), userId);
+    res.json({ success: true, stats });
+  } else {
+    res.status(404).json({ error: 'Stats not found' });
+  }
+});
+
 // --- PRODUCTS ---
+router.get('/products/velocity-heat', (req, res) => {
+  const products = db.prepare('SELECT * FROM products ORDER BY velocityScore DESC LIMIT 10').all();
+  res.json(products.map((p: any) => ({ 
+    ...p, 
+    tags: JSON.parse(p.tags || '[]'),
+    details: JSON.parse(p.details || '[]'),
+    sizes: JSON.parse(p.sizes || '[]'),
+    priceRange: JSON.parse(p.priceRange || '{"min":0,"max":0}'),
+    customizationFields: JSON.parse(p.customizationFields || '[]'),
+    isCustom: !!p.isCustom,
+    inStock: !!p.inStock,
+    isHallOfFame: !!p.isHallOfFame,
+    isNew: !!p.isNew
+  })));
+});
+
+router.get('/products/hall-of-fame', (req, res) => {
+  const products = db.prepare('SELECT * FROM products WHERE isHallOfFame = 1').all();
+  res.json(products.map((p: any) => ({ 
+    ...p, 
+    tags: JSON.parse(p.tags || '[]'),
+    details: JSON.parse(p.details || '[]'),
+    sizes: JSON.parse(p.sizes || '[]'),
+    priceRange: JSON.parse(p.priceRange || '{"min":0,"max":0}'),
+    customizationFields: JSON.parse(p.customizationFields || '[]'),
+    isCustom: !!p.isCustom,
+    inStock: !!p.inStock,
+    isHallOfFame: !!p.isHallOfFame,
+    isNew: !!p.isNew
+  })));
+});
+
 router.get('/products', (req, res) => {
   const { supplierId } = req.query;
   let products;
@@ -188,6 +282,22 @@ router.patch('/products/:id', (req, res) => {
   res.json(product);
 });
 
+router.patch('/products/:id/hype', (req, res) => {
+  const { id } = req.params;
+  const { hypeScore } = req.body;
+  db.prepare('UPDATE products SET hypeScore = ? WHERE id = ?').run(hypeScore, id);
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+  res.json(product);
+});
+
+router.patch('/products/:id/hall-of-fame', (req, res) => {
+  const { id } = req.params;
+  const { isHallOfFame } = req.body;
+  db.prepare('UPDATE products SET isHallOfFame = ? WHERE id = ?').run(isHallOfFame ? 1 : 0, id);
+  const product = db.prepare('SELECT * FROM products WHERE id = ?').get(id);
+  res.json(product);
+});
+
 router.delete('/products/:id', (req, res) => {
   const { id } = req.params;
   const product = db.prepare('SELECT supplierId FROM products WHERE id = ?').get(id) as any;
@@ -219,10 +329,17 @@ router.get('/suppliers/:id', (req, res) => {
 });
 
 router.post('/suppliers', (req, res) => {
-  const { id, name, contactEmail, region, status, performanceScore, totalRevenueYield, joinedDate, rating, activeProducts } = req.body;
+  const { id, name, contactEmail, region, status, performanceScore, totalRevenueYield, joinedDate, rating, activeProducts, commissionRate } = req.body;
   db.prepare(
-    'INSERT OR REPLACE INTO suppliers (id, name, contactEmail, region, status, performanceScore, totalRevenueYield, joinedDate, rating, activeProducts) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, name, contactEmail, region, status, performanceScore, totalRevenueYield, joinedDate, rating || 5.0, activeProducts || 0);
+    'INSERT OR REPLACE INTO suppliers (id, name, contactEmail, region, status, performanceScore, totalRevenueYield, joinedDate, rating, activeProducts, commissionRate) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, name, contactEmail, region, status, performanceScore, totalRevenueYield, joinedDate, rating || 5.0, activeProducts || 0, commissionRate || 0.10);
+  res.json({ success: true });
+});
+
+router.patch('/suppliers/:id/commission', (req, res) => {
+  const { id } = req.params;
+  const { commissionRate } = req.body;
+  db.prepare('UPDATE suppliers SET commissionRate = ? WHERE id = ?').run(commissionRate, id);
   res.json({ success: true });
 });
 
@@ -252,10 +369,10 @@ router.get('/orders', (req, res) => {
 });
 
 router.post('/orders', (req, res) => {
-  const { id, userId, totalPrice, status, timestamp, items } = req.body;
+  const { id, userId, totalPrice, status, timestamp, items, paystackReference } = req.body;
   db.prepare(
-    'INSERT OR REPLACE INTO orders (id, userId, totalPrice, status, timestamp, items) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(id, userId, totalPrice, status, timestamp, JSON.stringify(items));
+    'INSERT OR REPLACE INTO orders (id, userId, totalPrice, status, timestamp, items, paystackReference) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, userId, totalPrice, status, timestamp, JSON.stringify(items), paystackReference);
   res.json({ success: true });
 });
 
@@ -269,20 +386,38 @@ router.patch('/orders/:id/status', (req, res) => {
   db.transaction(() => {
     db.prepare('UPDATE orders SET status = ? WHERE id = ?').run(status, id);
 
-    // If status changed to DELIVERED, update supplier revenue
+    // If status changed to DELIVERED, update supplier revenue and distribute earnings
     if (status === 'DELIVERED' && oldOrder.status !== 'DELIVERED') {
       const items = JSON.parse(oldOrder.items);
-      const supplierRevenues: Record<string, number> = {};
+      const timestamp = new Date().toISOString();
       
       items.forEach((item: any) => {
         if (item.supplierId) {
-          supplierRevenues[item.supplierId] = (supplierRevenues[item.supplierId] || 0) + (item.price * (item.quantity || 1));
+          const revenue = (item.price * (item.quantity || 1));
+          
+          // Get supplier commission rate
+          const supplier = db.prepare('SELECT commissionRate FROM suppliers WHERE id = ?').get(item.supplierId) as any;
+          const commissionRate = supplier ? supplier.commissionRate : 0.10;
+          
+          const adminCommission = Math.floor(revenue * commissionRate);
+          const supplierEarning = revenue - adminCommission;
+          
+          // Update Supplier Wallet
+          db.prepare('INSERT OR IGNORE INTO wallets (id, balance, updatedAt) VALUES (?, 0, ?)').run(item.supplierId, timestamp);
+          db.prepare('UPDATE wallets SET balance = balance + ?, updatedAt = ? WHERE id = ?').run(supplierEarning, timestamp, item.supplierId);
+          db.prepare('INSERT INTO wallet_transactions (id, walletId, amount, type, description, timestamp, orderId) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .run(`tx_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, item.supplierId, supplierEarning, 'EARNING', `Sale: ${item.name}`, timestamp, id);
+          
+          // Update Admin Wallet
+          db.prepare('INSERT OR IGNORE INTO wallets (id, balance, updatedAt) VALUES (?, 0, ?)').run('ADMIN_WALLET', timestamp);
+          db.prepare('UPDATE wallets SET balance = balance + ?, updatedAt = ? WHERE id = ?').run(adminCommission, timestamp, 'ADMIN_WALLET');
+          db.prepare('INSERT INTO wallet_transactions (id, walletId, amount, type, description, timestamp, orderId) VALUES (?, ?, ?, ?, ?, ?, ?)')
+            .run(`tx_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`, 'ADMIN_WALLET', adminCommission, 'COMMISSION', `Commission: ${item.name} from ${item.supplierId}`, timestamp, id);
+
+          // Legacy revenue update
+          db.prepare('UPDATE suppliers SET totalRevenueYield = totalRevenueYield + ? WHERE id = ?').run(revenue, item.supplierId);
         }
       });
-
-      for (const [sId, revenue] of Object.entries(supplierRevenues)) {
-        db.prepare('UPDATE suppliers SET totalRevenueYield = totalRevenueYield + ? WHERE id = ?').run(revenue, sId);
-      }
     }
 
     // Update performance score for involved suppliers
@@ -308,8 +443,36 @@ router.patch('/orders/:id/status', (req, res) => {
 });
 
 // --- NOTIFICATIONS ---
+router.post('/notifications/supplier', (req, res) => {
+  const { supplierId, title, message } = req.body;
+  const id = `notif_${Date.now()}`;
+  db.prepare(
+    'INSERT INTO notifications (id, title, message, type, target, timestamp, read, recipientId) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+  ).run(id, title, message, 'INFO', 'SUPPLIER', new Date().toISOString(), 0, supplierId);
+  res.json({ success: true });
+});
+
 router.get('/notifications', (req, res) => {
-  const notifications = db.prepare('SELECT * FROM notifications').all();
+  const { recipientId, target } = req.query;
+  let query = 'SELECT * FROM notifications';
+  const params: any[] = [];
+  
+  if (recipientId || target) {
+    query += ' WHERE ';
+    const conditions = [];
+    if (recipientId) {
+      conditions.push('recipientId = ?');
+      params.push(recipientId);
+    }
+    if (target) {
+      conditions.push('target = ?');
+      params.push(target);
+    }
+    query += conditions.join(' OR ');
+  }
+  
+  query += ' ORDER BY timestamp DESC';
+  const notifications = db.prepare(query).all(...params);
   res.json(notifications);
 });
 
@@ -394,6 +557,28 @@ router.get('/price-anomalies', (req, res) => {
     anomalies = db.prepare('SELECT * FROM price_anomalies').all();
   }
   res.json(anomalies);
+});
+
+router.get('/anomalies', (req, res) => {
+  const { supplierId, userId } = req.query;
+  let url = '/api/price-anomalies';
+  if (supplierId) url += `?supplierId=${supplierId}`;
+  else if (userId) url += `?userId=${userId}`;
+  res.redirect(url);
+});
+
+router.post('/price-anomalies', (req, res) => {
+  const { id, productId, anomalyEndTime, discountPercent, price } = req.body;
+  db.prepare(
+    'INSERT OR REPLACE INTO price_anomalies (id, productId, anomalyEndTime, discountPercent, price) VALUES (?, ?, ?, ?, ?)'
+  ).run(id, productId, anomalyEndTime, discountPercent, price);
+  res.json({ success: true });
+});
+
+router.delete('/price-anomalies/:id', (req, res) => {
+  const { id } = req.params;
+  db.prepare('DELETE FROM price_anomalies WHERE id = ?').run(id);
+  res.json({ success: true });
 });
 
 router.get('/admin/anomaly-config', (req, res) => {
@@ -516,69 +701,153 @@ router.post('/user-history/:userId', (req, res) => {
   res.json({ success: true });
 });
 
-// --- AUTHENTICATION ---
-router.post('/auth/login', (req, res) => {
-  const { identifier, password, role } = req.body;
+router.post('/user-history/:userId/track', (req, res) => {
+  const { userId } = req.params;
+  const { productId, action } = req.body;
   
-  if (role === 'ADMIN') {
-    const adminCredsRow = db.prepare('SELECT value FROM settings WHERE key = ?').get('admin_creds') as any;
-    const adminCreds = adminCredsRow ? JSON.parse(adminCredsRow.value) : { identifier: 'leno', password: '1q2w3!' };
-    
-    if (identifier === adminCreds.identifier && password === adminCreds.password) {
-      res.json({ success: true, token: 'admin-token-' + Date.now(), role: 'ADMIN' });
-    } else {
-      res.status(401).json({ error: 'Invalid credentials' });
+  const row = db.prepare('SELECT history FROM user_history WHERE userId = ?').get(userId) as any;
+  let history = row ? JSON.parse(row.history) : { viewedProductIds: [], wishlistedProductIds: [], purchasedProductIds: [] };
+  
+  if (action === 'view') {
+    if (!history.viewedProductIds.includes(productId)) {
+      history.viewedProductIds.push(productId);
     }
-  } else if (role === 'SUPPLIER') {
-    // For now, just check if supplier exists or use a simple check
-    const supplier = db.prepare('SELECT * FROM suppliers WHERE id = ? OR name = ?').get(identifier, identifier) as any;
-    if (supplier) {
-      res.json({ success: true, token: 'supplier-token-' + Date.now(), role: 'SUPPLIER', supplierId: supplier.id });
-    } else {
-      res.status(401).json({ error: 'Supplier not found' });
+  } else if (action === 'wishlist') {
+    if (!history.wishlistedProductIds.includes(productId)) {
+      history.wishlistedProductIds.push(productId);
     }
-  } else {
-    res.status(400).json({ error: 'Invalid role' });
+  } else if (action === 'purchase') {
+    if (!history.purchasedProductIds.includes(productId)) {
+      history.purchasedProductIds.push(productId);
+    }
   }
+  
+  db.prepare('INSERT OR REPLACE INTO user_history (userId, history) VALUES (?, ?)').run(userId, JSON.stringify(history));
+  res.json({ success: true, history });
 });
 
-router.get('/auth/check', (req, res) => {
-  const token = req.headers.authorization;
-  if (token) {
-    res.json({ authenticated: true });
-  } else {
-    res.status(401).json({ authenticated: false });
-  }
-});
-
-router.post('/auth/logout', (req, res) => {
-  res.json({ success: true });
-});
-
-// --- PAY FOR ME ---
+// --- SETTINGS ---
 router.get('/pay-for-me', (req, res) => {
-  const requests = db.prepare('SELECT * FROM pay_for_me_requests').all();
-  res.json(requests);
+  const requests = db.prepare(`
+    SELECT 
+      pfr.*, 
+      u.handle as userName
+    FROM pay_for_me_requests pfr
+    JOIN users u ON pfr.userId = u.id
+    ORDER BY pfr.timestamp DESC
+  `).all() as any[];
+
+  const formattedRequests = requests.map(r => ({
+    ...r,
+    items: JSON.parse(r.items || '[]'),
+    total: r.total,
+    status: r.status,
+    timestamp: r.timestamp,
+    message: r.message,
+    targetEmail: r.targetEmail,
+    payerName: r.payerName,
+    payerContact: r.payerContact
+  }));
+
+  res.json(formattedRequests);
 });
 
 router.post('/pay-for-me', (req, res) => {
-  const { id, userId, productId, status, timestamp, message, targetEmail } = req.body;
-  db.prepare(
-    'INSERT OR REPLACE INTO pay_for_me_requests (id, userId, productId, status, timestamp, message, targetEmail) VALUES (?, ?, ?, ?, ?, ?, ?)'
-  ).run(id, userId, productId, status, timestamp, message, targetEmail);
+  const { id, userId, items, total, status, timestamp, message, targetEmail, payerName, payerContact } = req.body;
+  db.prepare(`
+    INSERT OR REPLACE INTO pay_for_me_requests 
+    (id, userId, items, total, status, timestamp, message, targetEmail, payerName, payerContact) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, userId, JSON.stringify(items), total, status, timestamp, message, targetEmail, payerName, payerContact);
   res.json({ success: true });
 });
 
-router.patch('/pay-for-me/:id', (req, res) => {
+router.patch('/pay-for-me/:id/status', (req, res) => {
   const { id } = req.params;
   const { status } = req.body;
   db.prepare('UPDATE pay_for_me_requests SET status = ? WHERE id = ?').run(status, id);
-  res.json({ success: true });
+  
+  // Return updated list
+  const requests = db.prepare(`
+    SELECT 
+      pfr.*, 
+      u.handle as userName
+    FROM pay_for_me_requests pfr
+    JOIN users u ON pfr.userId = u.id
+    ORDER BY pfr.timestamp DESC
+  `).all() as any[];
+
+  const formattedRequests = requests.map(r => ({
+    ...r,
+    items: JSON.parse(r.items || '[]'),
+    total: r.total,
+    status: r.status,
+    timestamp: r.timestamp,
+    message: r.message,
+    targetEmail: r.targetEmail,
+    payerName: r.payerName,
+    payerContact: r.payerContact
+  }));
+
+  res.json(formattedRequests);
 });
 
 router.delete('/pay-for-me/:id', (req, res) => {
   const { id } = req.params;
   db.prepare('DELETE FROM pay_for_me_requests WHERE id = ?').run(id);
+  res.json({ success: true });
+});
+
+// --- DROPS ---
+router.get('/drops', (req, res) => {
+  const drops = db.prepare('SELECT * FROM drops WHERE isActive = 1 ORDER BY startTime ASC').all() as any[];
+  res.json(drops.map(d => ({ ...d, productIds: JSON.parse(d.productIds || '[]') })));
+});
+
+router.post('/drops', (req, res) => {
+  const { id, name, description, startTime, endTime, productIds, rarity } = req.body;
+  db.prepare(`
+    INSERT OR REPLACE INTO drops (id, name, description, startTime, endTime, productIds, isActive, rarity)
+    VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+  `).run(id || `drop_${Date.now()}`, name, description, startTime, endTime, JSON.stringify(productIds || []), rarity || 'COMMON');
+  res.json({ success: true });
+});
+
+router.delete('/drops/:id', (req, res) => {
+  const { id } = req.params;
+  db.prepare('UPDATE drops SET isActive = 0 WHERE id = ?').run(id);
+  res.json({ success: true });
+});
+
+// --- WALLETS ---
+router.get('/wallets/:id', (req, res) => {
+  const { id } = req.params;
+  const wallet = db.prepare('SELECT * FROM wallets WHERE id = ?').get(id) as any;
+  const transactions = db.prepare('SELECT * FROM wallet_transactions WHERE walletId = ? ORDER BY timestamp DESC').all(id);
+  
+  res.json({
+    id,
+    balance: wallet ? wallet.balance : 0,
+    transactions: transactions || []
+  });
+});
+
+router.post('/wallets/:id/payout', (req, res) => {
+  const { id } = req.params;
+  const { amount, description } = req.body;
+  const timestamp = new Date().toISOString();
+  
+  db.transaction(() => {
+    const wallet = db.prepare('SELECT balance FROM wallets WHERE id = ?').get(id) as any;
+    if (!wallet || wallet.balance < amount) {
+      throw new Error('Insufficient balance');
+    }
+    
+    db.prepare('UPDATE wallets SET balance = balance - ?, updatedAt = ? WHERE id = ?').run(amount, timestamp, id);
+    db.prepare('INSERT INTO wallet_transactions (id, walletId, amount, type, description, timestamp) VALUES (?, ?, ?, ?, ?, ?)')
+      .run(`tx_${Date.now()}`, id, -amount, 'PAYOUT', description || 'Payout', timestamp);
+  })();
+  
   res.json({ success: true });
 });
 
@@ -903,7 +1172,7 @@ router.get('/user/profile/:userId', (req, res) => {
 
 router.patch('/user/profile/:userId', (req, res) => {
   const { userId } = req.params;
-  const { handle, rep, stats, preferences } = req.body;
+  const { handle, rep, stats, preferences, coins, gems, level, status, totalSpent, loyaltyPoints } = req.body;
   
   db.transaction(() => {
     if (handle !== undefined) {
@@ -912,11 +1181,39 @@ router.patch('/user/profile/:userId', (req, res) => {
     if (rep !== undefined) {
       db.prepare('UPDATE users SET rep = ? WHERE id = ?').run(rep, userId);
     }
+    if (status !== undefined) {
+      db.prepare('UPDATE users SET status = ? WHERE id = ?').run(status, userId);
+    }
     if (stats !== undefined) {
       db.prepare('INSERT OR REPLACE INTO user_stats (userId, stats) VALUES (?, ?)').run(userId, JSON.stringify(stats));
     }
     if (preferences !== undefined) {
       db.prepare('INSERT OR REPLACE INTO user_preferences (userId, preferences) VALUES (?, ?)').run(userId, JSON.stringify(preferences));
+    }
+    
+    // Update stats if individual fields are provided
+    if (coins !== undefined || gems !== undefined || level !== undefined || totalSpent !== undefined || loyaltyPoints !== undefined) {
+      const row = db.prepare('SELECT stats FROM user_stats WHERE userId = ?').get(userId) as any;
+      const currentStats = row ? JSON.parse(row.stats) : {
+        userId,
+        level: 1,
+        xp: 0,
+        coins: 0,
+        gems: 0,
+        totalSpent: 0,
+        loyaltyPoints: 0,
+        ordersCount: 0,
+        achievements: [],
+        rank: 'Novice'
+      };
+      
+      if (coins !== undefined) currentStats.coins = coins;
+      if (gems !== undefined) currentStats.gems = gems;
+      if (level !== undefined) currentStats.level = level;
+      if (totalSpent !== undefined) currentStats.totalSpent = totalSpent;
+      if (loyaltyPoints !== undefined) currentStats.loyaltyPoints = loyaltyPoints;
+      
+      db.prepare('INSERT OR REPLACE INTO user_stats (userId, stats) VALUES (?, ?)').run(userId, JSON.stringify(currentStats));
     }
   })();
   
@@ -1080,6 +1377,287 @@ router.get('/user/try-on/:userId', (req, res) => {
   const { userId } = req.params;
   const history = db.prepare('SELECT * FROM try_on_history WHERE userId = ? ORDER BY timestamp DESC').all();
   res.json(history);
+});
+
+// --- PAYSTACK ---
+router.post('/paystack/initialize', async (req, res) => {
+  const { email, amount, metadata } = req.body;
+  const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+
+  if (!PAYSTACK_SECRET_KEY) {
+    return res.status(500).json({ error: 'Paystack secret key not configured' });
+  }
+
+  try {
+    const response = await axios.post('https://api.paystack.co/transaction/initialize', {
+      email,
+      amount: Math.round(amount * 100), // Paystack expects amount in kobo
+      metadata,
+    }, {
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
+        'Content-Type': 'application/json'
+      }
+    });
+
+    res.json(response.data);
+  } catch (error: any) {
+    console.error('Paystack Initialization Error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to initialize Paystack transaction' });
+  }
+});
+
+router.post('/paystack/webhook', (req, res) => {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) return res.status(500).send('Secret not configured');
+
+  const hash = crypto.createHmac('sha512', secret).update(JSON.stringify(req.body)).digest('hex');
+  if (hash !== req.headers['x-paystack-signature']) {
+    return res.status(401).send('Invalid signature');
+  }
+
+  const event = req.body;
+  if (event.event === 'charge.success') {
+    const { reference, metadata, customer } = event.data;
+    const orderId = metadata?.orderId;
+    const payForMeId = metadata?.payForMeId;
+
+    if (orderId) {
+      const order = db.prepare('SELECT totalPrice FROM orders WHERE id = ?').get(orderId) as any;
+      if (order && Math.round(order.totalPrice * 100) === event.data.amount) {
+        db.prepare('UPDATE orders SET status = ?, paystackReference = ? WHERE id = ?')
+          .run('PAID', reference, orderId);
+      } else {
+        console.error('Amount mismatch in webhook for order', { orderId, expected: order?.totalPrice * 100, actual: event.data.amount });
+      }
+    }
+
+    if (payForMeId) {
+      const request = db.prepare('SELECT total FROM pay_for_me_requests WHERE id = ?').get(payForMeId) as any;
+      if (request && Math.round(request.total * 100) === event.data.amount) {
+        const payerName = metadata?.payerName || customer?.first_name || 'Anonymous Sponsor';
+        const payerContact = metadata?.payerContact || customer?.email;
+        
+        db.prepare('UPDATE pay_for_me_requests SET status = ?, payerName = ?, payerContact = ? WHERE id = ?')
+          .run('PAID', payerName, payerContact, payForMeId);
+      } else {
+        console.error('Amount mismatch in webhook for pay-for-me', { payForMeId, expected: request?.total * 100, actual: event.data.amount });
+      }
+    }
+  } else if (event.event === 'transfer.success') {
+    const { transfer_code, reference, amount } = event.data;
+    const withdrawal = db.prepare('SELECT amount, status FROM withdrawals WHERE transferCode = ? OR reference = ?').get(transfer_code, reference) as any;
+    
+    if (withdrawal && withdrawal.status === 'PENDING') {
+      if (Math.round(withdrawal.amount * 100) === amount) {
+        db.prepare('UPDATE withdrawals SET status = ? WHERE transferCode = ? OR reference = ?')
+          .run('SUCCESS', transfer_code, reference);
+      } else {
+        console.error('Transfer success amount mismatch', { transfer_code, reference, expected: withdrawal?.amount * 100, actual: amount });
+      }
+    }
+  } else if (event.event === 'transfer.failed' || event.event === 'transfer.reversed') {
+    const { transfer_code, reference, amount } = event.data;
+    const status = event.event === 'transfer.failed' ? 'FAILED' : 'REVERSED';
+    
+    const withdrawal = db.prepare('SELECT userId, amount, status FROM withdrawals WHERE transferCode = ? OR reference = ?').get(transfer_code, reference) as any;
+    
+    if (withdrawal && withdrawal.status === 'PENDING') {
+      if (Math.round(withdrawal.amount * 100) === amount) {
+        db.prepare('UPDATE withdrawals SET status = ? WHERE transferCode = ? OR reference = ?')
+          .run(status, transfer_code, reference);
+        // Refund balance
+        db.prepare('UPDATE wallets SET balance = balance + ?, updatedAt = ? WHERE id = ?')
+          .run(withdrawal.amount, new Date().toISOString(), withdrawal.userId);
+      } else {
+        console.error('Transfer failed/reversed amount mismatch', { transfer_code, reference, expected: withdrawal?.amount * 100, actual: amount });
+      }
+    }
+  }
+
+  res.sendStatus(200);
+});
+
+router.get('/paystack/verify/:reference', async (req, res) => {
+  const { reference } = req.params;
+  const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
+
+  if (!PAYSTACK_SECRET_KEY) {
+    return res.status(500).json({ error: 'Paystack secret key not configured' });
+  }
+
+  try {
+    const response = await axios.get(`https://api.paystack.co/transaction/verify/${reference}`, {
+      headers: {
+        Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`
+      }
+    });
+
+    if (response.data.data.status === 'success') {
+      const orderId = response.data.data.metadata?.orderId;
+      if (orderId) {
+        const order = db.prepare('SELECT totalPrice FROM orders WHERE id = ?').get(orderId) as any;
+        if (order && Math.round(order.totalPrice * 100) === response.data.data.amount) {
+          db.prepare('UPDATE orders SET status = ?, paystackReference = ? WHERE id = ?')
+            .run('PAID', reference, orderId);
+        } else {
+          console.error('Amount mismatch during Paystack verification', { orderId, expected: order?.totalPrice * 100, actual: response.data.data.amount });
+          return res.status(400).json({ error: 'Amount mismatch' });
+        }
+      }
+    }
+
+    res.json(response.data);
+  } catch (error: any) {
+    console.error('Paystack Verification Error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to verify Paystack transaction' });
+  }
+});
+
+// --- PAYSTACK WITHDRAWAL ---
+router.get('/paystack/banks', async (req, res) => {
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) return res.status(500).json({ error: 'Secret not configured' });
+
+  try {
+    const response = await axios.get('https://api.paystack.co/bank?currency=GHS', {
+      headers: { Authorization: `Bearer ${secret}` }
+    });
+    res.json(response.data);
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch banks' });
+  }
+});
+
+router.get('/paystack/resolve-account', async (req, res) => {
+  const account_number = req.query.account_number || req.query.accountNumber;
+  const bank_code = req.query.bank_code || req.query.bankCode;
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) return res.status(500).json({ error: 'Secret not configured' });
+
+  try {
+    const response = await axios.get(`https://api.paystack.co/bank/resolve?account_number=${account_number}&bank_code=${bank_code}`, {
+      headers: { Authorization: `Bearer ${secret}` }
+    });
+    res.json(response.data);
+  } catch (error: any) {
+    res.status(400).json({ error: 'Could not resolve account' });
+  }
+});
+
+router.post('/paystack/withdraw', async (req, res) => {
+  const { userId, amount, bankCode, bankName, accountNumber, accountName, type = 'ghipss', currency = 'GHS' } = req.body;
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) return res.status(500).json({ error: 'Secret not configured' });
+
+  // 1. Check balance
+  const wallet = db.prepare('SELECT balance FROM wallets WHERE id = ?').get(userId) as any;
+  if (!wallet || wallet.balance < amount) {
+    return res.status(400).json({ error: 'Insufficient balance' });
+  }
+
+  const reference = `wd_${crypto.randomUUID()}`;
+
+  try {
+    // 2. Create Transfer Recipient
+    const recipientResponse = await axios.post('https://api.paystack.co/transferrecipient', {
+      type,
+      name: accountName,
+      account_number: accountNumber,
+      bank_code: bankCode,
+      currency
+    }, {
+      headers: { Authorization: `Bearer ${secret}` }
+    });
+
+    const recipientCode = recipientResponse.data.data.recipient_code;
+
+    // 3. Initiate Transfer
+    const transferResponse = await axios.post('https://api.paystack.co/transfer', {
+      source: 'balance',
+      amount: Math.round(amount * 100),
+      recipient: recipientCode,
+      reason: 'Wallet Withdrawal',
+      reference
+    }, {
+      headers: { Authorization: `Bearer ${secret}` }
+    });
+
+    const transferData = transferResponse.data.data;
+
+    // 4. Record withdrawal and deduct balance (optimistic)
+    db.prepare(`
+      INSERT INTO withdrawals (id, userId, amount, bankCode, bankName, accountNumber, accountName, recipientCode, transferCode, reference, status, timestamp)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(
+      `wd_${Date.now()}`,
+      userId,
+      amount,
+      bankCode,
+      bankName,
+      accountNumber,
+      accountName,
+      recipientCode,
+      transferData.transfer_code,
+      reference,
+      'PENDING',
+      new Date().toISOString()
+    );
+
+    db.prepare('UPDATE wallets SET balance = balance - ?, updatedAt = ? WHERE id = ?')
+      .run(amount, new Date().toISOString(), userId);
+
+    res.json({ success: true, message: 'Withdrawal initiated', reference });
+  } catch (error: any) {
+    console.error('Withdrawal Error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Withdrawal failed' });
+  }
+});
+
+router.get('/paystack/transfer/verify/:reference', async (req, res) => {
+  const { reference } = req.params;
+  const secret = process.env.PAYSTACK_SECRET_KEY;
+  if (!secret) return res.status(500).json({ error: 'Secret not configured' });
+
+  try {
+    const response = await axios.get(`https://api.paystack.co/transfer/verify/${reference}`, {
+      headers: { Authorization: `Bearer ${secret}` }
+    });
+
+    const transferData = response.data.data;
+    const status = transferData.status.toUpperCase(); // SUCCESS, FAILED, REVERSED, PENDING
+    const transfer_code = transferData.transfer_code;
+
+    if (status === 'SUCCESS' || status === 'FAILED' || status === 'REVERSED') {
+      const withdrawal = db.prepare('SELECT userId, amount, status FROM withdrawals WHERE reference = ?').get(reference) as any;
+      
+      if (withdrawal && withdrawal.status === 'PENDING') {
+        db.prepare('UPDATE withdrawals SET status = ?, transferCode = ? WHERE reference = ?')
+          .run(status, transfer_code, reference);
+
+        if (status === 'FAILED' || status === 'REVERSED') {
+          // Refund balance
+          db.prepare('UPDATE wallets SET balance = balance + ?, updatedAt = ? WHERE id = ?')
+            .run(withdrawal.amount, new Date().toISOString(), withdrawal.userId);
+        }
+      }
+    }
+
+    res.json(response.data);
+  } catch (error: any) {
+    console.error('Transfer Verification Error:', error.response?.data || error.message);
+    res.status(500).json({ error: 'Failed to verify transfer' });
+  }
+});
+
+router.get('/paystack/withdrawals/:userId', (req, res) => {
+  const { userId } = req.params;
+  try {
+    const withdrawals = db.prepare('SELECT * FROM withdrawals WHERE userId = ? ORDER BY timestamp DESC').all(userId);
+    res.json(withdrawals);
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch withdrawals' });
+  }
 });
 
 export default router;

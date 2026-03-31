@@ -1,4 +1,4 @@
-import { Product, User, Supplier, Notification, PromoCode, Order, OrderStatus, Bundle, PayForMeRequest, PayForMeStatus, UserStats, UserPreferences, UserHistory, UserPost, SocialComment, SocialInteraction } from '../types';
+import { Product, User, Supplier, Notification, PromoCode, Order, OrderStatus, Bundle, PayForMeRequest, PayForMeStatus, UserStats, UserPreferences, UserHistory, UserPost, SocialComment, SocialInteraction, Withdrawal } from '../types';
 
 const API_BASE = '/api';
 const ADMIN_API_BASE = '/api/admin';
@@ -187,6 +187,73 @@ export const databaseService = {
     return await handleResponse(response);
   },
 
+  updateSupplierCommission: async (supplierId: string, commissionRate: number) => {
+    const response = await fetch(`${API_BASE}/suppliers/${supplierId}/commission`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ commissionRate })
+    });
+    return await handleResponse(response);
+  },
+
+  // --- WALLETS ---
+  getWallet: async (id: string): Promise<any> => {
+    const response = await fetch(`${API_BASE}/wallets/${id}`);
+    return await handleResponse(response);
+  },
+
+  requestPayout: async (id: string, amount: number, description: string) => {
+    const response = await fetch(`${API_BASE}/wallets/${id}/payout`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount, description })
+    });
+    return await handleResponse(response);
+  },
+
+  getBanks: async () => {
+    const response = await fetch(`${API_BASE}/paystack/banks`);
+    return await handleResponse(response);
+  },
+
+  resolveAccount: async (accountNumber: string, bankCode: string) => {
+    const response = await fetch(`${API_BASE}/paystack/resolve-account?account_number=${accountNumber}&bank_code=${bankCode}`);
+    return await handleResponse(response);
+  },
+
+  withdrawFunds: async (data: { userId: string; amount: number; bankCode: string; bankName: string; accountNumber: string; accountName: string }) => {
+    const response = await fetch(`${API_BASE}/paystack/withdraw`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return await handleResponse(response);
+  },
+
+  getWithdrawals: async (userId: string): Promise<Withdrawal[]> => {
+    const response = await fetch(`${API_BASE}/paystack/withdrawals/${userId}`);
+    return await handleResponse(response);
+  },
+
+  verifyTransfer: async (reference: string) => {
+    const response = await fetch(`${API_BASE}/paystack/transfer/verify/${reference}`);
+    return await handleResponse(response);
+  },
+
+  initializePaystackTransaction: async (email: string, amount: number, metadata: any) => {
+    const response = await fetch(`${API_BASE}/paystack/initialize`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, amount, metadata })
+    });
+    return await handleResponse(response);
+  },
+
+  verifyPaystackTransaction: async (reference: string) => {
+    const response = await fetch(`${API_BASE}/paystack/verify/${reference}`);
+    return await handleResponse(response);
+  },
+
   // --- QUIZ ---
   saveQuizResults: async (userId: string, results: any) => {
     const response = await fetch(`${API_BASE}/quiz/results`, {
@@ -312,6 +379,15 @@ export const databaseService = {
     }
   },
 
+  createOrder: async (order: any) => {
+    const response = await fetch(`${API_BASE}/orders`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(order)
+    });
+    return await handleResponse(response);
+  },
+
   updateOrderStatus: async (orderId: string, status: OrderStatus, trackingNumber?: string) => {
     const response = await fetch(`${API_BASE}/orders/${orderId}/status`, {
       method: 'PATCH',
@@ -433,6 +509,28 @@ export const databaseService = {
 
   deleteBundle: async (id: string) => {
     const response = await fetch(`${API_BASE}/bundles/${id}`, { method: 'DELETE' });
+    return await handleResponse(response);
+  },
+
+  // --- DROPS ---
+  getDrops: async (): Promise<any[]> => {
+    const response = await fetch(`${API_BASE}/drops`);
+    return await handleResponse(response);
+  },
+
+  createDrop: async (drop: any) => {
+    const response = await fetch(`${API_BASE}/drops`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(drop)
+    });
+    return await handleResponse(response);
+  },
+
+  deleteDrop: async (id: string) => {
+    const response = await fetch(`${API_BASE}/drops/${id}`, {
+      method: 'DELETE'
+    });
     return await handleResponse(response);
   },
 
