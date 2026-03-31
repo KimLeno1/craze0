@@ -1071,7 +1071,7 @@ router.get('/admin/metrics', (req, res) => {
   try {
     const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get() as any;
     const totalOrders = db.prepare('SELECT COUNT(*) as count FROM orders').get() as any;
-    const totalRevenue = db.prepare('SELECT SUM(totalPrice) as sum FROM orders WHERE status != "CANCELLED"').get() as any;
+    const totalRevenue = db.prepare("SELECT SUM(totalPrice) as sum FROM orders WHERE status != 'CANCELLED'").get() as any;
     const activeAnomalies = db.prepare('SELECT COUNT(*) as count FROM price_anomalies').get() as any;
     const totalProducts = db.prepare('SELECT COUNT(*) as count FROM products').get() as any;
     
@@ -1079,7 +1079,7 @@ router.get('/admin/metrics', (req, res) => {
     const revenueOverTime = db.prepare(`
       SELECT strftime('%Y-%m-%d', timestamp) as date, SUM(totalPrice) as revenue 
       FROM orders 
-      WHERE status != "CANCELLED" 
+      WHERE status != 'CANCELLED' 
       GROUP BY date 
       ORDER BY date DESC 
       LIMIT 12
